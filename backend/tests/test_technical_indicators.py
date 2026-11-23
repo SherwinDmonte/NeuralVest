@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 from app.analysis import technical_indicators as ti
+from tests.reference_indicators import ref_ema, ref_macd, ref_rsi, ref_sma
 
 FIXTURE = Path(__file__).parent / "fixtures" / "synthetic_prices_1y.csv"
 
@@ -15,32 +16,6 @@ FIXTURE = Path(__file__).parent / "fixtures" / "synthetic_prices_1y.csv"
 @pytest.fixture
 def frame() -> pd.DataFrame:
     return pd.read_csv(FIXTURE, index_col="date", parse_dates=True)
-
-
-# ---------------------------------------------------------------- reference implementations
-def ref_sma(values, n):
-    return [None if i + 1 < n else sum(values[i + 1 - n:i + 1]) / n for i in range(len(values))]
-
-
-def ref_ema(values, span):
-    alpha, out, prev = 2 / (span + 1), [], None
-    for i, v in enumerate(values):
-        prev = v if prev is None else alpha * v + (1 - alpha) * prev
-        out.append(prev if i + 1 >= span else None)
-    return out
-
-
-def ref_rsi(values, n=14):
-    gains = [max(values[i] - values[i - 1], 0) for i in range(1, len(values))]
-    losses = [max(values[i - 1] - values[i], 0) for i in range(1, len(values))]
-    out = [None] * len(values)
-    ag, al = sum(gains[:n]) / n, sum(losses[:n]) / n
-    out[n] = 100 - 100 / (1 + ag / al)
-    for i in range(n + 1, len(values)):
-        ag = (ag * (n - 1) + gains[i - 1]) / n
-        al = (al * (n - 1) + losses[i - 1]) / n
-        out[i] = 100 - 100 / (1 + ag / al)
-    return out
 
 
 def assert_close(series: pd.Series, reference: list, tol=1e-9):
@@ -83,6 +58,13 @@ def test_rsi_edge_cases():
     assert ti.rsi(pd.Series([10.0] * 20)).iloc[-1] == 50.0  # flat
     assert ti.rsi(pd.Series(np.arange(1.0, 21.0))).iloc[-1] == 100.0  # only gains
     assert ti.rsi(pd.Series([1.0, 2.0])).isna().all()  # too short
+
+
+def test_macd_matches_reference(frame):
+    line, signal = ref_macd(frame["close"].tolist())
+    m = ti.macd(frame["close"])
+    assert_close(m["macd"], line)
+    assert_close(m["macd_signal"], signal)
 
 
 def test_macd_relationships(frame):
@@ -148,3 +130,15 @@ def test_corporate_action_detection(frame):
     split = frame.copy()
     split.loc[split.index[100:], "adjusted_close"] = split.loc[split.index[100:], "close"] / 2
     assert "split" in ti.corporate_action_warning(split)
+    assert split.index[100].strftime("%Y-%m-%d") in ti.corporate_action_warning(split)
+
+
+def test_regular_dividends_are_not_flagged(frame):
+    # ~3% dividend twice a year over the period: the ratio drifts ~6% in total, but never
+    # jumps more than 3% in a day (the INFY case seen in the Phase 6 dashboard).
+    dividends = frame.copy()
+    factor = pd.Series(1.0, index=frame.index)
+    factor.iloc[:60] *= 1.03
+    factor.iloc[:180] *= 1.03
+    dividends["adjusted_close"] = frame["close"] / factor
+    assert ti.corporate_action_warning(dividends) is None

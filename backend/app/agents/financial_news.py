@@ -131,12 +131,13 @@ def run_financial_news(
         relevant = [a for a in out.articles if a.relevance != "low"] or out.articles
         items = [{"date": a.published_at.date().isoformat() if a.published_at else "unknown",
                   "sentiment": a.sentiment, "relevance": a.relevance, "summary": a.summary} for a in relevant]
-        if llm is not None:
+        if llm is not None and len(items) >= 2:
             result = llm.generate_structured(p.news_digest_prompt(company_name, out.symbol, items),
                                              p.NewsDigestOutput, fallback)
             out.digest, out.digest_source = result.value.digest, result.source
             llm_meta.append(result.metadata())
         else:
+            # One article (or no LLM): a digest would only repeat it, so use the factual count.
             out.digest, out.digest_source = fallback().digest, "template"
     else:
         out.digest = f"No recent news found for {company_name} in the last {lookback_days} days."

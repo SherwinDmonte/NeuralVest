@@ -72,7 +72,7 @@ def bulk_upsert(db: Database, models: Iterable[MongoDocument], key_fields: Seque
     return totals
 
 
-def _serialize(doc: dict[str, Any]) -> dict[str, Any]:
+def serialize_document(doc: dict[str, Any]) -> dict[str, Any]:
     """Make a raw MongoDB document JSON-friendly (ObjectId -> str, _id -> id)."""
     out: dict[str, Any] = {}
     for key, value in doc.items():
@@ -81,9 +81,9 @@ def _serialize(doc: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(value, ObjectId):
             out[key] = str(value)
         elif isinstance(value, list):
-            out[key] = [str(v) if isinstance(v, ObjectId) else _serialize(v) if isinstance(v, dict) else v for v in value]
+            out[key] = [str(v) if isinstance(v, ObjectId) else serialize_document(v) if isinstance(v, dict) else v for v in value]
         elif isinstance(value, dict):
-            out[key] = _serialize(value)
+            out[key] = serialize_document(value)
         else:
             out[key] = value
     return out
@@ -108,7 +108,7 @@ def find_page(
     cursor = coll.find(query, projection)
     if sort:
         cursor = cursor.sort(sort)
-    items = [_serialize(d) for d in cursor.skip((page - 1) * page_size).limit(page_size)]
+    items = [serialize_document(d) for d in cursor.skip((page - 1) * page_size).limit(page_size)]
     return {
         "items": items,
         "page": page,
@@ -120,4 +120,4 @@ def find_page(
 
 def find_one(db: Database, collection: str, query: dict[str, Any]) -> dict[str, Any] | None:
     doc = db[collection].find_one(query)
-    return _serialize(doc) if doc else None
+    return serialize_document(doc) if doc else None

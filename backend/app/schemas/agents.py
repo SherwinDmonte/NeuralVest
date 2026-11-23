@@ -50,6 +50,8 @@ class MarketResearchOutput(AgentEnvelope):
     trend: dict[str, Any] = Field(default_factory=dict)
     benchmark_comparison: dict[str, Any] | None = None
     validation: dict[str, Any] = Field(default_factory=dict)
+    # Interpretations computed by Python rules (always correct); shown above the AI text.
+    readings: dict[str, str] = Field(default_factory=dict)
     explanation: str | None = None
 
 

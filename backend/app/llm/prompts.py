@@ -144,8 +144,9 @@ def market_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
     system = (
         "You explain technical indicators of an Indian stock to a beginner investor. "
         "Write 3 to 5 short sentences in plain English, using ONLY the values in the JSON facts. "
-        "Mention the trend classification and what RSI and MACD suggest. Copy numbers exactly as "
-        "given or leave them out. Return JSON with one field: explanation. " + SAFETY_RULES
+        "Mention the trend classification, RSI, MACD and the benchmark comparison. The fields ending "
+        "in _reading are the correct interpretation: restate them, never contradict or reinterpret them. "
+        "Copy numbers exactly as given or leave them out. Return JSON with one field: explanation. " + SAFETY_RULES
     )
     user = "Facts (computed by NeuralVest, JSON):\n" + json.dumps(facts, default=str, separators=(",", ":"))
     return PromptSpec(name="market_explanation", system=system, user=user, max_tokens=260,
@@ -161,6 +162,9 @@ def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExp
             parts.append(f"RSI (14) is {facts['rsi_14']}.")
         if facts.get("macd_histogram") is not None:
             parts.append(f"The MACD histogram is {facts['macd_histogram']}.")
+        for key in ("rsi_reading", "macd_reading", "long_term_reading", "benchmark_reading"):
+            if facts.get(key):
+                parts.append(facts[key][0].upper() + facts[key][1:] + ".")
         parts.append("This explanation was generated without the AI model.")
         return MarketExplanationOutput(explanation=" ".join(parts))
     return build

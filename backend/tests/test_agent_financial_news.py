@@ -83,10 +83,14 @@ def test_all_sources_down_fails(tmp_path):
 
 def test_article_limit(tmp_path):
     s = Settings(_env_file=None, data_cache_dir=tmp_path, max_news_articles_llm=1)
-    out = fn.run_financial_news("RELIANCE.NS", "Reliance Industries Limited", llm=FakeLLM(), include_gdelt=False,
+    llm = FakeLLM()
+    out = fn.run_financial_news("RELIANCE.NS", "Reliance Industries Limited", llm=llm, include_gdelt=False,
                                 settings=s, transport=news_transport())
     assert out.articles_analyzed == 1 and out.articles_collected > 1
     assert any("most relevant" in w for w in out.warnings)
+    # One article: no LLM digest (it would only repeat the summary); factual digest instead.
+    assert "news_digest" not in llm.calls and out.digest_source == "template"
+    assert out.digest.startswith("1 recent article")
 
 
 @pytest.mark.integration
