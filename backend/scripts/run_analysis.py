@@ -113,10 +113,24 @@ def main() -> int:
             print(f"  unavailable: {[(k, mt[k]['reason']) for k in sa.get('unavailable', [])]}")
             print(f"  strengths {sa['strengths']} | weaknesses {sa['weaknesses']}")
             print(f"  explanation: {sa['explanation']}")
+        rk = ((final.get("risk_analysis") or {}).get("per_symbol") or {}).get(symbol)
+        if rk:
+            md = rk.get("max_drawdown") or {}
+            print(f"Risk ({rk['status']}, {rk['window'].get('observations')} days): {rk['risk_classification']} | "
+                  f"vol {rk['annualized_volatility_pct']}% | beta {rk['beta'].get('value')} ({rk['market_sensitivity']}) | "
+                  f"max drawdown {md.get('max_drawdown_pct')}% {md.get('peak_date')}->{md.get('trough_date')} "
+                  f"recovered={md.get('recovered')} | Sharpe {rk['sharpe'].get('value')} {rk['sharpe'].get('reason') or ''}")
+            print(f"  explanation: {rk.get('explanation')}")
         mr_out = final["market_analysis"][symbol]
         print(f"LLM: market={mr_out.get('llm')}")
         print(f"     news={final['news_analysis'].get(symbol, {}).get('llm')}")
         for w in mr_out.get("warnings", []) + final["news_analysis"].get(symbol, {}).get("warnings", []):
+            print(f"  warning: {w}")
+    portfolio = (final.get("risk_analysis") or {}).get("portfolio")
+    if portfolio:
+        print(f"\nPortfolio view: correlation {portfolio['correlation'].get('matrix')} | "
+              f"concentration {portfolio['concentration']} | diversification {portfolio['diversification']}")
+        for w in portfolio.get("warnings", []):
             print(f"  warning: {w}")
     for e in final["errors"]:
         print(f"ERROR [{e['agent']}] {e['symbol']}: {e['message']}")

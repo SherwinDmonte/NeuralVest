@@ -225,6 +225,20 @@ JWT_SECRET=<generate-locally>
 JWT_EXPIRE_MINUTES=60
 ```
 
+### Risk-free rate (Phase 8, decision D4)
+
+The Sharpe ratio needs a risk-free rate. NeuralVest does not fetch it automatically; you enter it so its value, date and source are always known (they are saved with every risk report).
+
+1. Open the RBI website press releases (rbi.org.in → Press Releases) and search for **"Treasury Bills: Full Auction Result"**.
+2. Open the most recent release and find the **91-day** bill's **cut-off yield** (an annual % yield, e.g. `5.5747`).
+3. In `backend/.env` set all three lines (example values; use the ones you find):
+   ```dotenv
+   RISK_FREE_RATE_PCT=5.5747
+   RISK_FREE_RATE_DATE=2026-10-07
+   RISK_FREE_RATE_SOURCE=RBI 91-day T-bill auction cut-off yield
+   ```
+4. Restart the backend. Until all three are set, Sharpe ratios show "unavailable" and `risk_reports` documents are not written. Update the rate occasionally (e.g. monthly).
+
 Generate a JWT secret locally in Phase 11:
 
 ```powershell

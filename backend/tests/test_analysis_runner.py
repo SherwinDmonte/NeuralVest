@@ -1,7 +1,7 @@
 """Background runner + analysis API, against the test database with fake data/LLM."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,9 +14,11 @@ from app.data import news_data as nd
 from app.database import models as m
 from app.database.repository import insert_document
 from app.main import create_app
+from app.orchestration import graph as graph_module
 from app.orchestration.graph import build_graph
 from app.services import analysis_runner as ar
-from tests.agent_fakes import FakeLLM, news_transport, patch_fundamentals, patch_market_data, synthetic_history
+from tests.agent_fakes import (FakeLLM, news_transport, patch_benchmark, patch_fundamentals, patch_market_data,
+                               synthetic_history)
 
 pytestmark = pytest.mark.integration
 
@@ -25,8 +27,11 @@ pytestmark = pytest.mark.integration
 def runner(clean_db, tmp_path, monkeypatch):
     patch_market_data(monkeypatch, mr)
     patch_fundamentals(monkeypatch, sa)
+    patch_benchmark(monkeypatch, graph_module)
     monkeypatch.setattr(nd, "utc_now", lambda: datetime(2026, 11, 22, tzinfo=UTC))
-    settings = get_settings().model_copy(update={"data_cache_dir": tmp_path})
+    settings = get_settings().model_copy(update={"data_cache_dir": tmp_path, "risk_free_rate_pct": 6.0,
+                                                 "risk_free_rate_date": date(2026, 11, 20),
+                                                 "risk_free_rate_source": "test rate"})
     llm = FakeLLM()
     r = ar.AnalysisRunner(clean_db, settings, llm=llm, workflow_factory=lambda include_gdelt: build_graph(
         llm=llm, db=clean_db, settings=settings, include_gdelt=False, news_transport=news_transport()))
@@ -52,13 +57,17 @@ def test_submit_runs_in_background_and_writes_report(runner, clean_db):
     status = runner.status(started["request_id"])
     assert status["status"] == "completed"
     assert status["agents"] == {"market_research": "completed", "financial_news": "completed",
-                                "stock_analysis": "completed"}
+                                "stock_analysis": "completed", "risk_assessment": "completed"}
     assert [e["status"] for e in status["status_history"]] == ["queued", "running", "completed"]
     doc = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": started["request_id"]})
     assert doc["market_analysis"]["agent_result_ids"] and doc["news_analysis"]["agent_result_ids"]
     assert doc["market_analysis"]["headline"]["RELIANCE.NS"]["trend"]  # small headline, not a copy
     assert doc["final_summary"]["status"] == "completed" and doc["completed_at"]
     assert doc["fundamental_analysis"]["headline"]["RELIANCE.NS"]["overall"] == "solid"
+    assert doc["risk_analysis"]["headline"]["RELIANCE.NS"]["beta"] == 1.0
+    risk_report = clean_db[m.RISK_REPORTS].find_one({"request_id": started["request_id"]})
+    assert risk_report["risk_free_rate"] == {"value_pct": 6.0, "as_of_date": "2026-11-20", "source": "test rate"}
+    assert risk_report["volatility"]["RELIANCE.NS"] > 0 and risk_report["source_agent_result_ids"]
 
 
 def test_unexpected_error_marks_job_failed(clean_db, tmp_path):
@@ -108,7 +117,7 @@ def test_status_after_restart_comes_from_database(runner, clean_db):
     runner.wait_idle()
     fresh = ar.AnalysisRunner(clean_db, runner.settings)  # new process: no live progress
     assert fresh.status(rid)["agents"] == {"market_research": "completed", "financial_news": "completed",
-                                           "stock_analysis": "completed"}
+                                           "stock_analysis": "completed", "risk_assessment": "completed"}
     fresh.shutdown()
 
 
@@ -146,6 +155,7 @@ def test_api_full_flow(client, runner):
     result = client.get(f"/api/analysis/{rid}").json()
     assert result["market_research"]["RELIANCE.NS"]["trend"]["classification"]
     assert result["stock_analysis"]["RELIANCE.NS"]["overall"] == "solid"
+    assert result["risk_assessment"]["RELIANCE.NS"]["sharpe"]["value"] is not None
     news = result["financial_news"]["RELIANCE.NS"]
     assert news["articles"] and news["articles"][0]["article_url"].startswith("https://")  # joined from financial_news
 
@@ -175,3 +185,19 @@ def test_analysis_endpoints_need_database(no_db_settings):
     with TestClient(create_app(no_db_settings)) as c:
         r = c.post("/api/analysis/start", json={"symbols": ["TCS"]})
     assert r.status_code == 503 and r.json()["error"]["code"] == "database_not_configured"
+
+
+def test_no_risk_report_without_risk_free_rate(clean_db, tmp_path, monkeypatch):
+    patch_market_data(monkeypatch, mr)
+    patch_fundamentals(monkeypatch, sa)
+    patch_benchmark(monkeypatch, graph_module)
+    monkeypatch.setattr(nd, "utc_now", lambda: datetime(2026, 11, 22, tzinfo=UTC))
+    settings = get_settings().model_copy(update={"data_cache_dir": tmp_path, "risk_free_rate_pct": None})
+    llm = FakeLLM()
+    r = ar.AnalysisRunner(clean_db, settings, llm=llm, workflow_factory=lambda include_gdelt: build_graph(
+        llm=llm, db=clean_db, settings=settings, include_gdelt=False, news_transport=news_transport()))
+    rid = r.submit(["RELIANCE"])["request_id"]
+    r.wait_idle()
+    r.shutdown()
+    assert r.status(rid)["agents"]["risk_assessment"] == "partial"  # Sharpe unavailable
+    assert clean_db[m.RISK_REPORTS].count_documents({"request_id": rid}) == 0  # D4: rate required

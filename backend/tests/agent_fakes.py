@@ -95,6 +95,12 @@ def patch_fundamentals(monkeypatch, module, *, bank=False, fail=False, financial
     monkeypatch.setattr(module, "get_company_profile", profile)
 
 
+def patch_benchmark(monkeypatch, module):
+    """The graph's risk node reads NIFTY 50 from the cache; tests use the synthetic history."""
+    monkeypatch.setattr(module, "get_benchmark_history",
+                        lambda period="2y", settings=None, **_: synthetic_history("^NSEI", scale=20))
+
+
 class FakeLLM:
     """Returns fixed, valid answers and records which prompts were used."""
 
@@ -110,6 +116,7 @@ class FakeLLM:
             "market_explanation": {"explanation": "The trend is described using the given facts."},
             "news_digest": {"digest": "Recent coverage was mostly about company announcements."},
             "stock_analysis": {"explanation": "The company's finances are described using the given facts."},
+            "risk_explanation": {"explanation": "Historical risk is described using the given facts only."},
         }[spec.name]
         return LLMResult(value=schema(**values), source="llm", model="fake-model",
                          attempts=[{"model": "fake-model", "ok": True, "seconds": 0.0}])
