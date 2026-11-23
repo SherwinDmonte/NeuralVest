@@ -545,6 +545,10 @@ NEURALVEST/                         # repository root
 2. `backend/tests/fixtures/`: saved historical datasets make the financial tests reproducible without network access (Section 14 requirement).
 3. `tasks.md` at the root: the progress tracker you asked for.
 
+4. *(Phase 2)* `api/errors.py` (centralized exception handlers + `AppError`) and `api/routes/health.py` (`/api/health`, `/api/health/db`): health checks and error handling are API concerns, but not one of the spec's domain route files.
+5. *(Phase 2)* `database/` is split into `database.py` (connection, startup, storage guard), `models.py`, `schema_validators.py`, `indexes.py`, `repository.py`, `integrity.py` and `retention.py`. Each has one responsibility; one big `database.py` would mix connection handling, validation rules and maintenance.
+6. *(Phase 2)* `backend/scripts/` holds maintenance scripts (`check_integrity.py`, `cleanup_market_data.py`, `measure_llm_memory.ps1`) that reuse the same repository code (database_design.md §5.2).
+
 No other deviations. Helper modules such as `services/analysis_runner.py` sit inside folders the specification already defines.
 
 ---

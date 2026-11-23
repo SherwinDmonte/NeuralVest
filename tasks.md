@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 1 complete: waiting for developer approval (Phase 1 gate)** |
-| Last completed task | 1.3.4 `main` pushed to GitHub and verified |
-| Next task | Phase 2 → 2.1.1 on branch `phase-2-backend` (only after explicit Phase 1 approval) |
-| Open blockers | Phase 1 approval |
+| Current phase | **Phase 3 in progress** (branch `phase-3-data`) |
+| Last completed task | Phase 2 approved and merged into `main` |
+| Next task | 3.1.1 symbol normalization |
+| Open blockers | None (2.1.2 dedicated DB user still recommended) |
 | Last updated | 2026-11-23 |
 
 ---
@@ -43,9 +43,9 @@
 | # | Phase | Status | Key Deliverable |
 |---|-------|--------|-----------------|
 | 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
-| 1 | Development Environment & Git/GitHub Setup | `[~]` awaiting approval | Working toolchain, Ollama + Qwen3, repo on GitHub |
-| 2 | Backend Foundation & MongoDB Atlas | `[ ]` | FastAPI app connected to Atlas with indexed collections |
-| 3 | Financial Data Collection & Validation | `[ ]` | Reliable market, news and fundamentals data modules |
+| 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
+| 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
+| 3 | Financial Data Collection & Validation | `[~]` | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
@@ -175,7 +175,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 1 Approval Gate
 - [x] Phase 1 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -185,40 +185,40 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Backend connected to MongoDB Atlas, collections and indexes created, basic stock endpoints.
 
 ### 2.1 MongoDB Atlas Setup `[!] manual`
-- [ ] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster
-- [ ] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only
-- [ ] 2.1.3 Configure Network Access (your current IP)
-- [ ] 2.1.4 Copy the connection URI into `backend/.env` (never commit it)
+- [x] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster: **existing free cluster `cluster0` reused** (shared with the `inboxflow` project)
+- [!] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Deferred:** Phase 2 approved with this open; recommended to switch to a dedicated `neuralvest_app` user (`readWrite` + `dbAdmin` on the two NeuralVest databases)
+- [x] 2.1.3 Configure Network Access (your current IP): connection verified
+- [x] 2.1.4 Copy the connection URI into `backend/.env` (never commit it): done (password added by you); `.env` git-ignored
 
 ### 2.2 FastAPI Core
-- [ ] 2.2.1 `app/config.py`: settings from environment variables (Pydantic settings / python-dotenv)
-- [ ] 2.2.2 `app/main.py`: app factory, CORS (localhost frontend only), router registration, health endpoint
-- [ ] 2.2.3 Centralized exception handlers + a consistent error response schema
-- [ ] 2.2.4 Request ID middleware + structured logging that never logs secrets
-- [ ] 2.2.5 `utils/`: timing helpers and common response helpers
+- [x] 2.2.1 `app/config.py`: settings from environment variables (Pydantic settings / python-dotenv)
+- [x] 2.2.2 `app/main.py`: app factory, CORS (localhost frontend only), router registration, health endpoint
+- [x] 2.2.3 Centralized exception handlers + a consistent error response schema
+- [x] 2.2.4 Request ID middleware + structured logging that never logs secrets
+- [x] 2.2.5 `utils/`: timing helpers and common response helpers (error envelope + `Page` schema in `schemas/common.py`)
 
 ### 2.3 Database Layer
-- [ ] 2.3.1 `database/database.py`: reusable PyMongo client (singleton), timeouts, connection-failure handling
-- [ ] 2.3.2 `database/models.py`: Pydantic document models for all 8 collections
-- [ ] 2.3.3 Index-creation routine run at startup (idempotent)
-- [ ] 2.3.4 Generic repository helpers: insert with validation, upsert (no duplicates), paginated find
-- [ ] 2.3.5 `/api/health/db` endpoint to check connectivity and report storage use (`dataSize + indexSize` vs. `STORAGE_WARN_PCT` / `STORAGE_BLOCK_PCT`)
-- [ ] 2.3.6 Apply `$jsonSchema` validators (strict / error) at startup; verify they are permitted on the Atlas free tier and document the fallback if not
-- [ ] 2.3.7 Read-only integrity check (`check_integrity`): schema violations, cross-field rules, projection mismatches, orphans
-- [ ] 2.3.8 Configurable market-data retention clean-up (`MARKET_DATA_MAX_YEARS`)
+- [x] 2.3.1 `database/database.py`: reusable PyMongo client (singleton), timeouts, connection-failure handling
+- [x] 2.3.2 `database/models.py`: Pydantic document models for all 8 collections
+- [x] 2.3.3 Index-creation routine run at startup (idempotent): 20 secondary indexes + 8 `_id` indexes = 28 (matches the Atlas UI)
+- [x] 2.3.4 Generic repository helpers: insert with validation, upsert (no duplicates), bulk upsert in batches, paginated find (max 100)
+- [x] 2.3.5 `/api/health/db` endpoint to check connectivity and report storage use (`dataSize + indexSize` vs. `STORAGE_WARN_PCT` / `STORAGE_BLOCK_PCT`)
+- [x] 2.3.6 Apply `$jsonSchema` validators (strict / error) at startup; verify they are permitted on the Atlas free tier and document the fallback if not: **works on the free tier**; invalid raw writes rejected (error 121) in tests; `collMod` needs `dbAdmin` (documented)
+- [x] 2.3.7 Read-only integrity check (`check_integrity`): schema violations, cross-field rules, projection mismatches, orphans. Projection check currently detects **missing sources**; value-by-value comparison is added in Phase 10, when projections are first written. Script: `scripts/check_integrity.py`
+- [x] 2.3.8 Configurable market-data retention clean-up (`MARKET_DATA_MAX_YEARS`): `scripts/cleanup_market_data.py`, dry run by default
 
 ### 2.4 Basic Stock Endpoints
-- [ ] 2.4.1 `GET /api/stocks/{symbol}`: basic company info (stub until Phase 3, clearly marked as a placeholder)
-- [ ] 2.4.2 Swagger docs reachable at `/docs`
+- [x] 2.4.1 `GET /api/stocks/{symbol}`: basic company info (stub until Phase 3, clearly marked as a placeholder): returns stored data or an honest 404; never dummy data
+- [x] 2.4.2 Swagger docs reachable at `/docs` (verified with uvicorn)
 
 ### 2.5 Tests & Verification
-- [ ] 2.5.1 Set up pytest + test configuration (separate test database name)
-- [ ] 2.5.2 Unit tests for config loading and database utilities
-- [ ] 2.5.3 Manual check: collections and indexes are visible in the Atlas UI
+- [x] 2.5.1 Set up pytest + test configuration (separate test database name)
+- [x] 2.5.2 Unit tests for config loading and database utilities: **64 tests pass** (unit + Atlas integration on `neuralvest_db_test`; test data cleaned up afterwards)
+- [x] 2.5.3 Manual check: collections and indexes are visible in the Atlas UI: confirmed by you (8 collections, 28 indexes)
 
 ### 🛑 Phase 2 Approval Gate
-- [ ] Phase 2 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 2 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -682,6 +682,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
+| Phase 2 | (Recommended) Create a dedicated `neuralvest_app` Atlas user and update `.env` | `[!]` deferred |
 | Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
 | Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
 | Phase 14 | Choose the repository license; review screenshots | `[ ]` |
@@ -713,6 +714,9 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | `STORAGE_RESERVED_MB=10` | 11 other databases use ~3.3 MB storage (Atlas UI); margin for their indexes |
+| 2026-11-23 | Existing Atlas free cluster reused (shared with `inboxflow`); `STORAGE_RESERVED_MB` setting added to the storage guard | Your choice; NeuralVest cannot measure other projects' storage |
+| 2026-11-23 | Routes obtain the DB inside the handler, not via a FastAPI dependency | Dependencies run before parameter validation; invalid input must give 422, not 503 |
 | 2026-11-23 | Default LLM = `qwen3:0.6b`; 1.7B opt-in | Phase 1 measurements: baseline RAM already above 6.5 GB |
 | 2026-11-23 | Branching: `main` + `phase-N-<topic>` branches merged after approval; Conventional Commits | Approved by you |
 | 2026-11-23 | Frontend linting uses oxlint (Vite 8 template default) | Faster, zero-config; ESLint not needed |
@@ -739,5 +743,6 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 2 completed on `phase-2-backend`: FastAPI core, database layer (models, validators, indexes, repository, integrity, retention), health + stock placeholder routes, 64 tests, scripts. Awaiting approval. |
 | 2026-11-23 | Phase 1 completed: measurements recorded, default model `qwen3:0.6b`, GitHub remote configured and `main` pushed. Awaiting approval. |
 | 2026-11-23 | Phase 0 approved. Phase 1 started: Python 3.12.10, venv + backend packages, Vite/React/Tailwind frontend, Ollama settings + Qwen3 models, env templates, `.gitignore`/`.gitattributes`, README, measurement script, local git repo. |
