@@ -32,6 +32,7 @@ from app.database.models import (
     SectionRef,
     StatusEvent,
 )
+from app.agents.portfolio_optimizer import portfolio_document
 from app.agents.risk_assessment import risk_report_fields
 from app.database.repository import insert_document, upsert_document
 from app.orchestration.graph import build_graph, initial_state
@@ -39,8 +40,9 @@ from app.utils.timing import utc_now
 
 logger = logging.getLogger("neuralvest.runner")
 
-# Agents in execution order (Phase 5 graph). Later phases extend this list.
-AGENT_ORDER = ["market_research", "financial_news", "stock_analysis", "risk_assessment"]
+# Agents in execution order. Portfolio Optimization runs only for portfolio requests.
+AGENT_ORDER = ["market_research", "financial_news", "stock_analysis", "risk_assessment", "portfolio_optimization"]
+PORTFOLIO_AGENT = "portfolio_optimization"
 TERMINAL = ("completed", "partial", "failed", "interrupted")
 MAX_PENDING_JOBS = 5
 
@@ -70,14 +72,22 @@ class AnalysisRunner:
         self._pending: list[str] = []  # queue order, for queue positions
 
     # ---------------------------------------------------------------- submit
-    def submit(self, symbols: list[str], include_gdelt: bool = False, user_id: str | None = None) -> dict:
+    def submit(self, symbols: list[str], include_gdelt: bool = False, user_id: str | None = None,
+               investment_amount: float | None = None, risk_preference: str = "moderate",
+               portfolio_options: dict | None = None) -> dict:
         normalized = list(dict.fromkeys(normalize_symbol(s) for s in symbols))
         with self._lock:
             if len(self._pending) >= MAX_PENDING_JOBS:
                 raise AppError(429, "queue_full", "Too many analyses are waiting. Try again in a few minutes.")
         request_id = uuid.uuid4().hex
-        params = {"symbols": normalized, "include_gdelt": include_gdelt, "request_type": "single_stock"
-                  if len(normalized) == 1 else "multi_stock"}
+        if investment_amount and len(normalized) >= 2:
+            request_type = "portfolio"
+        else:
+            request_type = "single_stock" if len(normalized) == 1 else "multi_stock"
+        params = {"symbols": normalized, "include_gdelt": include_gdelt, "request_type": request_type}
+        if request_type == "portfolio":
+            params |= {"investment_amount": investment_amount, "risk_preference": risk_preference,
+                       "portfolio_options": portfolio_options or {}}
         doc = AnalysisReportDocument(report_id=uuid.uuid4().hex, request_id=request_id, user_id=user_id,
                                      symbols=normalized, request_params=params, status="queued",
                                      status_history=[StatusEvent(status="queued")])
@@ -89,6 +99,8 @@ class AnalysisRunner:
         with self._lock:
             self._pending.append(request_id)
             self._progress[request_id] = {a: "pending" for a in AGENT_ORDER}
+            if params.get("request_type") != "portfolio":
+                self._progress[request_id][PORTFOLIO_AGENT] = "skipped"
         self._executor.submit(self._run, request_id, params)
 
     # ---------------------------------------------------------------- worker
@@ -104,7 +116,10 @@ class AnalysisRunner:
                 self._pending.remove(request_id)
         try:
             self._set_status(request_id, "running")
-            state = initial_state(params["symbols"], request_id=request_id)
+            state = initial_state(params["symbols"], request_id=request_id,
+                                  investment_amount=params.get("investment_amount"),
+                                  risk_preference=params.get("risk_preference") or "moderate",
+                                  portfolio_options=params.get("portfolio_options"))
             graph = self.workflow_factory(include_gdelt=params.get("include_gdelt", False))
             self._mark(request_id, AGENT_ORDER[0], "running")
             final = dict(state)
@@ -116,7 +131,8 @@ class AnalysisRunner:
                         if agent in AGENT_ORDER:
                             self._mark(request_id, agent, status)
                             nxt = AGENT_ORDER.index(agent) + 1
-                            if nxt < len(AGENT_ORDER) and status in ("completed", "partial"):
+                            if (nxt < len(AGENT_ORDER) and status in ("completed", "partial")
+                                    and self._progress.get(request_id, {}).get(AGENT_ORDER[nxt]) == "pending"):
                                 self._mark(request_id, AGENT_ORDER[nxt], "running")
                     if node == "report":
                         final["final_report"] = values.get("final_report", {})
@@ -171,6 +187,11 @@ class AnalysisRunner:
         news_headline = {
             s: {k: v.get(k) for k in ("overall_sentiment", "articles_analyzed", "sentiment_breakdown", "status")}
             for s, v in final.get("news_analysis", {}).items()}
+        portfolio = final.get("portfolio_analysis") or {}
+        portfolio_headline = ({k: portfolio.get(k) for k in ("status", "portfolio_id", "method",
+                                                             "investment_amount", "leftover_cash_inr")}
+                              | {"weights_pct": {a["symbol"]: a["weight_pct"] for a in portfolio.get("allocations", [])}}
+                              if portfolio else {})
         fields = {
             "final_summary": report,
             "error_summary": final.get("errors", []),
@@ -179,11 +200,25 @@ class AnalysisRunner:
             "fundamental_analysis": SectionRef(agent_result_ids=ids("stock_analysis"),
                                                headline=fundamentals_headline).model_dump(),
             "risk_analysis": SectionRef(agent_result_ids=ids("risk_assessment"), headline=risk_headline).model_dump(),
+            "portfolio_analysis": (SectionRef(agent_result_ids=ids(PORTFOLIO_AGENT), headline=portfolio_headline)
+                                   .model_dump() if portfolio else None),
             "generated_at": utc_now(),
             "completed_at": utc_now(),
         }
         self._set_status(request_id, status, None, fields)
         self._write_risk_report(request_id, risk_symbols, risk.get("portfolio"), ids("risk_assessment"))
+        self._write_portfolio(request_id, portfolio, ids(PORTFOLIO_AGENT))
+
+    def _write_portfolio(self, request_id: str, portfolio: dict, source_ids: list) -> None:
+        """Write-once `portfolios` projection, only for a successful allocation."""
+        if portfolio.get("status") not in ("completed", "partial") or not portfolio.get("allocations"):
+            return
+        job = self.db[ANALYSIS_REPORTS].find_one({"request_id": request_id}, {"user_id": 1})
+        try:
+            doc = portfolio_document(portfolio, request_id, source_ids, (job or {}).get("user_id"))
+            upsert_document(self.db, doc, ["request_id"])
+        except Exception as exc:  # a projection must never break the job
+            logger.error("portfolios not written for %s: %s", request_id, exc.__class__.__name__)
 
     def _write_risk_report(self, request_id: str, per_symbol: dict, portfolio: dict | None, source_ids: list) -> None:
         """Write-once `risk_reports` projection. It REQUIRES the risk-free rate used (decision D4),
@@ -209,7 +244,7 @@ class AnalysisRunner:
         with self._lock:
             live = dict(self._progress.get(request_id, {}))
             position = self._pending.index(request_id) + 1 if request_id in self._pending else None
-        agents = live or self._agents_from_db(request_id, job["status"])
+        agents = live or self._agents_from_db(request_id, job["status"], job.get("request_params") or {})
         return {
             "request_id": request_id,
             "report_id": job["report_id"],
@@ -225,7 +260,7 @@ class AnalysisRunner:
             "completed_at": job.get("completed_at"),
         }
 
-    def _agents_from_db(self, request_id: str, job_status: str) -> dict[str, str]:
+    def _agents_from_db(self, request_id: str, job_status: str, params: dict | None = None) -> dict[str, str]:
         """After a restart (no live progress) derive agent states from agent_results."""
         found: dict[str, list[str]] = {}
         for r in self.db[AGENT_RESULTS].find({"request_id": request_id}, {"agent_name": 1, "execution_status": 1}):
@@ -234,7 +269,9 @@ class AnalysisRunner:
         for agent in AGENT_ORDER:
             statuses = found.get(agent)
             if not statuses:
-                agents[agent] = "pending" if job_status in ("queued", "running") else "skipped"
+                not_needed = agent == PORTFOLIO_AGENT and (params or {}).get("request_type") != "portfolio"
+                agents[agent] = ("pending" if job_status in ("queued", "running") and not not_needed
+                                 else "skipped")
             elif all(s == "completed" for s in statuses):
                 agents[agent] = "completed"
             elif any(s in ("completed", "partial") for s in statuses):
@@ -275,7 +312,11 @@ class AnalysisRunner:
             raise AppError(404, "analysis_not_found", "No analysis with this request_id.")
         if job["status"] not in ("interrupted", "failed"):
             raise AppError(409, "not_rerunnable", "Only interrupted or failed analyses can be re-run.")
-        new = self.submit(job["symbols"], job["request_params"].get("include_gdelt", False), job.get("user_id"))
+        params = job["request_params"]
+        new = self.submit(job["symbols"], params.get("include_gdelt", False), job.get("user_id"),
+                          investment_amount=params.get("investment_amount"),
+                          risk_preference=params.get("risk_preference") or "moderate",
+                          portfolio_options=params.get("portfolio_options"))
         self.db[ANALYSIS_REPORTS].update_one({"request_id": new["request_id"]}, {"$set": {"retry_of": request_id}})
         return {**new, "retry_of": request_id}
 

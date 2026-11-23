@@ -298,6 +298,20 @@ npm run dev
 
 Ollama runs in the background as a tray app on `http://localhost:11434`.
 
+### Portfolio analysis (Phase 9)
+
+From `backend/` with the venv active and Ollama running:
+
+```powershell
+python scripts/run_analysis.py RELIANCE TCS INFY --amount 100000 --risk moderate --no-gdelt
+```
+
+Expected (numbers depend on the day): every agent `completed`/`partial`, then a `PORTFOLIO` block with one
+line per stock (weight, whole shares, rupee amount), the leftover cash, the in-sample figures and a
+`backtest ... CAGR ... | equal weight ... | NIFTY 50 ...` line. In the dashboard, type several symbols
+separated by commas; an amount field and a risk preference appear. Without the LLM, quick results:
+`POST /api/portfolio/optimize` and `POST /api/portfolio/backtest` (see http://localhost:8000/docs).
+
 ---
 
 ## 9. Common Errors

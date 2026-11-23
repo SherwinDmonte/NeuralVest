@@ -27,6 +27,8 @@ class NeuralVestState(TypedDict, total=False):
     stock_symbols: list[str]  # validated + normalized, e.g. ["RELIANCE.NS"]
     investment_amount: float | None
     risk_preference: RiskPreference
+    # Optional Portfolio Optimization settings (method, constraints, rebalance, costs), Phase 9
+    portfolio_options: dict[str, Any]
     request_type: Literal["single_stock", "portfolio"]
 
     # ----- agent outputs (each written by exactly one agent; keyed by symbol) -----
@@ -37,7 +39,7 @@ class NeuralVestState(TypedDict, total=False):
     financial_data: Annotated[dict[str, Any], merge_dicts]  # Phase 7
     stock_analysis: Annotated[dict[str, Any], merge_dicts]  # Phase 7
     risk_analysis: Annotated[dict[str, Any], merge_dicts]  # Phase 8
-    portfolio_analysis: dict[str, Any]  # Phase 9
+    portfolio_analysis: dict[str, Any]  # Phase 9 (request level: one allocation per request)
 
     # ----- bookkeeping -----
     agent_status: Annotated[dict[str, str], merge_dicts]

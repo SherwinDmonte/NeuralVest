@@ -21,8 +21,15 @@ export function errorMessage(err) {
   return 'Something went wrong. Please try again.'
 }
 
-export const startAnalysis = (symbols, includeGdelt = false) =>
-  api.post('/analysis/start', { symbols, include_gdelt: includeGdelt }).then((r) => r.data)
+// `portfolio` (optional): { investmentAmount, riskPreference } for 2+ stocks -> Portfolio Optimization
+export const startAnalysis = (symbols, includeGdelt = false, portfolio = null) =>
+  api
+    .post('/analysis/start', {
+      symbols,
+      include_gdelt: includeGdelt,
+      ...(portfolio ? { investment_amount: portfolio.investmentAmount, risk_preference: portfolio.riskPreference } : {}),
+    })
+    .then((r) => r.data)
 
 export const getAnalysisStatus = (requestId) => api.get(`/analysis/${requestId}/status`).then((r) => r.data)
 

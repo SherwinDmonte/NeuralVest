@@ -81,10 +81,18 @@ export function useAnalysis() {
     [poll],
   )
 
-  const run = useCallback((symbol, includeGdelt) => begin(() => startAnalysis([symbol], includeGdelt)), [begin])
+  const run = useCallback(
+    (symbols, includeGdelt, portfolio = null) => begin(() => startAnalysis(symbols, includeGdelt, portfolio)),
+    [begin],
+  )
+  // Charts for another stock of a multi-stock analysis (the first one is loaded automatically).
+  const showIndicators = useCallback(async (symbol) => {
+    setIndicators(null)
+    setIndicators(await getIndicators(symbol).catch(() => null))
+  }, [])
   const rerun = useCallback(() => requestId && begin(() => rerunAnalysis(requestId)), [begin, requestId])
 
   useEffect(() => stopPolling, [])
 
-  return { requestId, status, result, indicators, error, busy, run, rerun }
+  return { requestId, status, result, indicators, error, busy, run, rerun, showIndicators }
 }

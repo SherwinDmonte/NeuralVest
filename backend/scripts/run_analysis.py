@@ -7,6 +7,7 @@ runner and API arrive in Phase 6.
 Usage (from backend/, venv active, Ollama running):
     python scripts/run_analysis.py RELIANCE
     python scripts/run_analysis.py RELIANCE TCS --no-gdelt --no-store
+    python scripts/run_analysis.py RELIANCE TCS INFY --amount 100000 --risk moderate --no-gdelt
 """
 
 import argparse
@@ -28,8 +29,9 @@ from app.config import get_settings  # noqa: E402
 from app.data.errors import InvalidSymbolError  # noqa: E402
 from app.data.symbols import normalize_symbol  # noqa: E402
 from app.database.database import close_client, get_database, initialize_database  # noqa: E402
-from app.database.models import ANALYSIS_REPORTS, AnalysisReportDocument, StatusEvent  # noqa: E402
-from app.database.repository import insert_document  # noqa: E402
+from app.agents.portfolio_optimizer import portfolio_document  # noqa: E402
+from app.database.models import AGENT_RESULTS, ANALYSIS_REPORTS, AnalysisReportDocument, StatusEvent  # noqa: E402
+from app.database.repository import insert_document, upsert_document  # noqa: E402
 from app.llm.ollama_client import OllamaClient  # noqa: E402
 from app.orchestration.graph import build_graph, initial_state  # noqa: E402
 from app.utils.timing import utc_now  # noqa: E402
@@ -44,6 +46,9 @@ def main() -> int:
     parser.add_argument("symbols", nargs="+")
     parser.add_argument("--no-gdelt", action="store_true")
     parser.add_argument("--no-store", action="store_true", help="do not write anything to MongoDB")
+    parser.add_argument("--amount", type=float, help="investment amount in INR (2+ stocks: adds Portfolio Optimization)")
+    parser.add_argument("--risk", choices=["conservative", "moderate", "aggressive"], default="moderate")
+    parser.add_argument("--method", help="optimisation method (overrides the risk preference)")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -54,12 +59,18 @@ def main() -> int:
         except InvalidSymbolError as exc:
             print(f"Skipping '{raw}': {exc}")
     db = None if args.no_store or not valid else get_database(settings)
-    state = initial_state(args.symbols, request_id=uuid.uuid4().hex)
+    options = {"method": args.method} if args.method else {}
+    state = initial_state(args.symbols, request_id=uuid.uuid4().hex, investment_amount=args.amount,
+                          risk_preference=args.risk, portfolio_options=options)
+    portfolio_request = bool(args.amount) and len(dict.fromkeys(valid)) >= 2
     if db is not None:
         initialize_database(db)
         insert_document(db, AnalysisReportDocument(
             report_id=uuid.uuid4().hex, request_id=state["request_id"], symbols=list(dict.fromkeys(valid)),
-            request_params={"raw_symbols": args.symbols, "source": "scripts/run_analysis.py"},
+            request_params={"raw_symbols": args.symbols, "source": "scripts/run_analysis.py",
+                            "request_type": "portfolio" if portfolio_request else "single_stock",
+                            "investment_amount": args.amount, "risk_preference": args.risk,
+                            "portfolio_options": options},
             status="running", status_history=[StatusEvent(status="queued"), StatusEvent(status="running")]))
 
     print(f"Request {state['request_id']} | free RAM {free_gb():.2f} GB | LLM {settings.llm_primary_model} "
@@ -81,6 +92,11 @@ def main() -> int:
             {"$set": {"status": status, "final_summary": report, "error_summary": final["errors"],
                       "generated_at": utc_now(), "completed_at": utc_now()},
              "$push": {"status_history": StatusEvent(status=status).model_dump()}})
+        pa = final.get("portfolio_analysis") or {}
+        if pa.get("status") in ("completed", "partial") and pa.get("allocations"):
+            ids = [d["_id"] for d in db[AGENT_RESULTS].find(
+                {"request_id": state["request_id"], "agent_name": "portfolio_optimization"}, {"_id": 1})]
+            upsert_document(db, portfolio_document(pa, state["request_id"], ids), ["request_id"])
         close_client()
 
     print(f"\nStatus: {report['status']} | agents {final['agent_status']} | {elapsed:.1f} s total")
@@ -131,6 +147,28 @@ def main() -> int:
         print(f"\nPortfolio view: correlation {portfolio['correlation'].get('matrix')} | "
               f"concentration {portfolio['concentration']} | diversification {portfolio['diversification']}")
         for w in portfolio.get("warnings", []):
+            print(f"  warning: {w}")
+    pa = final.get("portfolio_analysis") or {}
+    if pa:
+        print(f"\nPORTFOLIO ({pa.get('status')}): {pa.get('method_label')} | requested {pa.get('method_requested')} | "
+              f"risk preference {pa.get('risk_preference')} | constraints {pa.get('constraints')}")
+        for a in pa.get("allocations", []):
+            print(f"  {a['symbol']:13} {a['weight_pct']:6.2f}%  {a['shares']:5d} shares x {a['last_price']:>9} = "
+                  f"Rs {a['amount_inr']:>11,.2f}  (exp. return {a['expected_return_pct']}%, vol {a['volatility_pct']}%)")
+        print(f"  invested Rs {pa.get('invested_inr')} | leftover cash Rs {pa.get('leftover_cash_inr')}")
+        print(f"  expected (in-sample): {pa.get('expected_metrics')}")
+        bk = pa.get("backtest")
+        if bk:
+            vs = bk["vs_benchmark"]
+            print(f"  backtest {bk['period']['from']} -> {bk['period']['to']} ({bk['settings']['rebalancing']}, "
+                  f"{bk['settings']['transaction_cost_bps']} bps): CAGR {bk['cagr_pct']}% vol {bk['volatility_pct']}% "
+                  f"Sharpe {bk['sharpe']} MDD {bk['max_drawdown_pct']}% | equal weight {vs['equal_weight']['cagr_pct']}% "
+                  f"| NIFTY 50 {(vs['nifty50'] or {}).get('cagr_pct')}% | rebalances {len(bk['rebalances'])} "
+                  f"(fallbacks {bk['fallbacks_used']}) costs Rs {bk['total_costs_inr']}")
+        else:
+            print(f"  backtest unavailable: {pa.get('backtest_reason')}")
+        print(f"  explanation ({(pa.get('llm') or {}).get('source')}): {pa.get('explanation')}")
+        for w in pa.get("warnings", []):
             print(f"  warning: {w}")
     for e in final["errors"]:
         print(f"ERROR [{e['agent']}] {e['symbol']}: {e['message']}")

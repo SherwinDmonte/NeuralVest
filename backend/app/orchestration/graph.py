@@ -1,4 +1,4 @@
-"""LangGraph workflow (Phase 5: minimal graph with the first two agents).
+"""LangGraph workflow (Phase 5 graph, extended by one agent per phase).
 
     START -> validate_input --(no valid symbol)----------------------------> report -> END
                      |
@@ -6,7 +6,10 @@
               market_research --(no symbol succeeded)--------------------> report
                      |
                      v
-              financial_news -> stock_analysis -> risk_assessment -------> report
+              financial_news -> stock_analysis -> risk_assessment --(single stock / no amount)--> report
+                                                        |
+                                                        v (portfolio request: >= 2 stocks + amount)
+                                                 portfolio_optimization -------------------------> report
 
 Execution is sequential (8 GB RAM). Each node runs one agent for every symbol and returns
 only the state keys it owns. The full supervisor (retries, output validation, agents 3-5,
@@ -20,11 +23,13 @@ from datetime import datetime
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
+from pydantic import ValidationError
 from pymongo.database import Database
 
 from app.agents.common import LLMClient
 from app.agents.financial_news import run_financial_news
 from app.agents.market_research import run_market_research
+from app.agents.portfolio_optimizer import run_portfolio_optimization
 from app.agents.risk_assessment import run_risk_assessment
 from app.agents.stock_analysis import run_stock_analysis
 from app.config import Settings, get_settings
@@ -32,6 +37,7 @@ from app.data.errors import DataError, InvalidSymbolError
 from app.data.stock_data import get_benchmark_history
 from app.data.symbols import base_ticker, normalize_symbol
 from app.orchestration.state import NeuralVestState
+from app.schemas.agents import PortfolioOptimizationInput
 from app.utils.timing import utc_now
 
 logger = logging.getLogger("neuralvest.graph")
@@ -87,6 +93,9 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
         if amount is not None and amount <= 0:
             errors.append({"agent": "validate_input", "symbol": None, "message": "Investment amount must be positive."})
             amount = None
+        if amount is not None and len(symbols) < 2:
+            errors.append({"agent": "validate_input", "symbol": None,
+                           "message": "A portfolio needs at least 2 valid stocks; the amount was ignored."})
         request_type = "portfolio" if len(symbols) >= 2 and amount else "single_stock"
         return {"stock_symbols": symbols, "investment_amount": amount, "request_type": request_type,
                 "errors": errors, "agent_status": {"validate_input": "completed" if symbols else "failed"},
@@ -175,6 +184,37 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                 "agent_status": {"risk_assessment": _aggregate(statuses)},
                 "timestamps": _timing("risk_assessment", started_at, t0)}
 
+    def portfolio_optimization(state: NeuralVestState) -> dict[str, Any]:
+        """Runs only for portfolio requests, after Risk Assessment: it uses the same prices and
+        leaves out stocks whose risk could not be measured."""
+        started_at, t0 = utc_now(), time.perf_counter()
+        risk = (state.get("risk_analysis") or {}).get("per_symbol") or {}
+        records = {s: state["market_data"][s]["records"] for s in state["stock_symbols"]
+                   if state.get("market_analysis", {}).get(s, {}).get("status") in OK_STATUSES
+                   and s in state.get("market_data", {})}
+        try:
+            request = PortfolioOptimizationInput(
+                symbols=state["stock_symbols"], investment_amount=state["investment_amount"],
+                risk_preference=state.get("risk_preference") or "moderate", **(state.get("portfolio_options") or {}))
+        except ValidationError as exc:
+            message = "Invalid portfolio settings: " + "; ".join(e["msg"] for e in exc.errors())
+            return {"portfolio_analysis": {"status": "failed", "errors": [message]},
+                    "errors": [{"agent": "portfolio_optimization", "symbol": None, "message": message}],
+                    "agent_status": {"portfolio_optimization": "failed"},
+                    "timestamps": _timing("portfolio_optimization", started_at, t0)}
+        try:
+            bench = get_benchmark_history(period="2y", settings=settings).frame
+        except DataError:
+            bench = None
+        out = run_portfolio_optimization(records, request, benchmark_frame=bench, risk_per_symbol=risk, llm=llm,
+                                         db=db, request_id=state.get("request_id"), settings=settings)
+        return {"portfolio_analysis": out.model_dump(mode="json"),
+                "errors": [{"agent": "portfolio_optimization", "symbol": None, "message": e} for e in out.errors],
+                "data_sources": [d.model_dump(mode="json") | {"agent": "portfolio_optimization", "symbol": None}
+                                 for d in out.data_sources],
+                "agent_status": {"portfolio_optimization": out.status},
+                "timestamps": _timing("portfolio_optimization", started_at, t0)}
+
     def report(state: NeuralVestState) -> dict[str, Any]:
         """REPORT STUB (Phase 5): collects key results per symbol. The full report with all
         sections, explanations and source references is generated in Phase 10."""
@@ -205,8 +245,18 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                                                              "explanation", "disclaimer")},
             }
         portfolio_risk = (state.get("risk_analysis") or {}).get("portfolio")
+        po = state.get("portfolio_analysis") or {}
+        portfolio = None
+        if po:
+            bk = po.get("backtest") or {}
+            portfolio = {k: po.get(k) for k in ("status", "portfolio_id", "investment_amount", "risk_preference",
+                                                "method", "method_label", "fallback_reason", "allocations",
+                                                "invested_inr", "leftover_cash_inr", "expected_metrics", "readings",
+                                                "explanation", "warnings", "errors", "disclaimer")}
+            portfolio["backtest"] = ({k: v for k, v in bk.items() if k not in ("equity_curve", "rebalances")}
+                                     if bk else None)
         return {"final_report": {"status": overall, "request_id": state.get("request_id"),
-                                 "portfolio_risk": portfolio_risk,
+                                 "portfolio_risk": portfolio_risk, "portfolio": portfolio,
                                  "symbols": state.get("stock_symbols", []), "sections": sections,
                                  "errors": state.get("errors", []), "generated_at": utc_now().isoformat(),
                                  "note": "Report stub (Phase 5). The full report is generated in Phase 10."},
@@ -219,6 +269,7 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
     graph.add_node("financial_news", financial_news)
     graph.add_node("stock_analysis", stock_analysis)
     graph.add_node("risk_assessment", risk_assessment)
+    graph.add_node("portfolio_optimization", portfolio_optimization)
     graph.add_node("report", report)
 
     graph.add_edge(START, "validate_input")
@@ -231,16 +282,23 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
     )
     graph.add_edge("financial_news", "stock_analysis")
     graph.add_edge("stock_analysis", "risk_assessment")
-    graph.add_edge("risk_assessment", "report")
+    graph.add_conditional_edges(
+        "risk_assessment",
+        lambda s: "portfolio_optimization" if s.get("request_type") == "portfolio" else "report",
+        {"portfolio_optimization": "portfolio_optimization", "report": "report"},
+    )
+    graph.add_edge("portfolio_optimization", "report")
     graph.add_edge("report", END)
     return graph.compile()
 
 
 def initial_state(symbols: list[str], request_id: str | None = None, user_id: str | None = None,
-                  investment_amount: float | None = None, risk_preference: str = "moderate") -> NeuralVestState:
+                  investment_amount: float | None = None, risk_preference: str = "moderate",
+                  portfolio_options: dict[str, Any] | None = None) -> NeuralVestState:
     return NeuralVestState(
         request_id=request_id or uuid.uuid4().hex, user_id=user_id, raw_symbols=list(symbols),
         investment_amount=investment_amount, risk_preference=risk_preference,
+        portfolio_options=dict(portfolio_options or {}),
         market_data={}, market_analysis={}, news_data={}, news_analysis={}, financial_data={},
         stock_analysis={}, risk_analysis={}, portfolio_analysis={},
         agent_status={}, errors=[], data_sources=[], timestamps={}, final_report={},

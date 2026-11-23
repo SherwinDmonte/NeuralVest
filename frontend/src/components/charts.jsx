@@ -236,3 +236,25 @@ export function MacdChart({ data }) {
     </ChartCard>
   )
 }
+
+// Backtest equity curves: one y-axis (rupees), all three series start at the same capital,
+// so they are directly comparable without indexing. Fixed order: strategy, equal weight, NIFTY 50.
+export function EquityChart({ data, capital }) {
+  const series = [
+    { key: 'strategy', name: 'This allocation rule (₹)', color: C.s1, digits: 0 },
+    { key: 'equal_weight', name: 'Equal weights (₹)', color: C.s2, digits: 0 },
+    { key: 'nifty50', name: 'NIFTY 50 (₹)', color: C.s3, digits: 0 },
+  ].filter((s) => data.some((r) => r[s.key] != null))
+  return (
+    <ChartCard title="Backtest: value of the investment" subtitle="Out-of-sample, after transaction costs; the dashed line is the starting amount" data={data} series={series} height={260}>
+      <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+        <CartesianGrid stroke={C.grid} vertical={false} />
+        <XAxis dataKey="date" ticks={monthTicks(data, 12)} interval={0} tickFormatter={shortDate} {...axisProps} />
+        <YAxis domain={priceDomain} width={64} tickFormatter={(v) => num(v, 0)} {...axisProps} />
+        <ReferenceLine y={capital} stroke={C.muted} strokeDasharray="4 4" strokeWidth={1} />
+        <Tooltip cursor={cursor} content={<ChartTooltip series={series} />} />
+        {series.map((s, i) => <Line key={s.key} {...lineProps(s.key, s.color, i === 0 ? 2 : 1.5)} />)}
+      </LineChart>
+    </ChartCard>
+  )
+}

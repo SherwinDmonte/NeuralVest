@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo.errors import PyMongoError
 
 from app.api.errors import register_exception_handlers
-from app.api.routes import analysis, health, news, risk, stocks
+from app.api.routes import analysis, health, news, portfolio, risk, stocks
 from app.config import APP_NAME, APP_VERSION, Settings, get_settings
 from app.database.database import close_client, get_database, initialize_database, ping
 from app.llm.ollama_client import get_llm_client
@@ -88,6 +88,7 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
     app.include_router(analysis.router)
     app.include_router(news.router)
     app.include_router(risk.router)
+    app.include_router(portfolio.router)
     return app
 
 
