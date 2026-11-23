@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 4 complete: waiting for developer approval (Phase 4 gate)**; branch `phase-4-llm` |
-| Last completed task | 4.4.2 live LLM test (0.6B vs 1.7B) |
-| Next task | After approval: merge `phase-4-llm` → `main`; Phase 5 → 5.1.1 on `phase-5-agents` |
-| Open blockers | Your choice of default model (0.6B / 1.7B / adaptive) |
+| Current phase | **Phase 5 in progress** (branch `phase-5-agents`) |
+| Last completed task | Phase 4 approved; adaptive model setup applied |
+| Next task | 5.1.1 technical indicators |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -46,8 +46,8 @@
 | 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
-| 4 | Local LLM Integration (Ollama + Qwen3) | `[~]` awaiting approval | Shared LLM client with prompts, JSON validation, fallback |
-| 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
+| 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
+| 5 | MVP Agents: Market Research + Financial News | `[~]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
@@ -303,7 +303,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 4 Approval Gate
 - [x] Phase 4 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -714,6 +714,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | **Adaptive LLM setup (option 3):** primary `qwen3:1.7b`, fallback `qwen3:0.6b`, `LLM_MIN_FREE_RAM_MB=1800`; replaces the 0.6B-only default from 1.4.5 | Your choice after the Phase 4 comparison: 1.7B quality when RAM allows |
 | 2026-11-23 | Every LLM call returns a result: model → retry → fallback model → deterministic template (sentiment `uncertain`, never guessed) | Agents must never fail or invent content because the LLM failed |
 | 2026-11-23 | Keep the existing Atlas database user (no dedicated `neuralvest_app` user) | Your decision; it has the permissions the app needs (incl. `collMod`); credentials only in local `.env` |
 | 2026-11-23 | Price rows with missing values are removed, never forward-filled | Filled prices would look like real data |

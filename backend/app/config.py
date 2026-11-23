@@ -67,15 +67,15 @@ class Settings(BaseSettings):
 
     # ----- Local LLM via Ollama (Phase 4) -----
     ollama_base_url: str = "http://localhost:11434"
-    # Default chosen from Phase 1 RAM measurements (tasks.md 1.4.5).
-    llm_primary_model: str = "qwen3:0.6b"
+    # Adaptive setup (decision after Phase 4): 1.7B when RAM allows, otherwise 0.6B.
+    llm_primary_model: str = "qwen3:1.7b"
     # Empty = no second model; the deterministic template is the last fallback.
-    llm_fallback_model: str | None = None
+    llm_fallback_model: str | None = "qwen3:0.6b"
     llm_num_ctx: int = Field(default=2048, ge=512, le=8192)
     llm_temperature: float = Field(default=0.2, ge=0, le=1)
     llm_timeout_seconds: float = Field(default=90, gt=0, le=600)
     llm_keep_alive: str = "5m"  # how long Ollama keeps the model loaded between calls
-    llm_min_free_ram_mb: int = Field(default=1500, ge=0)
+    llm_min_free_ram_mb: int = Field(default=1800, ge=0)
     max_news_articles_llm: int = Field(default=8, ge=1, le=30)
 
     @field_validator("llm_fallback_model", mode="before")
