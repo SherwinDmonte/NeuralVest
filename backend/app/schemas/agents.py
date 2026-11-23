@@ -29,6 +29,10 @@ class AgentEnvelope(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     llm: dict[str, Any] | None = None  # LLMResult.metadata()
+    # True when the agent failed because a data source was TEMPORARILY unavailable (network,
+    # rate limit); the supervisor may run it again (Phase 10). Unknown symbols are never retried.
+    retryable: bool = False
+    attempts: int = 1
 
 
 # ---------------------------------------------------------------- Agent 1: Market Research

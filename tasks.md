@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 10 in progress**; branch `phase-10-orchestration` |
-| Last completed task | Phase 9 approved and merged into `main` |
-| Next task | 10.1 supervisor (input validation, routing, retries, output validation) |
+| Current phase | **Phase 10 approved and merged into `main`; paused before Phase 11** |
+| Last completed task | Phase 10 approved and merged into `main` |
+| Next task | Phase 11 (authentication, complete API, PDF reports) only when you say "start Phase 11" |
 | Open blockers | None |
 | Last updated | 2026-11-23 |
 
@@ -52,7 +52,7 @@
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
-| 10 | Full LangGraph Orchestration & Report Generation | `[~]` in progress | Supervisor-driven 5-agent workflow + unified report |
+| 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
@@ -506,31 +506,31 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Complete multi-agent workflow and unified financial intelligence report.
 
 ### 10.1 Supervisor (`orchestration/supervisor.py`)
-- [ ] 10.1.1 Input validation node (symbols, amount, risk preference)
-- [ ] 10.1.2 Routing: decide which agents run (single-stock vs. portfolio request)
-- [ ] 10.1.3 Conditional edges for failures (skip dependent agents, mark partial results)
-- [ ] 10.1.4 Retry policy for recoverable errors (network, LLM timeout) with limits
-- [ ] 10.1.5 Output validation node before Portfolio Optimization (includes the deferred Phase 9 review item: reject AI text that contradicts a rule-based reading, e.g. "the benchmark underperformed" when the stock did; remove loose benchmark fields from the market facts)
-- [ ] 10.1.6 Sequential execution by default; optional parallel fan-out for News / Stock Analysis / Risk behind a config flag
+- [x] 10.1.1 Input validation node (symbols, amount, risk preference) (symbols, amount (0 < amount <= Rs 100 crore), risk preference and portfolio options validated once; result is an `execution_plan` with the reason for every skipped agent)
+- [x] 10.1.2 Routing: decide which agents run (single-stock vs. portfolio request) (`supervisor.route_*`: no symbol -> report; no prices -> report; portfolio only with amount + >= 2 validated stocks)
+- [x] 10.1.3 Conditional edges for failures (skip dependent agents, mark partial results) (dependent agents skip symbols without prices; failed sections are marked unavailable with the reason)
+- [x] 10.1.4 Retry policy for recoverable errors (network, LLM timeout) with limits (three layers: data fetch retries (Phase 3), LLM repair/fallback/template (Phase 4), and new: one supervisor retry for temporary source failures (`retryable`), 5 s delay, 15-min budget; plus LangGraph RetryPolicy for transient exceptions)
+- [x] 10.1.5 Output validation node before Portfolio Optimization (includes the deferred Phase 9 review item: reject AI text that contradicts a rule-based reading, e.g. "the benchmark underperformed" when the stock did; remove loose benchmark fields from the market facts) (impossible values repaired and recorded; contradiction guard in the LLM client (retry -> fallback -> template) and a second check here; loose benchmark fields removed from the market facts)
+- [x] 10.1.6 Sequential execution by default; optional parallel fan-out for News / Stock Analysis / Risk behind a config flag (`AGENT_EXECUTION_MODE=parallel`: fan-out + deferred join; tested to give identical results)
 
 ### 10.2 State & Checkpointing
-- [ ] 10.2.1 Finalize the shared state, with reducers for concurrent updates
-- [ ] 10.2.2 Optional lightweight checkpointing (SQLite, used only for LangGraph checkpoints, never as the app database)
-- [ ] 10.2.3 Per-agent execution time + status persisted for monitoring
+- [x] 10.2.1 Finalize the shared state, with reducers for concurrent updates (supervisor fields + `retries` reducer; price records are plain floats (numpy values found by the checkpoint test))
+- [x] 10.2.2 Optional lightweight checkpointing (SQLite, used only for LangGraph checkpoints, never as the app database) (`WORKFLOW_CHECKPOINTS=true` + `pip install langgraph-checkpoint-sqlite` (off by default); wiring tested with LangGraph's in-memory saver)
+- [x] 10.2.3 Per-agent execution time + status persisted for monitoring (`analysis_reports.agent_runs` (start, end, duration, status, retries per node) + `validation_summary`)
 
 ### 10.3 Report Generation
-- [ ] 10.3.1 Report sections: company overview, market summary, technical analysis, news summary, sentiment, fundamentals, financial health, risk, portfolio (if requested), key observations, data limitations, source references, timestamp
-- [ ] 10.3.2 Metric explanations (glossary-style, for non-technical readers)
-- [ ] 10.3.3 Check that every number in the report traces back to an agent output
-- [ ] 10.3.4 Save to `analysis_reports`
+- [x] 10.3.1 Report sections: company overview, market summary, technical analysis, news summary, sentiment, fundamentals, financial health, risk, portfolio (if requested), key observations, data limitations, source references, timestamp (`services/report_generator.py`; `GET /api/analysis/{id}/report`)
+- [x] 10.3.2 Metric explanations (glossary-style, for non-technical readers) (22 plain-language entries; only the terms the report shows)
+- [x] 10.3.3 Check that every number in the report traces back to an agent output (every numeric value and every number in the AI observations checked against agent outputs; untraced AI text -> template)
+- [x] 10.3.4 Save to `analysis_reports` (`final_summary` (also written by the CLI script))
 
 ### 10.4 Tests
-- [ ] 10.4.1 Integration tests: full run, single-agent failure, LLM unavailable, invalid symbol
-- [ ] 10.4.2 Check RAM use during a full 5-agent run
+- [x] 10.4.1 Integration tests: full run, single-agent failure, LLM unavailable, invalid symbol (`test_workflow.py` + `test_supervisor.py` (30 tests); 360 tests in total)
+- [x] 10.4.2 Check RAM use during a full 5-agent run (live RELIANCE + TCS + Rs 1,00,000: 80-94 s, lowest free RAM 0.28-0.47 GB with other apps open (0.54 GB free before the run); the adaptive 0.6B model was used)
 
 ### 🛑 Phase 10 Approval Gate
-- [ ] Phase 10 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 10 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -716,6 +716,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
 | 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | Orchestration: sequential by default; supervisor retries only temporary source failures (once, within a 15-min budget); AI text that contradicts a rule-based reading is rejected like an invented number; the report's numbers must trace to agent outputs; checkpoints optional and off | Reliability on 8 GB RAM; no silent errors |
 | 2026-11-23 | Portfolio: 252-day estimation window for live weights and every backtest rebalance; max Sharpe falls back to min volatility when no stock beat the risk-free rate; explicit infeasible caps are errors, default caps are raised to 1/n; HRP implemented in-house (SciPy 1.18 incompatibility) | Backtest tests the real rule; honest, explicit fallbacks |
 | 2026-11-23 | Risk: simple daily returns of adjusted close, 252-day annualisation, sample std, beta on common dates, Sharpe on arithmetic annualised return, equal weights until Phase 9; documented thresholds | Standard, reproducible conventions |
 | 2026-11-23 | Fundamentals: trailing-annual ratios from Yahoo annual statements; ROE/ROA on average equity/assets; simple documented thresholds; banks: current ratio/operating margin not applicable, debt-to-equity not assessed | Free data source; transparent rules a beginner can follow |
@@ -761,6 +762,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 10 approved and merged into `main`. Paused before Phase 11. |
+| 2026-11-23 | Phase 10 completed on `phase-10-orchestration`: supervisor (validation, routing, retries, output validation, contradiction guard), parallel mode, optional checkpoints, unified report with glossary and number tracing, report endpoint, dashboard report card, 360 tests, live 5-agent run. Awaiting approval. |
 | 2026-11-23 | Phase 9 approved and merged into `main`. Market-text contradiction check deferred to 10.1.5 at your request. Phase 10 started on `phase-10-orchestration`. |
 | 2026-11-23 | Phase 9 completed on `phase-9-portfolio`: optimisation + walk-forward backtest modules, Portfolio Optimization Agent, graph branch, runner/projection, 3 portfolio endpoints, dashboard Portfolio card, 326 tests, live 3-stock run cross-checked with SciPy. Awaiting approval. |
 | 2026-11-23 | Phase 8 approved (risk-free rate 5.8602%, RBI 2026-11-18) and merged into `main`. Phase 9 started on `phase-9-portfolio`. |

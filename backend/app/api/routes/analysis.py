@@ -85,6 +85,18 @@ def rerun_analysis(request: Request, request_id: str = REQUEST_ID) -> dict:
     return _runner(request).rerun(request_id)
 
 
+@router.get("/{request_id}/report", summary="The unified report of a finished analysis")
+def analysis_report(request: Request, request_id: str = REQUEST_ID) -> dict:
+    job = _runner(request).db[ANALYSIS_REPORTS].find_one(
+        {"request_id": request_id}, {"status": 1, "final_summary": 1, "agent_runs": 1, "completed_at": 1})
+    if job is None:
+        raise AppError(404, "analysis_not_found", "No analysis with this request_id.")
+    if not job.get("final_summary"):
+        raise AppError(409, "report_not_ready", f"The analysis is {job['status']}; the report is not available yet.")
+    return {"request_id": request_id, "status": job["status"], "completed_at": job.get("completed_at"),
+            "agent_runs": job.get("agent_runs"), "report": job["final_summary"]}
+
+
 @router.get("/{request_id}", summary="Full results of an analysis")
 def analysis_result(request: Request, request_id: str = REQUEST_ID) -> dict:
     runner = _runner(request)

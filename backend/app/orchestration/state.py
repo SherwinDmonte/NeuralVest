@@ -4,8 +4,9 @@ One dictionary travels through the LangGraph graph. Each agent reads what it nee
 writes ONLY its own section. Bookkeeping fields use reducers, so updates are merged instead of
 overwritten. This matters when agents run in parallel (Phase 10).
 
-Some fields are filled by later phases (financial_data, stock_analysis, risk_analysis,
-portfolio_analysis); they are declared now so the state shape stays stable.
+Every value is JSON-serialisable (records, not DataFrames), so the state can be checkpointed
+and stored. In parallel mode several agents write at the same time: each writes only its own
+key, and the shared bookkeeping keys merge (dicts) or append (lists) through their reducers.
 """
 
 import operator
@@ -40,6 +41,12 @@ class NeuralVestState(TypedDict, total=False):
     stock_analysis: Annotated[dict[str, Any], merge_dicts]  # Phase 7
     risk_analysis: Annotated[dict[str, Any], merge_dicts]  # Phase 8
     portfolio_analysis: dict[str, Any]  # Phase 9 (request level: one allocation per request)
+
+    # ----- supervisor (Phase 10) -----
+    execution_plan: dict[str, Any]  # which agents run, which are skipped and why; sequential/parallel
+    workflow_started_at: str  # ISO time; the retry time budget is measured from it
+    validation: dict[str, Any]  # output-validation summary (issues, portfolio candidates)
+    retries: Annotated[list[dict[str, Any]], operator.add]  # {agent, symbol, attempt, retried, reason, at}
 
     # ----- bookkeeping -----
     agent_status: Annotated[dict[str, str], merge_dicts]

@@ -16,7 +16,7 @@ from pymongo.errors import PyMongoError
 from app.agents.common import LLMClient, save_agent_result
 from app.analysis import technical_indicators as ti
 from app.config import Settings, get_settings
-from app.data.errors import DataError, InvalidSymbolError
+from app.data.errors import DataError, DataSourceError, InvalidSymbolError
 from app.data.stock_data import PriceHistory, get_benchmark_history, get_company_profile, get_price_history, store_price_history
 from app.data.symbols import BENCHMARK_SYMBOL, normalize_symbol
 from app.llm import prompts as p
@@ -52,8 +52,14 @@ def interpret(out: MarketResearchOutput) -> dict[str, str]:
         readings["long_term_reading"] = ("the price is above its 200-day average" if out.last_close > ind["sma_200"]
                                          else "the price is below its 200-day average")
     if bench.get("available") and bench.get("outperformed") is not None:
-        readings["benchmark_reading"] = ("the stock outperformed the NIFTY 50 over the period" if bench["outperformed"]
-                                         else "the stock underperformed the NIFTY 50 over the period")
+        # The figures live INSIDE the sentence: given loose benchmark fields, the 0.6B model once
+        # wrote "the benchmark underperformed the NIFTY 50" (Phase 9 review).
+        figures = ""
+        if bench.get("stock_return_pct") is not None and bench.get("benchmark_return_pct") is not None:
+            figures = (f" ({bench['stock_return_pct']}% for the stock vs {bench['benchmark_return_pct']}% "
+                       f"for the NIFTY 50)")
+        readings["benchmark_reading"] = (("the stock outperformed the NIFTY 50 over the period" if bench["outperformed"]
+                                          else "the stock underperformed the NIFTY 50 over the period") + figures)
     if out.rsi_zone:
         readings["rsi_reading"] = {"overbought": "RSI is in the overbought zone (above 70)",
                                    "oversold": "RSI is in the oversold zone (below 30)",
@@ -64,7 +70,6 @@ def interpret(out: MarketResearchOutput) -> dict[str, str]:
 def build_facts(out: MarketResearchOutput) -> dict:
     """The ONLY information the LLM receives: values computed above, nothing else."""
     ind = out.indicators
-    bench = out.benchmark_comparison or {}
     return {
         **interpret(out),
         "symbol": out.symbol, "company": out.company_name, "as_of": out.last_close_date,
@@ -74,8 +79,6 @@ def build_facts(out: MarketResearchOutput) -> dict:
         "rsi_14": ind.get("rsi_14"), "rsi_zone": out.rsi_zone,
         "macd": (ind.get("macd") or {}).get("macd"), "macd_signal": (ind.get("macd") or {}).get("signal"),
         "macd_histogram": (ind.get("macd") or {}).get("histogram"),
-        "benchmark": "NIFTY 50" if bench.get("available") else None,
-        "benchmark_return_pct": bench.get("benchmark_return_pct"), "relative_to_benchmark_pct": bench.get("relative_pct"),
         "volume_vs_20d_avg": out.volume.get("last_vs_avg_ratio"),
         # Indicator settings, so the model may mention "20-day SMA" or "14-day RSI".
         "indicator_settings": "SMA 20/50/200 days, EMA 12/26, RSI 14 days, MACD 12/26/9, Bollinger 20 days 2 std",
@@ -121,6 +124,7 @@ def run_market_research(
         history = get_price_history(out.symbol, period=lookback, settings=settings, now=now)
     except DataError as exc:
         out.errors.append(str(exc))
+        out.retryable = isinstance(exc, DataSourceError)
         out.execution_seconds = time.perf_counter() - started
         _persist(db, request_id, out, period)
         return out, None

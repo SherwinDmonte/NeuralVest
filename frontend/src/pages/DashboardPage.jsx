@@ -7,6 +7,7 @@ import { MacdChart, PriceChart, RsiChart } from '../components/charts'
 import { Explanation, MarketTiles } from '../components/MarketSummary'
 import Fundamentals from '../components/Fundamentals'
 import PortfolioCard from '../components/PortfolioCard'
+import ReportCard from '../components/ReportCard'
 import RiskCard from '../components/RiskCard'
 import NewsList from '../components/NewsList'
 import { Card, EmptyState, ErrorState, Loading } from '../components/ui'
@@ -158,6 +159,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {result?.report && <ReportCard report={result.report} />}
 
       {mr && series.length > 0 && (
         <div className="space-y-5">

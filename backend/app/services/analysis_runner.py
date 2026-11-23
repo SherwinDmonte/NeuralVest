@@ -35,7 +35,7 @@ from app.database.models import (
 from app.agents.portfolio_optimizer import portfolio_document
 from app.agents.risk_assessment import risk_report_fields
 from app.database.repository import insert_document, upsert_document
-from app.orchestration.graph import build_graph, initial_state
+from app.orchestration.graph import build_graph, initial_state, make_checkpointer, run_config
 from app.utils.timing import utc_now
 
 logger = logging.getLogger("neuralvest.runner")
@@ -43,6 +43,8 @@ logger = logging.getLogger("neuralvest.runner")
 # Agents in execution order. Portfolio Optimization runs only for portfolio requests.
 AGENT_ORDER = ["market_research", "financial_news", "stock_analysis", "risk_assessment", "portfolio_optimization"]
 PORTFOLIO_AGENT = "portfolio_optimization"
+REPORT_STEP = "report"  # shown as a progress step: the report may include one more AI call
+PROGRESS_STEPS = [*AGENT_ORDER, REPORT_STEP]
 TERMINAL = ("completed", "partial", "failed", "interrupted")
 MAX_PENDING_JOBS = 5
 
@@ -63,9 +65,10 @@ class AnalysisRunner:
         self.settings = settings or get_settings()
         self.llm = llm
         # Tests inject a factory that builds the graph with fakes.
+        self._checkpointer = make_checkpointer(self.settings) if workflow_factory is None else None
         self.workflow_factory = workflow_factory or (
             lambda include_gdelt: build_graph(llm=self.llm, db=self.db, settings=self.settings,
-                                              include_gdelt=include_gdelt))
+                                              include_gdelt=include_gdelt, checkpointer=self._checkpointer))
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="analysis")
         self._lock = threading.Lock()
         self._progress: dict[str, dict[str, str]] = {}  # request_id -> {agent: status}
@@ -98,7 +101,7 @@ class AnalysisRunner:
     def _enqueue(self, request_id: str, params: dict) -> None:
         with self._lock:
             self._pending.append(request_id)
-            self._progress[request_id] = {a: "pending" for a in AGENT_ORDER}
+            self._progress[request_id] = {a: "pending" for a in PROGRESS_STEPS}
             if params.get("request_type") != "portfolio":
                 self._progress[request_id][PORTFOLIO_AGENT] = "skipped"
         self._executor.submit(self._run, request_id, params)
@@ -123,19 +126,14 @@ class AnalysisRunner:
             graph = self.workflow_factory(include_gdelt=params.get("include_gdelt", False))
             self._mark(request_id, AGENT_ORDER[0], "running")
             final = dict(state)
-            for update in graph.stream(state, stream_mode="updates"):
-                for node, values in update.items():
-                    final.update({k: v for k, v in (values or {}).items()})
-                    statuses = (values or {}).get("agent_status", {})
-                    for agent, status in statuses.items():
-                        if agent in AGENT_ORDER:
-                            self._mark(request_id, agent, status)
-                            nxt = AGENT_ORDER.index(agent) + 1
-                            if (nxt < len(AGENT_ORDER) and status in ("completed", "partial")
-                                    and self._progress.get(request_id, {}).get(AGENT_ORDER[nxt]) == "pending"):
-                                self._mark(request_id, AGENT_ORDER[nxt], "running")
-                    if node == "report":
-                        final["final_report"] = values.get("final_report", {})
+            # "updates" drive the live progress; "values" is the full state after each step (with
+            # the reducers applied), so the last one is the authoritative final state.
+            for mode, chunk in graph.stream(state, config=run_config(request_id), stream_mode=["updates", "values"]):
+                if mode == "values":
+                    final = chunk
+                    continue
+                for node, values in chunk.items():
+                    self._advance(request_id, node, values or {})
             self._finish(request_id, final)
         except Exception as exc:  # never leave a job stuck in "running"
             logger.exception("Analysis %s failed", request_id)
@@ -153,6 +151,30 @@ class AnalysisRunner:
                     self.llm.unload()  # free the model's RAM between analyses
                 except Exception:  # pragma: no cover - best effort
                     logger.warning("Could not unload the LLM after %s", request_id)
+
+    def _advance(self, request_id: str, node: str, values: dict) -> None:
+        """Live progress after a node finished: record statuses, skip steps the routing will not
+        reach, and mark the next step as running."""
+        for agent, status in values.get("agent_status", {}).items():
+            if agent in PROGRESS_STEPS:
+                self._mark(request_id, agent, status)
+        with self._lock:
+            progress = self._progress.setdefault(request_id, {})
+            if node == "market_research" and values.get("agent_status", {}).get("market_research") not in (
+                    "completed", "partial"):
+                for step in AGENT_ORDER[1:]:  # nothing usable: dependent agents are skipped
+                    if progress.get(step) == "pending":
+                        progress[step] = "skipped"
+            if node == "output_validation" and not (values.get("validation") or {}).get("portfolio_ready"):
+                if progress.get(PORTFOLIO_AGENT) == "pending":
+                    progress[PORTFOLIO_AGENT] = "skipped"
+            if node == "validate_input" and not values.get("stock_symbols"):
+                for step in AGENT_ORDER:
+                    progress[step] = "skipped"
+            if not any(v == "running" for v in progress.values()):
+                nxt = next((s for s in PROGRESS_STEPS if progress.get(s) == "pending"), None)
+                if nxt:
+                    progress[nxt] = "running"
 
     def _mark(self, request_id: str, agent: str, status: str) -> None:
         with self._lock:
@@ -192,8 +214,18 @@ class AnalysisRunner:
                                                              "investment_amount", "leftover_cash_inr")}
                               | {"weights_pct": {a["symbol"]: a["weight_pct"] for a in portfolio.get("allocations", [])}}
                               if portfolio else {})
+        timings = final.get("timestamps", {})
+        retries = final.get("retries", [])
+        agent_runs = {
+            node: {**t, "status": final.get("agent_status", {}).get(node),
+                   "retries": [r for r in retries if r.get("agent") == node]}
+            for node, t in timings.items()}
         fields = {
             "final_summary": report,
+            "agent_runs": agent_runs,
+            "validation_summary": {k: (final.get("validation") or {}).get(k)
+                                   for k in ("issue_count", "text_replacements", "portfolio_candidates",
+                                             "excluded_from_portfolio")},
             "error_summary": final.get("errors", []),
             "market_analysis": SectionRef(agent_result_ids=ids("market_research"), headline=market_headline).model_dump(),
             "news_analysis": SectionRef(agent_result_ids=ids("financial_news"), headline=news_headline).model_dump(),
@@ -244,7 +276,8 @@ class AnalysisRunner:
         with self._lock:
             live = dict(self._progress.get(request_id, {}))
             position = self._pending.index(request_id) + 1 if request_id in self._pending else None
-        agents = live or self._agents_from_db(request_id, job["status"], job.get("request_params") or {})
+        agents = live or self._agents_from_db(request_id, job["status"], job.get("request_params") or {},
+                                              bool(job.get("final_summary")))
         return {
             "request_id": request_id,
             "report_id": job["report_id"],
@@ -260,7 +293,8 @@ class AnalysisRunner:
             "completed_at": job.get("completed_at"),
         }
 
-    def _agents_from_db(self, request_id: str, job_status: str, params: dict | None = None) -> dict[str, str]:
+    def _agents_from_db(self, request_id: str, job_status: str, params: dict | None = None,
+                        has_report: bool = False) -> dict[str, str]:
         """After a restart (no live progress) derive agent states from agent_results."""
         found: dict[str, list[str]] = {}
         for r in self.db[AGENT_RESULTS].find({"request_id": request_id}, {"agent_name": 1, "execution_status": 1}):
@@ -278,6 +312,8 @@ class AnalysisRunner:
                 agents[agent] = "partial"
             else:
                 agents[agent] = statuses[0]
+        agents[REPORT_STEP] = ("completed" if has_report else
+                               "pending" if job_status in ("queued", "running") else "skipped")
         return agents
 
     # ---------------------------------------------------------------- recovery

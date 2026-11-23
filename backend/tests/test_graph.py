@@ -32,12 +32,13 @@ def test_reliance_end_to_end(tmp_path, monkeypatch):
     assert final["stock_symbols"] == ["RELIANCE.NS"] and final["request_type"] == "single_stock"
     assert final["agent_status"] == {"validate_input": "completed", "market_research": "completed",
                                      "financial_news": "completed", "stock_analysis": "completed",
-                                     "risk_assessment": "partial", "report": "completed"}  # no risk-free rate
+                                     "risk_assessment": "partial", "output_validation": "completed",
+                                     "report": "completed"}  # no risk-free rate
     assert len(final["market_data"]["RELIANCE.NS"]["records"]) == 250  # shared with later agents
     assert final["market_analysis"]["RELIANCE.NS"]["trend"]["classification"]
     assert final["news_analysis"]["RELIANCE.NS"]["articles_analyzed"] > 0
     assert set(final["timestamps"]) == {"validate_input", "market_research", "financial_news", "stock_analysis",
-                                        "risk_assessment"}
+                                        "risk_assessment", "output_validation", "report"}
     assert {s["agent"] for s in final["data_sources"]} == {"market_research", "financial_news", "stock_analysis",
                                                            "risk_assessment"}
     risk = final["risk_analysis"]["per_symbol"]["RELIANCE.NS"]
@@ -47,8 +48,11 @@ def test_reliance_end_to_end(tmp_path, monkeypatch):
     assert final["financial_data"]["RELIANCE.NS"]["latest_period"]["income_statement"] == "2026-03-31"
     report = final["final_report"]
     assert report["status"] == "partial" and report["request_id"] == final["request_id"]  # Sharpe unavailable
-    assert report["sections"]["RELIANCE.NS"]["financial_news"]["digest"]
-    assert "stub" in report["note"]
+    assert report["sections"]["news_summary"]["RELIANCE.NS"]["digest"]
+    assert report["key_observations"]["source"] == "llm" and len(report["key_observations"]["items"]) >= 2
+    assert report["traceability"]["ok"], report["traceability"]
+    assert {"rsi", "pe", "volatility", "sharpe"} <= set(report["glossary"]) and "backtest" not in report["glossary"]
+    assert final["validation"]["issue_count"] == 0 and final["execution_plan"]["mode"] == "sequential"
 
 
 def test_invalid_input_goes_straight_to_report(tmp_path, monkeypatch):
@@ -76,15 +80,17 @@ def test_symbols_deduplicated_and_portfolio_detected(tmp_path, monkeypatch):
     po = final["portfolio_analysis"]  # amount + 2 stocks: the Portfolio Optimization branch ran
     assert final["agent_status"]["portfolio_optimization"] in ("completed", "partial")
     assert sum(x["weight_pct"] for x in po["allocations"]) == pytest.approx(100)
-    assert final["final_report"]["portfolio"]["portfolio_id"] == po["portfolio_id"]
-    assert "equity_curve" not in (final["final_report"]["portfolio"]["backtest"] or {})
+    section = final["final_report"]["sections"]["portfolio"]
+    assert section["portfolio_id"] == po["portfolio_id"] and "equity_curve" not in (section["backtest"] or {})
+    assert final["validation"]["portfolio_candidates"] == ["RELIANCE.NS", "TCS.NS"]
 
 
 def test_single_stock_skips_portfolio_branch(tmp_path, monkeypatch):
     patch_market_data(monkeypatch, mr)
     final = graph(tmp_path).invoke(initial_state(["RELIANCE"], investment_amount=50000))
     assert final["request_type"] == "single_stock" and "portfolio_optimization" not in final["agent_status"]
-    assert final["portfolio_analysis"] == {} and final["final_report"]["portfolio"] is None
+    assert final["portfolio_analysis"] == {} and final["final_report"]["sections"]["portfolio"] is None
+    assert final["execution_plan"]["agents"]["portfolio_optimization"]["run"] is False
     assert any("at least 2 valid stocks" in e["message"] for e in final["errors"])
 
 

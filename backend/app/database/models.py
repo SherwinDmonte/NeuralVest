@@ -315,6 +315,9 @@ class AnalysisReportDocument(MongoDocument):
     risk_analysis: SectionRef | None = None
     portfolio_analysis: SectionRef | None = None
     final_summary: dict[str, Any] | None = None
+    # Phase 10: per-node {started_at, finished_at, duration_s, status, retries} for monitoring
+    agent_runs: dict[str, Any] | None = None
+    validation_summary: dict[str, Any] | None = None
     error_summary: list[dict[str, Any]] = Field(default_factory=list)
     requested_at: UtcDatetime = Field(default_factory=utc_now)
     generated_at: UtcDatetime | None = None

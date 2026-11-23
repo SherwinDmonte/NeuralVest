@@ -40,3 +40,12 @@ def test_unsupported_numbers(output, prompt, expected):
 def test_suspicious_text(text, problem):
     from app.llm.guards import suspicious_text
     assert suspicious_text(text) == problem
+
+
+def test_rupee_amounts_in_prompt_are_supported():
+    """Regression (Phase 10 live run): json.dumps escaped the rupee sign (\u20b999,294), so the
+    guard could not read 99,294 in the prompt and rejected a correct answer."""
+    from app.llm import prompts as p
+    spec = p.portfolio_explanation_prompt({"cash_reading": "57 whole shares cost ₹99,294 and ₹706 is left as cash"})
+    assert "₹99,294" in spec.user
+    assert unsupported_numbers("The shares cost ₹99,294 and ₹706 stays as cash.", spec.system + spec.user) == []

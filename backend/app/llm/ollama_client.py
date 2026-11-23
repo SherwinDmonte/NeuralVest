@@ -25,7 +25,7 @@ import psutil
 from pydantic import BaseModel, ValidationError
 
 from app.config import Settings, get_settings
-from app.llm.guards import strip_thinking, suspicious_text, unsupported_numbers
+from app.llm.guards import contradicted_reading, strip_thinking, suspicious_text, unsupported_numbers
 from app.llm.prompts import PromptSpec
 
 logger = logging.getLogger("neuralvest.llm")
@@ -180,6 +180,8 @@ class OllamaClient:
                     invented = unsupported_numbers(" ".join(spec.guarded_text(value)), prompt_text)
                     if invented:
                         raise LLMCallError(f"numbers not in the input: {invented[:5]}")
+                    if conflict := contradicted_reading(" ".join(spec.guarded_text(value)), spec.readings):
+                        raise LLMCallError(f"invalid text: {conflict}")
                 except LLMCallError as exc:
                     attempts.append({"model": model, "ok": False, "reason": exc.reason,
                                      "seconds": round(time.perf_counter() - t0, 2)})

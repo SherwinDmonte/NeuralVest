@@ -118,6 +118,8 @@ class FakeLLM:
             "stock_analysis": {"explanation": "The company's finances are described using the given facts."},
             "risk_explanation": {"explanation": "Historical risk is described using the given facts only."},
             "portfolio_explanation": {"explanation": "The illustrative allocation is described using the given facts."},
+            "report_summary": {"observations": ["The stock's results are summarised from the given facts.",
+                                                "Risk and financial health are described without new numbers."]},
         }[spec.name]
         return LLMResult(value=schema(**values), source="llm", model="fake-model",
                          attempts=[{"model": "fake-model", "ok": True, "seconds": 0.0}])

@@ -298,6 +298,14 @@ npm run dev
 
 Ollama runs in the background as a tray app on `http://localhost:11434`.
 
+### Orchestration settings (Phase 10, optional)
+
+The defaults in `.env.example` suit 8 GB RAM. `AGENT_EXECUTION_MODE=parallel` runs News, Stock Analysis and
+Risk at the same time (only network waits overlap; AI calls stay one at a time). `WORKFLOW_CHECKPOINTS=true`
+also needs `pip install langgraph-checkpoint-sqlite`. `REPORT_LLM_SUMMARY=false` skips the AI key observations
+(about 10 s faster; the rule-based readings are used). The full report of an analysis:
+`GET http://localhost:8000/api/analysis/<request_id>/report`.
+
 ### Portfolio analysis (Phase 9)
 
 From `backend/` with the venv active and Ollama running:
