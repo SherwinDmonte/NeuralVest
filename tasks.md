@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 3 in progress** (branch `phase-3-data`) |
-| Last completed task | Phase 2 approved and merged into `main` |
-| Next task | 3.1.1 symbol normalization |
-| Open blockers | None (2.1.2 dedicated DB user still recommended) |
+| Current phase | **Phase 4 in progress** (branch `phase-4-llm`) |
+| Last completed task | Phase 3 approved and merged into `main` |
+| Next task | 4.1.1 shared Ollama client |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -45,8 +45,8 @@
 | 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
 | 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
-| 3 | Financial Data Collection & Validation | `[~]` | Reliable market, news and fundamentals data modules |
-| 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
+| 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
+| 4 | Local LLM Integration (Ollama + Qwen3) | `[~]` | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
@@ -186,7 +186,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 2.1 MongoDB Atlas Setup `[!] manual`
 - [x] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster: **existing free cluster `cluster0` reused** (shared with the `inboxflow` project)
-- [!] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Deferred:** Phase 2 approved with this open; recommended to switch to a dedicated `neuralvest_app` user (`readWrite` + `dbAdmin` on the two NeuralVest databases)
+- [x] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Accepted deviation (your decision, 2026-11-23):** keep the existing Atlas user; no `neuralvest_app` user at this stage. Credentials stay only in the git-ignored `backend/.env`
 - [x] 2.1.3 Configure Network Access (your current IP): connection verified
 - [x] 2.1.4 Copy the connection URI into `backend/.env` (never commit it): done (password added by you); `.env` git-ignored
 
@@ -228,47 +228,47 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** `data/` modules with tests.
 
 ### 3.1 Symbol Handling
-- [ ] 3.1.1 Normalize symbols (NSE `.NS`, BSE `.BO`, plain input → default exchange)
-- [ ] 3.1.2 Detect invalid symbols (empty data / unknown ticker)
-- [ ] 3.1.3 Seed a small curated list of NSE stocks for search (for example NIFTY 50 constituents) with source and date
+- [x] 3.1.1 Normalize symbols (NSE `.NS`, BSE `.BO`, plain input → default exchange) (`app/data/symbols.py`: RELIANCE, NSE:TCS, BSE:500325, 500325, ^NSEI)
+- [x] 3.1.2 Detect invalid symbols (empty data / unknown ticker) (format errors raise `InvalidSymbolError`; unknown tickers raise `NoDataError` when Yahoo returns nothing)
+- [x] 3.1.3 Seed a small curated list of NSE stocks for search (for example NIFTY 50 constituents) with source and date: **30 curated large-cap NSE symbols** (`seed_symbols.json`, curated 2026-11-23, explicitly *not* the official NIFTY 50 list); all 30 verified on Yahoo and stored in `stocks` via `scripts/seed_stocks.py`
 
 ### 3.2 Market Data (`data/stock_data.py`)
-- [ ] 3.2.1 Fetch OHLCV + adjusted close with yfinance (configurable period, default 1y)
-- [ ] 3.2.2 Fetch the benchmark (NIFTY 50 `^NSEI`)
-- [ ] 3.2.3 Local file cache in `data/cache/` with a freshness window (to limit calls to Yahoo)
-- [ ] 3.2.4 Upsert to the `market_data` collection (unique `symbol + date`)
-- [ ] 3.2.5 Record source + `fetched_at` timestamps
+- [x] 3.2.1 Fetch OHLCV + adjusted close with yfinance (configurable period, default 1y) (`auto_adjust=False` keeps both close and adjusted close; retries on rate limits)
+- [x] 3.2.2 Fetch the benchmark (NIFTY 50 `^NSEI`)
+- [x] 3.2.3 Local file cache in `data/cache/` with a freshness window (to limit calls to Yahoo) (prices 12 h, news 60 min, profiles/financials 7 days; atomic writes)
+- [x] 3.2.4 Upsert to the `market_data` collection (unique `symbol + date`) (bulk upsert; re-runs are idempotent)
+- [x] 3.2.5 Record source + `fetched_at` timestamps
 
 ### 3.3 Data Validation (`data/data_validator.py`)
-- [ ] 3.3.1 Handle missing values (forward-fill rules, drop rules, reporting)
-- [ ] 3.3.2 Detect and remove duplicate rows
-- [ ] 3.3.3 Validate dates (trading days, no future dates, sorted index)
-- [ ] 3.3.4 Check for outliers (extreme daily returns flagged, not silently removed)
-- [ ] 3.3.5 Check data freshness (warn if the latest bar is stale)
-- [ ] 3.3.6 Return a validation report object attached to every dataset
+- [x] 3.3.1 Handle missing values (forward-fill rules, drop rules, reporting): prices are **never filled**; rows with missing prices removed and listed; missing volume → 0 and counted
+- [x] 3.3.2 Detect and remove duplicate rows (stable sort, keep last)
+- [x] 3.3.3 Validate dates (trading days, no future dates, sorted index) (IST trading dates, future rows removed)
+- [x] 3.3.4 Check for outliers (extreme daily returns flagged, not silently removed) (> 20% daily move)
+- [x] 3.3.5 Check data freshness (warn if the latest bar is stale) (stale after 3 business days; **today's partial bar flagged** during market hours)
+- [x] 3.3.6 Return a validation report object attached to every dataset (`ValidationReport` with plain-language warnings)
 
 ### 3.4 News Data (`data/news_data.py`)
-- [ ] 3.4.1 GDELT DOC API client (company-name + ticker queries, India focus)
-- [ ] 3.4.2 RSS client using feedparser (curated list of Indian financial feeds, verified working)
-- [ ] 3.4.3 Normalize articles (headline, publisher, URL, published date, source)
-- [ ] 3.4.4 Deduplicate (by URL + fuzzy headline similarity)
-- [ ] 3.4.5 Validate URLs (http/https only) and treat all article text as untrusted data
-- [ ] 3.4.6 Cache results and respect rate limits (backoff)
+- [x] 3.4.1 GDELT DOC API client (company-name + ticker queries, India focus): company-name query, `sourcecountry:IN sourcelang:english`, process-wide limiter (≥ 6 s) + 15 s backoff on 429. **Best effort: rate-limited on some calls**
+- [x] 3.4.2 RSS client using feedparser (curated list of Indian financial feeds, verified working): 8 feeds verified 2026-11-23 (Moneycontrol excluded: frozen since 2024); curated news aliases (e.g. RIL, HUL, L&T, SBI)
+- [x] 3.4.3 Normalize articles (headline, publisher, URL, published date, source) (proper publisher names; GDELT spacing artefacts fixed)
+- [x] 3.4.4 Deduplicate (by URL + fuzzy headline similarity) (URL hash + headline similarity ≥ 0.9)
+- [x] 3.4.5 Validate URLs (http/https only) and treat all article text as untrusted data (no embedded credentials, tracking params stripped; HTML/scripts removed; text length-capped)
+- [x] 3.4.6 Cache results and respect rate limits (backoff)
 
 ### 3.5 Fundamentals Data (`data/financial_data.py`)
-- [ ] 3.5.1 Get the income statement, balance sheet and cash flow (yfinance as the primary free source)
-- [ ] 3.5.2 Record the reporting-period date and source for each statement; flag missing or stale values
-- [ ] 3.5.3 Assess whether NSE/BSE filings can be accessed legitimately; if automated access is blocked or not permitted, support **manually downloaded** annual-report PDFs instead
-- [ ] 3.5.4 PDF text extraction utility (pypdf, decision D1) for `data/financial_reports/`
+- [x] 3.5.1 Get the income statement, balance sheet and cash flow (yfinance as the primary free source)
+- [x] 3.5.2 Record the reporting-period date and source for each statement; flag missing or stale values (latest period per statement, key line items missing listed, stale after 18 months; banks lack Operating Income/Current Assets/Current Liabilities)
+- [x] 3.5.3 Assess whether NSE/BSE filings can be accessed legitimately; if automated access is blocked or not permitted, support **manually downloaded** annual-report PDFs instead: **not permitted**: NSE Terms of Use prohibit automated data collection (Phase 0); manual PDFs supported instead
+- [x] 3.5.4 PDF text extraction utility (pypdf, decision D1) for `data/financial_reports/` (`app/data/pdf_text.py`: path confined to `data/financial_reports/`, size limit, scanned pages reported)
 
 ### 3.6 Tests & Verification
-- [ ] 3.6.1 Unit tests for the validator using fixed sample data (no network)
-- [ ] 3.6.2 Save reproducible historical fixtures to `backend/tests/fixtures/`
-- [ ] 3.6.3 Manual run: RELIANCE.NS, TCS.NS, INFY.NS, HDFCBANK.NS, ICICIBANK.NS fetch successfully
+- [x] 3.6.1 Unit tests for the validator using fixed sample data (no network) (13 validator tests; 133 tests in total pass)
+- [x] 3.6.2 Save reproducible historical fixtures to `backend/tests/fixtures/`: **synthetic** fixtures (prices from a committed deterministic generator; RSS/GDELT samples). Real Yahoo data not committed (redistribution terms)
+- [x] 3.6.3 Manual run: RELIANCE.NS, TCS.NS, INFY.NS, HDFCBANK.NS, ICICIBANK.NS fetch successfully: **5/5 succeeded** (247 valid daily rows each, stored; statements to FY2026; news via RSS + GDELT when available)
 
 ### 🛑 Phase 3 Approval Gate
-- [ ] Phase 3 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 3 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -682,7 +682,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
-| Phase 2 | (Recommended) Create a dedicated `neuralvest_app` Atlas user and update `.env` | `[!]` deferred |
+| Phase 2 | Dedicated `neuralvest_app` Atlas user | `[x]` not needed: you chose to keep the existing user |
 | Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
 | Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
 | Phase 14 | Choose the repository license; review screenshots | `[ ]` |
@@ -714,6 +714,11 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Keep the existing Atlas database user (no dedicated `neuralvest_app` user) | Your decision; it has the permissions the app needs (incl. `collMod`); credentials only in local `.env` |
+| 2026-11-23 | Price rows with missing values are removed, never forward-filled | Filled prices would look like real data |
+| 2026-11-23 | Test fixtures are synthetic; real Yahoo data is not committed | Yahoo terms restrict redistribution |
+| 2026-11-23 | GDELT is a best-effort source; RSS is primary | GDELT rate-limits frequently and is slow (~25 s) |
+| 2026-11-23 | Curated news aliases (RIL, HUL, L&T, SBI, …) in `seed_symbols.json`; tickers match case-sensitively | Headlines use abbreviations; case-insensitive tickers matched other companies (Reliance Power) |
 | 2026-11-23 | `STORAGE_RESERVED_MB=10` | 11 other databases use ~3.3 MB storage (Atlas UI); margin for their indexes |
 | 2026-11-23 | Existing Atlas free cluster reused (shared with `inboxflow`); `STORAGE_RESERVED_MB` setting added to the storage guard | Your choice; NeuralVest cannot measure other projects' storage |
 | 2026-11-23 | Routes obtain the DB inside the handler, not via a FastAPI dependency | Dependencies run before parameter validation; invalid input must give 422, not 503 |
@@ -743,6 +748,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 3 completed on `phase-3-data`: symbols, cache, validator, prices, news, financials, PDF text; 133 tests; 5-symbol live run; 30 symbols seeded. Awaiting approval. |
 | 2026-11-23 | Phase 2 completed on `phase-2-backend`: FastAPI core, database layer (models, validators, indexes, repository, integrity, retention), health + stock placeholder routes, 64 tests, scripts. Awaiting approval. |
 | 2026-11-23 | Phase 1 completed: measurements recorded, default model `qwen3:0.6b`, GitHub remote configured and `main` pushed. Awaiting approval. |
 | 2026-11-23 | Phase 0 approved. Phase 1 started: Python 3.12.10, venv + backend packages, Vite/React/Tailwind frontend, Ollama settings + Qwen3 models, env templates, `.gitignore`/`.gitattributes`, README, measurement script, local git repo. |

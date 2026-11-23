@@ -1,0 +1,27 @@
+{
+  "description": "Curated list of large, liquid NSE stocks used as search suggestions and test symbols.",
+  "source": "Curated manually by the NeuralVest project. Company names, sectors and industries are fetched from Yahoo Finance (via yfinance) when the list is seeded into MongoDB.",
+  "limitations": "This is NOT an official index constituent list (e.g. it is not the current NIFTY 50). Any NSE/BSE symbol can still be analysed.",
+  "curated_on": "2026-11-23",
+  "symbols": [
+    "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS",
+    "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "HINDUNILVR.NS", "LT.NS",
+    "KOTAKBANK.NS", "AXISBANK.NS", "BAJFINANCE.NS", "ASIANPAINT.NS", "MARUTI.NS",
+    "SUNPHARMA.NS", "TITAN.NS", "ULTRACEMCO.NS", "WIPRO.NS", "HCLTECH.NS",
+    "NTPC.NS", "POWERGRID.NS", "ONGC.NS", "TATASTEEL.NS", "JSWSTEEL.NS",
+    "M&M.NS", "NESTLEIND.NS", "TECHM.NS", "ADANIPORTS.NS", "COALINDIA.NS"
+  ],
+  "news_aliases_note": "Abbreviations Indian newsrooms commonly use in headlines. All-caps aliases are matched case-sensitively as whole words.",
+  "news_aliases": {
+    "RELIANCE.NS": ["RIL"],
+    "HINDUNILVR.NS": ["HUL"],
+    "LT.NS": ["L&T", "Larsen & Toubro"],
+    "SBIN.NS": ["SBI", "State Bank of India"],
+    "BHARTIARTL.NS": ["Bharti Airtel"],
+    "M&M.NS": ["M&M"],
+    "BAJFINANCE.NS": ["Bajaj Finance"],
+    "ULTRACEMCO.NS": ["UltraTech"],
+    "ADANIPORTS.NS": ["Adani Ports"],
+    "TCS.NS": ["Tata Consultancy"]
+  }
+}
