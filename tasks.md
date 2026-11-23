@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 5 complete: waiting for developer approval (Phase 5 gate)**; branch `phase-5-agents` |
-| Last completed task | 5.4.4 live RELIANCE.NS workflow run |
-| Next task | After approval: merge `phase-5-agents` → `main`; Phase 6 → 6.1.1 on `phase-6-mvp` |
-| Open blockers | Phase 5 approval |
+| Current phase | **Phase 6 in progress** (branch `phase-6-mvp`) |
+| Last completed task | Phase 5 approved and merged into `main` |
+| Next task | 6.1.7 analysis runner, then 6.1.x endpoints, then 6.2 dashboard |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -47,8 +47,8 @@
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
-| 5 | MVP Agents: Market Research + Financial News | `[~]` awaiting approval | Two working agents + minimal LangGraph graph |
-| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
+| 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
+| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[~]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
@@ -349,7 +349,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 5 Approval Gate
 - [x] Phase 5 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
