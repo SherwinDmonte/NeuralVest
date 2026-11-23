@@ -12,7 +12,7 @@ export default function AppLayout() {
             <span className="text-lg font-semibold tracking-tight">NeuralVest</span>
             <span className="hidden text-xs text-ink-muted sm:inline">AI-powered financial intelligence</span>
           </div>
-          <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-ink-muted">MVP · Phase 9</span>
+          <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-ink-muted">MVP · Phase 10</span>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">

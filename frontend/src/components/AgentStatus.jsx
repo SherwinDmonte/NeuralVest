@@ -8,6 +8,7 @@ const AGENTS = [
   { key: 'stock_analysis', name: 'Stock Analysis Agent', does: 'Financial statements, ratios, financial health' },
   { key: 'risk_assessment', name: 'Risk Assessment Agent', does: 'Volatility, beta, drawdown, Sharpe ratio' },
   { key: 'portfolio_optimization', name: 'Portfolio Optimization Agent', does: 'Allocation, whole shares, backtest (2+ stocks with an amount)' },
+  { key: 'report', name: 'Report Generation', does: 'Output checks, key observations, sources, glossary' },
 ]
 
 const STATE = {
@@ -33,7 +34,7 @@ export default function AgentStatus({ status, onRerun }) {
   if (!status) return null
   const job = status.status
   return (
-    <Card title="Agent execution" subtitle="LangGraph workflow: validate input, Market Research, Financial News, Stock Analysis, Risk Assessment, then Portfolio Optimization">
+    <Card title="Agent execution" subtitle="LangGraph supervisor: validate input, Market Research, News, Stock Analysis, Risk, output validation, Portfolio Optimization, then the report">
       <p className="mb-3 text-sm text-ink-secondary" aria-live="polite">
         {JOB_TEXT[job] || job}
         {status.queue_position ? ` (position ${status.queue_position} in queue)` : ''}

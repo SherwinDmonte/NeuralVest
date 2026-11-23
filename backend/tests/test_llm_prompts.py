@@ -28,9 +28,11 @@ def test_market_prompt_contains_facts_and_fallback_uses_them():
     assert "bullish" in text and "56.2" in text and "without the AI model" in text
 
 
-def test_later_phase_prompts_are_marked_placeholders():
-    with pytest.raises(NotImplementedError):
-        p.report_summary_prompt()
+def test_report_summary_prompt():
+    facts = {"tcs_benchmark_reading": "TCS.NS: the stock underperformed the NIFTY 50 over the period"}
+    spec = p.report_summary_prompt(facts)
+    assert "never contradict" in spec.system and spec.readings == (facts["tcs_benchmark_reading"],)
+    assert spec.guarded_fields == ("observations",)
 
 
 def test_portfolio_prompt_and_fallback():

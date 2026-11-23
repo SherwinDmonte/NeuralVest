@@ -79,6 +79,20 @@ class Settings(BaseSettings):
     llm_min_free_ram_mb: int = Field(default=1800, ge=0)
     max_news_articles_llm: int = Field(default=8, ge=1, le=30)
 
+    # ----- Orchestration (Phase 10) -----
+    # sequential (default, 8 GB RAM) or parallel fan-out of News / Stock Analysis / Risk. LLM
+    # calls stay serialized either way (one inference at a time).
+    agent_execution_mode: Literal["sequential", "parallel"] = "sequential"
+    # Extra attempts for an agent whose data source failed TEMPORARILY (network, rate limit).
+    agent_retry_attempts: int = Field(default=1, ge=0, le=3)
+    agent_retry_delay_seconds: float = Field(default=5, ge=0, le=60)
+    # No new retries are started after this much workflow time (architecture §7: 15 min).
+    workflow_time_budget_seconds: float = Field(default=900, ge=60, le=3600)
+    # LangGraph SQLite checkpoints (optional; needs `pip install langgraph-checkpoint-sqlite`).
+    workflow_checkpoints: bool = False
+    # AI-written "key observations" in the final report (template text when false).
+    report_llm_summary: bool = True
+
     # ----- Risk-free rate (Phase 8, decision D4): entered manually, all three required -----
     risk_free_rate_pct: float | None = Field(default=None, ge=-5, le=50)
     risk_free_rate_date: date | None = None

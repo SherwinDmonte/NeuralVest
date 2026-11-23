@@ -14,7 +14,7 @@ from pymongo.errors import PyMongoError
 from app.agents.common import LLMClient, save_agent_result
 from app.analysis import fundamentals as fa
 from app.config import Settings, get_settings
-from app.data.errors import DataError, InvalidSymbolError
+from app.data.errors import DataError, DataSourceError, InvalidSymbolError
 from app.data.financial_data import FinancialStatements, get_financial_statements
 from app.data.stock_data import get_company_profile
 from app.data.symbols import exchange_of, normalize_symbol
@@ -97,6 +97,7 @@ def run_stock_analysis(
         fs = get_financial_statements(out.symbol, settings=settings)
     except DataError as exc:
         out.errors.append(str(exc))
+        out.retryable = isinstance(exc, DataSourceError)
         _persist(db, request_id, out)
         return _done(out, started), None
     out.statement_periods = fs.latest_period

@@ -46,7 +46,10 @@ class PriceHistory:
     warnings: list[str] = field(default_factory=list)
 
     def to_records(self) -> list[dict[str, Any]]:
-        return [{"date": d.strftime("%Y-%m-%d"), **{c: row[c] for c in REQUIRED_COLUMNS}}
+        # Plain Python floats (not numpy): the records travel in the workflow state, which must
+        # stay JSON/msgpack-serialisable for checkpoints and MongoDB (found in Phase 10).
+        return [{"date": d.strftime("%Y-%m-%d"), **{c: None if pd.isna(row[c]) else float(row[c])
+                                                    for c in REQUIRED_COLUMNS}}
                 for d, row in self.frame.iterrows()]
 
     def provenance(self) -> dict[str, Any]:

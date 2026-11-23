@@ -58,12 +58,18 @@ def test_submit_runs_in_background_and_writes_report(runner, clean_db):
     assert status["status"] == "completed"
     assert status["agents"] == {"market_research": "completed", "financial_news": "completed",
                                 "stock_analysis": "completed", "risk_assessment": "completed",
-                                "portfolio_optimization": "skipped"}  # single stock: not a portfolio
+                                "portfolio_optimization": "skipped",  # single stock: not a portfolio
+                                "report": "completed"}
     assert [e["status"] for e in status["status_history"]] == ["queued", "running", "completed"]
     doc = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": started["request_id"]})
     assert doc["market_analysis"]["agent_result_ids"] and doc["news_analysis"]["agent_result_ids"]
     assert doc["market_analysis"]["headline"]["RELIANCE.NS"]["trend"]  # small headline, not a copy
     assert doc["final_summary"]["status"] == "completed" and doc["completed_at"]
+    # 10.2.3: per-agent timing + status persisted; the final state keeps every node's errors/sources
+    assert set(doc["agent_runs"]) >= {"market_research", "output_validation", "report"}
+    assert doc["agent_runs"]["market_research"]["status"] == "completed"
+    assert doc["agent_runs"]["market_research"]["duration_s"] >= 0 and doc["validation_summary"]["issue_count"] == 0
+    assert doc["final_summary"]["traceability"]["ok"] and doc["final_summary"]["key_observations"]["items"]
     assert doc["fundamental_analysis"]["headline"]["RELIANCE.NS"]["overall"] == "solid"
     assert doc["risk_analysis"]["headline"]["RELIANCE.NS"]["beta"] == 1.0
     risk_report = clean_db[m.RISK_REPORTS].find_one({"request_id": started["request_id"]})
@@ -119,7 +125,8 @@ def test_status_after_restart_comes_from_database(runner, clean_db):
     fresh = ar.AnalysisRunner(clean_db, runner.settings)  # new process: no live progress
     assert fresh.status(rid)["agents"] == {"market_research": "completed", "financial_news": "completed",
                                            "stock_analysis": "completed", "risk_assessment": "completed",
-                                "portfolio_optimization": "skipped"}  # single stock: not a portfolio
+                                "portfolio_optimization": "skipped",  # single stock: not a portfolio
+                                "report": "completed"}
     fresh.shutdown()
 
 
@@ -220,7 +227,7 @@ def test_portfolio_request_runs_agent_5_and_writes_projection(runner, clean_db):
     assert proj["optimization_method"] == "equal_weight" and proj["investment_amount"] == 100000
     assert sum(a["weight_pct"] for a in proj["stock_allocations"]) == 100
     assert proj["expected_metrics"]["risk_free_rate"]["source"] == "test rate"
-    assert doc["final_summary"]["portfolio"]["portfolio_id"] == proj["portfolio_id"]
+    assert doc["final_summary"]["sections"]["portfolio"]["portfolio_id"] == proj["portfolio_id"]
 
 
 def test_api_portfolio_analysis(client, runner):
@@ -238,3 +245,15 @@ def test_api_portfolio_analysis(client, runner):
     single = client.post("/api/analysis/start", json={"symbols": ["RELIANCE"]}).json()
     runner.wait_idle()
     assert client.get(f"/api/analysis/{single['request_id']}").json()["portfolio_optimization"] is None
+
+
+def test_api_report_endpoint(client, runner, clean_db):
+    rid = client.post("/api/analysis/start", json={"symbols": ["RELIANCE"]}).json()["request_id"]
+    runner.wait_idle()
+    body = client.get(f"/api/analysis/{rid}/report").json()
+    assert body["status"] == "completed" and body["report"]["report_version"] == "1.0"
+    assert body["report"]["sections"]["technical_analysis"]["RELIANCE.NS"]["trend"]
+    assert body["agent_runs"]["report"]["status"] == "completed"
+    queued = job(clean_db, "queued")
+    assert client.get(f"/api/analysis/{queued}/report").status_code == 409
+    assert client.get(f"/api/analysis/{'0' * 32}/report").status_code == 404

@@ -180,3 +180,19 @@ def test_markup_echo_is_rejected_and_retried():
     mock = Recorder(chat_response(json.dumps(echoed)), chat_response(json.dumps(GOOD_NEWS)))
     result = run_news(mock)
     assert result.source == "llm" and "prompt markup" in result.attempts[0]["reason"]
+
+
+def test_contradicting_text_is_repaired_then_accepted():
+    """Phase 10 guard: the Phase 9 review case ("the benchmark underperformed the NIFTY 50")
+    is rejected, the model gets a repair hint, and the corrected answer is accepted."""
+    facts = {"symbol": "RELIANCE.NS", "trend": "sideways",
+             "benchmark_reading": "the stock underperformed the NIFTY 50 over the period"}
+    bad = {"explanation": "The trend is sideways and the benchmark underperformed the NIFTY 50."}
+    good = {"explanation": "The trend is sideways and the stock underperformed the NIFTY 50 over the period."}
+    mock = Recorder(chat_response(json.dumps(bad)), chat_response(json.dumps(good)))
+    with OllamaClient(settings(), transport=httpx.MockTransport(mock), ram_probe=lambda: 4000) as client:
+        result = client.generate_structured(p.market_explanation_prompt(facts), p.MarketExplanationOutput,
+                                            p.market_explanation_fallback(facts))
+    assert result.source == "llm" and result.value.explanation == good["explanation"]
+    assert "benchmark out/underperformed" in result.attempts[0]["reason"]
+    assert "rejected" in mock.requests[1]["messages"][-1]["content"]  # repair hint sent

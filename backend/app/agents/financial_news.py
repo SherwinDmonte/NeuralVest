@@ -15,7 +15,7 @@ from pymongo.errors import PyMongoError
 
 from app.agents.common import LLMClient, save_agent_result
 from app.config import Settings, get_settings
-from app.data.errors import DataError
+from app.data.errors import DataError, DataSourceError
 from app.data.news_data import NewsArticle, collect_news, company_terms, match_terms
 from app.data.symbols import normalize_symbol
 from app.database.models import FinancialNewsDocument
@@ -82,6 +82,7 @@ def run_financial_news(
                             settings=settings, transport=transport)
     except DataError as exc:
         out.errors.append(str(exc))
+        out.retryable = isinstance(exc, DataSourceError)
         out.execution_seconds = time.perf_counter() - started
         return out
 

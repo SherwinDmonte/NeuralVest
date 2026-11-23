@@ -1,4 +1,4 @@
-"""Run the multi-agent workflow from the command line (Phase 5 live check, task 5.4.4).
+"""Run the full multi-agent workflow from the command line (live checks, Phases 5-10).
 
 Uses real data, the local LLM (adaptive 1.7B/0.6B) and MongoDB. A job record is written to
 `analysis_reports` so every saved agent result belongs to a request. The background
@@ -90,6 +90,8 @@ def main() -> int:
         db[ANALYSIS_REPORTS].update_one(
             {"request_id": state["request_id"]},
             {"$set": {"status": status, "final_summary": report, "error_summary": final["errors"],
+                      "agent_runs": {node: {**t, "status": final["agent_status"].get(node)}
+                                for node, t in final["timestamps"].items()},
                       "generated_at": utc_now(), "completed_at": utc_now()},
              "$push": {"status_history": StatusEvent(status=status).model_dump()}})
         pa = final.get("portfolio_analysis") or {}
@@ -102,10 +104,13 @@ def main() -> int:
     print(f"\nStatus: {report['status']} | agents {final['agent_status']} | {elapsed:.1f} s total")
     for node, t in final["timestamps"].items():
         print(f"  {node:16} {t['duration_s']:6.1f} s")
-    for symbol, sec in report["sections"].items():
-        m, n = sec["market_research"], sec["financial_news"]
+    for symbol in final["stock_symbols"]:
+        m, n = final["market_analysis"].get(symbol) or {}, final["news_analysis"].get(symbol) or {}
+        if m.get("status") not in ("completed", "partial"):
+            print(f"\n=== {symbol}: no market data ({'; '.join(m.get('errors') or [])}) ===")
+            continue
         ind = m.get("indicators") or {}
-        print(f"\n=== {symbol}: {sec['company_name']} ===")
+        print(f"\n=== {symbol}: {m.get('company_name')} ===")
         print(f"Close {m['last_close']} (as of {m['last_close_date']}) | trend {m['trend']['classification']} | "
               f"SMA20 {ind.get('sma_20')} SMA50 {ind.get('sma_50')} SMA200 {ind.get('sma_200')} | "
               f"RSI {ind.get('rsi_14')} ({m['rsi_zone']}) | MACD hist {(ind.get('macd') or {}).get('histogram')}")
@@ -170,6 +175,22 @@ def main() -> int:
         print(f"  explanation ({(pa.get('llm') or {}).get('source')}): {pa.get('explanation')}")
         for w in pa.get("warnings", []):
             print(f"  warning: {w}")
+    print("\nREPORT: key observations "
+          f"({report['key_observations']['source']}, {report['key_observations'].get('model') or 'no model'}):")
+    for item in report["key_observations"]["items"]:
+        print(f"  - {item}")
+    tr = report["traceability"]
+    print(f"  traceability: {tr['numbers_checked']} numbers checked, ok={tr['ok']} "
+          f"{tr['untraced_values'][:3] or ''}{tr['untraced_in_observations'][:3] or ''}")
+    v = final.get("validation") or {}
+    print(f"  output validation: {v.get('issue_count')} issue(s), {v.get('text_replacements')} AI text(s) replaced")
+    for agent, by_symbol in (v.get("agents") or {}).items():
+        for sym, res in by_symbol.items():
+            for issue in res["issues"]:
+                print(f"    {agent} {sym}: {issue}")
+    print(f"  retries: {final.get('retries') or 'none'} | unavailable sections: {report['unavailable_sections'] or 'none'}")
+    print(f"  data limitations: {len(report['data_limitations'])} | sources: {len(report['source_references'])} | "
+          f"glossary terms: {len(report['glossary'])}")
     for e in final["errors"]:
         print(f"ERROR [{e['agent']}] {e['symbol']}: {e['message']}")
     print(f"\nLowest free RAM observed: {min_free:.2f} GB | saved to MongoDB: {db is not None}")

@@ -104,7 +104,8 @@ def _warnings(out: PortfolioOutput, result: opt.OptimizationResult, alloc: dict,
     if alloc["leftover_pct"] > LEFTOVER_WARNING_PCT:
         w.append(f"{alloc['leftover_pct']}% of the amount stays as cash because only whole shares can be bought.")
     largest = out.concentration.get("largest_weight_pct")
-    if largest is not None and largest > CONCENTRATION_WARNING_PCT:
+    unavoidable = 100 / max(len(out.allocations), 1) + 0.01  # e.g. 50% with 2 stocks cannot be lower
+    if largest is not None and largest > max(CONCENTRATION_WARNING_PCT, unavoidable):
         w.append(f"Concentrated: one stock receives {largest}% of the money.")
     return w
 
