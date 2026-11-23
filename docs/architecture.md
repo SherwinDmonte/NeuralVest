@@ -556,6 +556,8 @@ NEURALVEST/                         # repository root
 
 10. *(Phase 5)* `agents/common.py` (shared persistence + LLM protocol) and `schemas/agents.py` (agent contracts). In `analysis/technical_indicators.py`, indicators use the unadjusted close and returns use the adjusted close; a corporate-action warning flags splits.
 
+11. *(Phase 6)* Extra endpoint `POST /api/analysis/{request_id}/rerun` (the Re-run button for interrupted/failed analyses, database_design §6.2). The Market Research Agent computes indicators on a **2-year lookback** (SMA200 and the recursive EMA/RSI/MACD need warm-up), while returns, the benchmark comparison and volume use the 1-year analysis window. The chart endpoint uses the same lookback, so dashboard tiles and charts always show identical values. Frontend: `components/ui.jsx` (shared UI), `components/charts.jsx`, `utils/format.js`.
+
 No other deviations. Helper modules such as `services/analysis_runner.py` sit inside folders the specification already defines.
 
 ---

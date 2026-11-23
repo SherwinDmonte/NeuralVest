@@ -27,7 +27,8 @@ def test_complete_analysis(tmp_path, monkeypatch):
     assert out.benchmark_comparison["available"] and out.benchmark_comparison["trading_days"] == 250
     assert out.explanation == "The trend is described using the given facts." and out.llm["source"] == "llm"
     assert llm.calls == ["market_explanation"]
-    assert {s.detail for s in out.data_sources} == {"company profile", "daily prices (1y)", "NIFTY 50 benchmark"}
+    # Indicators use a 2-year lookback; the analysis window (returns, benchmark) is 1 year.
+    assert {s.detail for s in out.data_sources} == {"company profile", "daily prices (2y)", "NIFTY 50 benchmark"}
     assert out.validation["rows_valid"] == 250
 
 

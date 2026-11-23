@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 6 in progress** (branch `phase-6-mvp`) |
-| Last completed task | Phase 5 approved and merged into `main` |
-| Next task | 6.1.7 analysis runner, then 6.1.x endpoints, then 6.2 dashboard |
-| Open blockers | None |
+| Current phase | **Phase 6 complete except your UI check (6.3.7)**; branch `phase-6-mvp` |
+| Last completed task | 6.3.8 RAM measured during API run |
+| Next task | You: 6.3.7 view dashboard; then merge → `main`; Phase 7 on `phase-7-fundamentals` |
+| Open blockers | 6.3.7 manual UI check; Phase 6 approval |
 | Last updated | 2026-11-23 |
 
 ---
@@ -48,7 +48,7 @@
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
-| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[~]` | End-to-end RELIANCE.NS analysis shown in React |
+| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[~]` awaiting your UI check + approval | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
@@ -359,37 +359,37 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** You enter RELIANCE.NS in React, the analysis runs in the background, and the results are saved to Atlas and displayed.
 
 ### 6.1 Backend Endpoints (MVP subset)
-- [ ] 6.1.1 `POST /api/analysis/start`: starts a background workflow run and returns `request_id`
-- [ ] 6.1.2 `GET /api/analysis/{request_id}/status`: per-agent status for polling
-- [ ] 6.1.3 `GET /api/analysis/{request_id}`: result
-- [ ] 6.1.4 `GET /api/stocks/{symbol}/history` and `/indicators`
-- [ ] 6.1.5 `GET /api/news/{symbol}`
-- [ ] 6.1.6 Initial market research report saved to `analysis_reports` (references + headline summaries; full outputs in `agent_results`)
-- [ ] 6.1.7 Job record with `request_params` and append-only `status_history`; single-worker runner
-- [ ] 6.1.8 Startup recovery: re-queue `queued` jobs, mark `running` jobs `interrupted` (keep completed results); re-run creates a new request with `retry_of`
+- [x] 6.1.1 `POST /api/analysis/start`: starts a background workflow run and returns `request_id` (HTTP 202; symbols validated → 422; storage guard 507; queue limit 429)
+- [x] 6.1.2 `GET /api/analysis/{request_id}/status`: per-agent status for polling (live per-agent progress from LangGraph `stream`; queue position; after a restart derived from `agent_results`)
+- [x] 6.1.3 `GET /api/analysis/{request_id}`: result (news articles joined from `financial_news` via references)
+- [x] 6.1.4 `GET /api/stocks/{symbol}/history` and `/indicators` (history from MongoDB with fetch-and-store fallback; indicator series on a 2-year lookback)
+- [x] 6.1.5 `GET /api/news/{symbol}` (paginated, sentiment filter)
+- [x] 6.1.6 Initial market research report saved to `analysis_reports` (references + headline summaries; full outputs in `agent_results`)
+- [x] 6.1.7 Job record with `request_params` and append-only `status_history`; single-worker runner (job record persisted before queuing; `ThreadPoolExecutor(max_workers=1)`; model unloaded after each job)
+- [x] 6.1.8 Startup recovery: re-queue `queued` jobs, mark `running` jobs `interrupted` (keep completed results); re-run creates a new request with `retry_of` (+ `POST /api/analysis/{id}/rerun`; tested)
 
 ### 6.2 Basic React Dashboard
-- [ ] 6.2.1 Base layout (dark navy theme, sidebar or top nav)
-- [ ] 6.2.2 Axios API service layer + environment-based base URL
-- [ ] 6.2.3 Symbol input + "Run Analysis" button + polling hook
-- [ ] 6.2.4 Price chart with SMA 20/50 (Recharts)
-- [ ] 6.2.5 RSI and MACD panels
-- [ ] 6.2.6 News list with sentiment badges, summaries and source links
-- [ ] 6.2.7 Basic agent status display
-- [ ] 6.2.8 Loading, empty and error states
+- [x] 6.2.1 Base layout (dark navy theme, sidebar or top nav)
+- [x] 6.2.2 Axios API service layer + environment-based base URL (readable error messages from the API envelope)
+- [x] 6.2.3 Symbol input + "Run Analysis" button + polling hook (2 s polling; GDELT opt-in checkbox)
+- [x] 6.2.4 Price chart with SMA 20/50 (Recharts) (+ SMA200; validated palette on the navy surface)
+- [x] 6.2.5 RSI and MACD panels
+- [x] 6.2.6 News list with sentiment badges, summaries and source links (original headline linked to the source, above the AI summary)
+- [x] 6.2.7 Basic agent status display
+- [x] 6.2.8 Loading, empty and error states (+ table view for every chart)
 
 ### 6.3 Milestone Verification Checklist
-- [ ] 6.3.1 One year of RELIANCE.NS data fetched
-- [ ] 6.3.2 SMA 20, SMA 50, RSI and MACD calculated and checked against reference values
-- [ ] 6.3.3 Relevant news collected
-- [ ] 6.3.4 News summarized by local Qwen
-- [ ] 6.3.5 Initial market research report generated
-- [ ] 6.3.6 Analysis saved in MongoDB Atlas (checked in the Atlas UI)
-- [ ] 6.3.7 Results displayed in the React dashboard
-- [ ] 6.3.8 Peak RAM use recorded during a full run
+- [x] 6.3.1 One year of RELIANCE.NS data fetched (495 validated rows: 2-year lookback, 1-year analysis window)
+- [x] 6.3.2 SMA 20, SMA 50, RSI and MACD calculated and checked against reference values: production code identical to independent reference loops on real RELIANCE data (max difference 0 over 446–481 values; the check detects deliberate errors) via `scripts/verify_indicators.py`
+- [x] 6.3.3 Relevant news collected (7 articles with GDELT; 0 without GDELT at that moment, so RSS alone is not always enough)
+- [x] 6.3.4 News summarized by local Qwen (7/7 by qwen3:0.6b, no fallback templates)
+- [x] 6.3.5 Initial market research report generated
+- [x] 6.3.6 Analysis saved in MongoDB Atlas (checked in the Atlas UI) (`scripts/milestone_check.py`: API flow, status, MongoDB)
+- [!] 6.3.7 Results displayed in the React dashboard: `[!] you`: open http://localhost:5173 and run RELIANCE
+- [x] 6.3.8 Peak RAM use recorded during a full run: NeuralVest ≈ 1 GB (backend 169 MB + model runner 811 MB); **system peak 7.49 / 7.68 GB** with background apps open (above the 6.5 GB target because of other apps)
 
 ### 🛑 Phase 6 Approval Gate (MVP Milestone)
-- [ ] Phase 6 completion summary posted in chat
+- [x] Phase 6 completion summary posted in chat
 - [ ] Developer approval received
 
 ---
@@ -679,6 +679,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[ ]` |
 | Phase 1 | Install Python, Node.js, Git, Ollama (if missing); pull Qwen3 models | `[x]` done |
 | Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[x]` |
+| Phase 6 | View the dashboard in a browser (task 6.3.7) | `[!]` |
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
@@ -714,6 +715,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | GDELT is opt-in in the dashboard (checkbox) | Adds ~35 s per analysis and is often rate-limited; RSS alone sometimes finds nothing |
 | 2026-11-23 | Technical indicators use the unadjusted close; returns/benchmark use the adjusted close; splits flagged | Matches what price charts show while keeping returns correct |
 | 2026-11-23 | News relevance: Python caps the model's label ('high' only if the company is in the headline) | The 0.6B model over-rated passing mentions (Phase 4 test) |
 | 2026-11-23 | **Adaptive LLM setup (option 3):** primary `qwen3:1.7b`, fallback `qwen3:0.6b`, `LLM_MIN_FREE_RAM_MB=1800`; replaces the 0.6B-only default from 1.4.5 | Your choice after the Phase 4 comparison: 1.7B quality when RAM allows |
@@ -752,6 +755,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 6 completed on `phase-6-mvp`: background runner with recovery/re-run, analysis/stocks/news endpoints, React MVP dashboard, real-data indicator verification, strict milestone check, 219 tests. Awaiting your UI check and approval. |
 | 2026-11-23 | Phase 5 completed on `phase-5-agents`: indicators, Market Research + Financial News agents, LangGraph workflow, 208 tests, live RELIANCE.NS run. Fixed a Phase 2 test-isolation bug (shared MongoClient closed by another fixture). Awaiting approval. |
 | 2026-11-23 | Phase 4 completed on `phase-4-llm`: shared Ollama client, guards, prompts, live 0.6B vs 1.7B comparison; 164 tests. Awaiting approval. |
 | 2026-11-23 | Phase 3 completed on `phase-3-data`: symbols, cache, validator, prices, news, financials, PDF text; 133 tests; 5-symbol live run; 30 symbols seeded. Awaiting approval. |
