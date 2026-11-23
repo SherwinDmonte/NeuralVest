@@ -17,6 +17,10 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Windows consoles default to cp1252, which cannot print characters such as the rupee sign.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 
 import psutil  # noqa: E402
 
@@ -96,6 +100,19 @@ def main() -> int:
         print(f"News: {n.get('articles_analyzed')} analysed | overall {n.get('overall_sentiment')} "
               f"{json.dumps(n.get('sentiment_breakdown'))}")
         print(f"Digest: {n.get('digest')}")
+        sa = final.get("stock_analysis", {}).get(symbol)
+        if sa:
+            mt = sa.get("metrics", {})
+            v = {k: (mt.get(k) or {}).get("value") for k in mt}
+            print(f"Fundamentals ({sa['status']}, FY ending {sa['statement_periods'].get('income_statement')}, "
+                  f"bank={sa['is_bank']}): overall {sa['overall']} {sa['assessments']}")
+            print(f"  revenue YoY {v.get('revenue_growth_yoy_pct')}% (CAGR {v.get('revenue_cagr_pct')}%), "
+                  f"net profit YoY {v.get('net_profit_growth_yoy_pct')}% | EPS {v.get('eps')} P/E {v.get('pe')} "
+                  f"P/B {v.get('pb')} | ROE {v.get('roe_pct')}% ROA {v.get('roa_pct')}% | D/E {v.get('debt_to_equity')} "
+                  f"CR {v.get('current_ratio')} | op margin {v.get('operating_margin_pct')}% net margin {v.get('net_margin_pct')}%")
+            print(f"  unavailable: {[(k, mt[k]['reason']) for k in sa.get('unavailable', [])]}")
+            print(f"  strengths {sa['strengths']} | weaknesses {sa['weaknesses']}")
+            print(f"  explanation: {sa['explanation']}")
         mr_out = final["market_analysis"][symbol]
         print(f"LLM: market={mr_out.get('llm')}")
         print(f"     news={final['news_analysis'].get(symbol, {}).get('llm')}")

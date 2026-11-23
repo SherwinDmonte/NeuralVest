@@ -14,6 +14,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Windows consoles default to cp1252, which cannot print characters such as the rupee sign.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 
 from app.config import get_settings  # noqa: E402
 from app.data.errors import DataError  # noqa: E402

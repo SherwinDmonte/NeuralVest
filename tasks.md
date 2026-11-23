@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Paused after Phase 6** (approved and merged into `main`). Phase 7 not started, by your request |
-| Last completed task | Phase 6 approved; `phase-6-mvp` merged into `main` |
-| Next task | Phase 7 → 7.1.1 on branch `phase-7-fundamentals`, **only when you say to start** |
-| Open blockers | Waiting for your go-ahead for Phase 7 |
+| Current phase | **Paused after Phase 7** (approved and merged into `main`). Phase 8 not started, by your request |
+| Last completed task | Phase 7 approved; `phase-7-fundamentals` merged into `main` |
+| Next task | Phase 8 → 8.1.1 on branch `phase-8-risk`, **only when you say to start** |
+| Open blockers | Waiting for your go-ahead for Phase 8; risk-free rate value/date/source needed in Phase 8 (8.1.5) |
 | Last updated | 2026-11-23 |
 
 ---
@@ -49,7 +49,7 @@
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
-| 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
+| 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
@@ -400,31 +400,31 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Stock Analysis Agent integrated into the graph.
 
 ### 7.1 Ratio Calculations (`analysis/fundamentals.py`)
-- [ ] 7.1.1 Revenue growth and net profit growth (YoY, multi-year where available)
-- [ ] 7.1.2 EPS, P/E, P/B
-- [ ] 7.1.3 ROE, ROA
-- [ ] 7.1.4 Debt-to-equity, current ratio
-- [ ] 7.1.5 Operating margin, net margin
-- [ ] 7.1.6 Edge cases: negative earnings (P/E not meaningful), zero denominators, missing fields → explicit `null` + reason
-- [ ] 7.1.7 Every value tagged with its source, statement period and date
-- [ ] 7.1.8 Unit tests with hand-computed reference values
+- [x] 7.1.1 Revenue growth and net profit growth (YoY, multi-year where available) (YoY + CAGR; one-year jumps > 50% flagged as possible merger/acquisition, e.g. HDFC Bank FY2024)
+- [x] 7.1.2 EPS, P/E, P/B (reported diluted EPS, basic as fallback; P/E and P/B use the latest close; currency check)
+- [x] 7.1.3 ROE, ROA (average of opening and closing equity/assets)
+- [x] 7.1.4 Debt-to-equity, current ratio (bank: current ratio not applicable, debt-to-equity not comparable)
+- [x] 7.1.5 Operating margin, net margin
+- [x] 7.1.6 Edge cases: negative earnings (P/E not meaningful), zero denominators, missing fields → explicit `null` + reason (loss-making, previous-year loss, zero denominators, negative equity, missing items, single year, no price, currency mismatch: all tested)
+- [x] 7.1.7 Every value tagged with its source, statement period and date (each metric: value, unit, FY period, formula, inputs, reason)
+- [x] 7.1.8 Unit tests with hand-computed reference values (`tests/test_fundamentals.py`; also checked by hand on real RELIANCE and HDFCBANK statements)
 
 ### 7.2 Agent 3 (`agents/stock_analysis.py`)
-- [ ] 7.2.1 Input/output schemas
-- [ ] 7.2.2 Profitability, liquidity, debt and growth assessments (rule-based)
-- [ ] 7.2.3 Strengths / weaknesses lists derived from the computed metrics
-- [ ] 7.2.4 LLM-written plain-language fundamental assessment (numbers injected)
-- [ ] 7.2.5 Clear flags for "unavailable" / "outdated" data
-- [ ] 7.2.6 Store in `stocks` and `agent_results`
-- [ ] 7.2.7 Agent tests (bank stock with different statement structure, missing statements)
+- [x] 7.2.1 Input/output schemas
+- [x] 7.2.2 Profitability, liquidity, debt and growth assessments (rule-based) (documented thresholds; overall solid/mixed/weak)
+- [x] 7.2.3 Strengths / weaknesses lists derived from the computed metrics
+- [x] 7.2.4 LLM-written plain-language fundamental assessment (numbers injected) (facts only; bank debt-to-equity left out; markup/short-text guard added after a live failure)
+- [x] 7.2.5 Clear flags for "unavailable" / "outdated" data (`unavailable` list with reasons; stale statements → partial)
+- [x] 7.2.6 Store in `stocks` and `agent_results`
+- [x] 7.2.7 Agent tests (bank stock with different statement structure, missing statements) (bank, missing statements, no price, currency mismatch, index skipped)
 
 ### 7.3 Integration
-- [ ] 7.3.1 Add the node to the LangGraph graph after Market Research
-- [ ] 7.3.2 Integration test with RELIANCE.NS and HDFCBANK.NS
+- [x] 7.3.1 Add the node to the LangGraph graph after Market Research (order: Market Research → Financial News → Stock Analysis, as in architecture §3.2; runner + API + dashboard card)
+- [x] 7.3.2 Integration test with RELIANCE.NS and HDFCBANK.NS: **live RELIANCE.NS + HDFCBANK.NS: all agents completed**; ratios match hand calculations from the raw statements (`scripts/run_analysis.py`)
 
 ### 🛑 Phase 7 Approval Gate
-- [ ] Phase 7 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 7 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -716,6 +716,9 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
 | 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | Fundamentals: trailing-annual ratios from Yahoo annual statements; ROE/ROA on average equity/assets; simple documented thresholds; banks: current ratio/operating margin not applicable, debt-to-equity not assessed | Free data source; transparent rules a beginner can follow |
+| 2026-11-23 | LLM output guard extended: text with prompt markup or under 20 characters is rejected | Live run returned a digest that was just "<article>" |
+| 2026-11-23 | A Fundamentals card added to the MVP dashboard now (full Stock Analysis page stays in Phase 12) | Lets you check Phase 7 results in the browser |
 | 2026-11-23 | UI review fixes (your screenshots): month-start axis ticks, fitted price axis, "pts" label, split detection by one-day jump (INFY dividends were falsely flagged), Python **key readings** shown above the AI explanation, no LLM digest for a single article | The 0.6B model inverted a reading even when given the correct one; the rule-based readings are the reliable source |
 | 2026-11-23 | GDELT is opt-in in the dashboard (checkbox) | Adds ~35 s per analysis and is often rate-limited; RSS alone sometimes finds nothing |
 | 2026-11-23 | Technical indicators use the unadjusted close; returns/benchmark use the adjusted close; splits flagged | Matches what price charts show while keeping returns correct |
@@ -756,6 +759,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 7 approved and merged into `main`. Work paused before Phase 8 at your request. |
+| 2026-11-23 | Phase 7 completed on `phase-7-fundamentals`: fundamentals module, Stock Analysis Agent, graph/runner/API integration, dashboard card, 254 tests, live RELIANCE + HDFCBANK. Awaiting approval. |
 | 2026-11-23 | Phase 6 approved and merged into `main`. Work paused before Phase 7 at your request. |
 | 2026-11-23 | Phase 6 completed on `phase-6-mvp`: background runner with recovery/re-run, analysis/stocks/news endpoints, React MVP dashboard, real-data indicator verification, strict milestone check, 219 tests. Awaiting your UI check and approval. |
 | 2026-11-23 | Phase 5 completed on `phase-5-agents`: indicators, Market Research + Financial News agents, LangGraph workflow, 208 tests, live RELIANCE.NS run. Fixed a Phase 2 test-isolation bug (shared MongoClient closed by another fixture). Awaiting approval. |

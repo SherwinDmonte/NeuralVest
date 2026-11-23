@@ -163,6 +163,7 @@ def get_company_profile(symbol: str, use_cache: bool = True, settings: Settings 
         "sector": info.get("sector"),
         "industry": info.get("industry"),
         "currency": info.get("currency"),
+        "financial_currency": info.get("financialCurrency"),  # currency of the statements
         "source": SOURCE,
     }
     fetched_at = cache.write("profile", symbol, profile)

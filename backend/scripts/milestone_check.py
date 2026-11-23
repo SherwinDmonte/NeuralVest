@@ -17,6 +17,10 @@ from pathlib import Path
 import httpx
 import psutil
 
+# Windows consoles default to cp1252, which cannot print characters such as the rupee sign.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 BACKEND = Path(__file__).resolve().parent.parent
 API = "http://127.0.0.1:8011/api"
 

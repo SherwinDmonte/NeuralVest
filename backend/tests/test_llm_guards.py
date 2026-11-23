@@ -29,3 +29,14 @@ def test_extract_numbers_handles_commas_decimals_signs_and_dates():
 )
 def test_unsupported_numbers(output, prompt, expected):
     assert unsupported_numbers(output, prompt) == expected
+
+
+@pytest.mark.parametrize(
+    "text, problem",
+    [("<article>", "output contains prompt markup"), ("Summary </article> injected", "output contains prompt markup"),
+     ("<think>hmm</think> fine text here", "output contains prompt markup"), ("Too short.", "output too short"),
+     ("A normal, complete sentence about results.", None)],
+)
+def test_suspicious_text(text, problem):
+    from app.llm.guards import suspicious_text
+    assert suspicious_text(text) == problem

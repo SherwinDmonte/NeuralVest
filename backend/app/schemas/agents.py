@@ -55,6 +55,32 @@ class MarketResearchOutput(AgentEnvelope):
     explanation: str | None = None
 
 
+# ---------------------------------------------------------------- Agent 3: Stock Analysis
+class StockAnalysisInput(BaseModel):
+    symbol: str
+    last_close: float | None = None  # from the Market Research Agent
+
+
+class StockAnalysisOutput(AgentEnvelope):
+    agent: str = "stock_analysis"
+    company_name: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    is_bank: bool = False
+    price_used: float | None = None
+    price_date: str | None = None
+    statement_periods: dict[str, str | None] = Field(default_factory=dict)
+    statements_stale: bool = False
+    metrics: dict[str, dict[str, Any]] = Field(default_factory=dict)  # fundamentals.Metric.as_dict()
+    assessments: dict[str, str] = Field(default_factory=dict)
+    assessment_rules: dict[str, str] = Field(default_factory=dict)
+    overall: str = "insufficient_data"
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    unavailable: list[str] = Field(default_factory=list)  # metric names that could not be computed
+    explanation: str | None = None
+
+
 # ---------------------------------------------------------------- Agent 2: Financial News
 class FinancialNewsInput(BaseModel):
     symbol: str
