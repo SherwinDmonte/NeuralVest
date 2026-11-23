@@ -103,6 +103,37 @@ def news_analysis_fallback(headline: str, matched_company: bool) -> Callable[[],
     return build
 
 
+# ================================================================ news digest (Phase 5)
+class NewsDigestOutput(BaseModel):
+    digest: str = Field(min_length=1, max_length=600)
+
+
+def news_digest_prompt(company_name: str, symbol: str, items: list[dict[str, str]]) -> PromptSpec:
+    """`items`: already-analysed articles [{date, sentiment, relevance, summary}] (max ~8)."""
+    system = (
+        "You write a short news digest for an Indian stock. Using ONLY the article summaries given, "
+        "write 2 to 3 neutral sentences: the main developments and the overall tone. Do not predict "
+        "the share price. Return JSON with one field: digest. " + SAFETY_RULES
+    )
+    lines = [f"- [{i['date']}] ({i['sentiment']}, relevance {i['relevance']}) {_untrusted(i['summary'], 300)}"
+             for i in items]
+    user = f"Company: {_untrusted(company_name, 120)} ({symbol})\n<article>\n" + "\n".join(lines) + "\n</article>"
+    return PromptSpec(name="news_digest", system=system, user=user, max_tokens=200, guarded_fields=("digest",))
+
+
+def news_digest_fallback(company_name: str, lookback_days: int, breakdown: dict[str, int],
+                         latest: tuple[str, str] | None) -> Callable[[], NewsDigestOutput]:
+    def build() -> NewsDigestOutput:
+        total = sum(breakdown.values())
+        text = (f"{total} recent article(s) about {company_name} in the last {lookback_days} days: "
+                f"{breakdown.get('positive', 0)} positive, {breakdown.get('negative', 0)} negative, "
+                f"{breakdown.get('neutral', 0)} neutral, {breakdown.get('uncertain', 0)} uncertain.")
+        if latest:
+            text += f" Most recent: \"{_untrusted(latest[0], 200)}\" ({_untrusted(latest[1], 60)})."
+        return NewsDigestOutput(digest=text[:600])
+    return build
+
+
 # ================================================================ 4.3.2 market research explanation
 class MarketExplanationOutput(BaseModel):
     explanation: str = Field(min_length=1, max_length=900)
