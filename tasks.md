@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 6 complete except your UI check (6.3.7)**; branch `phase-6-mvp` |
-| Last completed task | 6.3.8 RAM measured during API run |
-| Next task | You: 6.3.7 view dashboard; then merge → `main`; Phase 7 on `phase-7-fundamentals` |
-| Open blockers | 6.3.7 manual UI check; Phase 6 approval |
+| Current phase | **Paused after Phase 6** (approved and merged into `main`). Phase 7 not started, by your request |
+| Last completed task | Phase 6 approved; `phase-6-mvp` merged into `main` |
+| Next task | Phase 7 → 7.1.1 on branch `phase-7-fundamentals`, **only when you say to start** |
+| Open blockers | Waiting for your go-ahead for Phase 7 |
 | Last updated | 2026-11-23 |
 
 ---
@@ -48,7 +48,7 @@
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
-| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[~]` awaiting your UI check + approval | End-to-end RELIANCE.NS analysis shown in React |
+| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
@@ -385,12 +385,12 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 6.3.4 News summarized by local Qwen (7/7 by qwen3:0.6b, no fallback templates)
 - [x] 6.3.5 Initial market research report generated
 - [x] 6.3.6 Analysis saved in MongoDB Atlas (checked in the Atlas UI) (`scripts/milestone_check.py`: API flow, status, MongoDB)
-- [!] 6.3.7 Results displayed in the React dashboard: `[!] you`: open http://localhost:5173 and run RELIANCE
+- [x] 6.3.7 Results displayed in the React dashboard: verified by you in the browser (screenshots), review fixes applied
 - [x] 6.3.8 Peak RAM use recorded during a full run: NeuralVest ≈ 1 GB (backend 169 MB + model runner 811 MB); **system peak 7.49 / 7.68 GB** with background apps open (above the 6.5 GB target because of other apps)
 
 ### 🛑 Phase 6 Approval Gate (MVP Milestone)
 - [x] Phase 6 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -679,7 +679,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[ ]` |
 | Phase 1 | Install Python, Node.js, Git, Ollama (if missing); pull Qwen3 models | `[x]` done |
 | Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[x]` |
-| Phase 6 | View the dashboard in a browser (task 6.3.7) | `[!]` |
+| Phase 6 | View the dashboard in a browser (task 6.3.7) | `[x]` |
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
@@ -756,6 +756,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 6 approved and merged into `main`. Work paused before Phase 7 at your request. |
 | 2026-11-23 | Phase 6 completed on `phase-6-mvp`: background runner with recovery/re-run, analysis/stocks/news endpoints, React MVP dashboard, real-data indicator verification, strict milestone check, 219 tests. Awaiting your UI check and approval. |
 | 2026-11-23 | Phase 5 completed on `phase-5-agents`: indicators, Market Research + Financial News agents, LangGraph workflow, 208 tests, live RELIANCE.NS run. Fixed a Phase 2 test-isolation bug (shared MongoClient closed by another fixture). Awaiting approval. |
 | 2026-11-23 | Phase 4 completed on `phase-4-llm`: shared Ollama client, guards, prompts, live 0.6B vs 1.7B comparison; 164 tests. Awaiting approval. |
