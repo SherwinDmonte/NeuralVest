@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 2 complete: waiting for developer approval (Phase 2 gate)**; branch `phase-2-backend` |
-| Last completed task | 2.5.2 64 tests passing; uvicorn + Swagger verified |
-| Next task | After approval: merge `phase-2-backend` → `main`; Phase 3 → 3.1.1 on `phase-3-data` |
-| Open blockers | You: 2.1.2 DB user decision; 2.5.3 Atlas UI check; `inboxflow` size for `STORAGE_RESERVED_MB` |
+| Current phase | **Phase 3 in progress** (branch `phase-3-data`) |
+| Last completed task | Phase 2 approved and merged into `main` |
+| Next task | 3.1.1 symbol normalization |
+| Open blockers | None (2.1.2 dedicated DB user still recommended) |
 | Last updated | 2026-11-23 |
 
 ---
@@ -44,8 +44,8 @@
 |---|-------|--------|-----------------|
 | 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
 | 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
-| 2 | Backend Foundation & MongoDB Atlas | `[~]` awaiting approval | FastAPI app connected to Atlas with indexed collections |
-| 3 | Financial Data Collection & Validation | `[ ]` | Reliable market, news and fundamentals data modules |
+| 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
+| 3 | Financial Data Collection & Validation | `[~]` | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
@@ -186,7 +186,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 2.1 MongoDB Atlas Setup `[!] manual`
 - [x] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster: **existing free cluster `cluster0` reused** (shared with the `inboxflow` project)
-- [!] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). Waiting for your decision: create `neuralvest_app`, or accept as a deviation
+- [!] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Deferred:** Phase 2 approved with this open; recommended to switch to a dedicated `neuralvest_app` user (`readWrite` + `dbAdmin` on the two NeuralVest databases)
 - [x] 2.1.3 Configure Network Access (your current IP): connection verified
 - [x] 2.1.4 Copy the connection URI into `backend/.env` (never commit it): done (password added by you); `.env` git-ignored
 
@@ -200,7 +200,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 ### 2.3 Database Layer
 - [x] 2.3.1 `database/database.py`: reusable PyMongo client (singleton), timeouts, connection-failure handling
 - [x] 2.3.2 `database/models.py`: Pydantic document models for all 8 collections
-- [x] 2.3.3 Index-creation routine run at startup (idempotent): 21 indexes across 8 collections
+- [x] 2.3.3 Index-creation routine run at startup (idempotent): 20 secondary indexes + 8 `_id` indexes = 28 (matches the Atlas UI)
 - [x] 2.3.4 Generic repository helpers: insert with validation, upsert (no duplicates), bulk upsert in batches, paginated find (max 100)
 - [x] 2.3.5 `/api/health/db` endpoint to check connectivity and report storage use (`dataSize + indexSize` vs. `STORAGE_WARN_PCT` / `STORAGE_BLOCK_PCT`)
 - [x] 2.3.6 Apply `$jsonSchema` validators (strict / error) at startup; verify they are permitted on the Atlas free tier and document the fallback if not: **works on the free tier**; invalid raw writes rejected (error 121) in tests; `collMod` needs `dbAdmin` (documented)
@@ -214,11 +214,11 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 ### 2.5 Tests & Verification
 - [x] 2.5.1 Set up pytest + test configuration (separate test database name)
 - [x] 2.5.2 Unit tests for config loading and database utilities: **64 tests pass** (unit + Atlas integration on `neuralvest_db_test`; test data cleaned up afterwards)
-- [!] 2.5.3 Manual check: collections and indexes are visible in the Atlas UI `[!] you`: Atlas → Browse Collections → `neuralvest_db` (8 collections)
+- [x] 2.5.3 Manual check: collections and indexes are visible in the Atlas UI: confirmed by you (8 collections, 28 indexes)
 
 ### 🛑 Phase 2 Approval Gate
 - [x] Phase 2 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -682,6 +682,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
+| Phase 2 | (Recommended) Create a dedicated `neuralvest_app` Atlas user and update `.env` | `[!]` deferred |
 | Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
 | Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
 | Phase 14 | Choose the repository license; review screenshots | `[ ]` |
@@ -713,6 +714,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | `STORAGE_RESERVED_MB=10` | 11 other databases use ~3.3 MB storage (Atlas UI); margin for their indexes |
 | 2026-11-23 | Existing Atlas free cluster reused (shared with `inboxflow`); `STORAGE_RESERVED_MB` setting added to the storage guard | Your choice; NeuralVest cannot measure other projects' storage |
 | 2026-11-23 | Routes obtain the DB inside the handler, not via a FastAPI dependency | Dependencies run before parameter validation; invalid input must give 422, not 503 |
 | 2026-11-23 | Default LLM = `qwen3:0.6b`; 1.7B opt-in | Phase 1 measurements: baseline RAM already above 6.5 GB |
