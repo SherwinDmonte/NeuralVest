@@ -132,7 +132,8 @@ Memory use and how much is released after unloading depend on the model, the Oll
 The same readings from PowerShell:
 
 ```powershell
-Get-Process ollama* | Select-Object Name, @{n="RAM_MB";e={[math]::Round($_.WorkingSet64/1MB)}}
+# The model runs in llama-server.exe (Ollama's runner), not in ollama.exe
+Get-Process ollama*, llama-server -ErrorAction SilentlyContinue | Select-Object Name, @{n="RAM_MB";e={[math]::Round($_.WorkingSet64/1MB)}}
 $os = Get-CimInstance Win32_OperatingSystem
 "In use (GB): {0:N2}" -f (($os.TotalVisibleMemorySize - $os.FreePhysicalMemory)/1MB)
 ```

@@ -139,7 +139,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 1.1.3 Install or verify Git and configure `user.name` / `user.email`: Git 2.42 with name/email already set; `init.defaultBranch=main`; line endings via repo `.gitattributes` (no global change)
 - [x] 1.1.4 Install the recommended VS Code extensions (Python, Pylance, ESLint, Tailwind CSS IntelliSense): Python/Pylance present; ESLint + Tailwind installed. Note: the Vite 8 template lints with **oxlint**, not ESLint.
 - [x] 1.1.5 Install Ollama for Windows: 0.40.16 already installed; `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1` set (user env) and Ollama restarted
-- [~] 1.1.6 Pull `qwen3:1.7b` and `qwen3:0.6b`; measure idle RAM, RAM with each model loaded, RAM after unload, and tokens/sec (procedure: setup_guide §3.4)
+- [x] 1.1.6 Pull `qwen3:1.7b` and `qwen3:0.6b`; measure idle RAM, RAM with each model loaded, RAM after unload, and tokens/sec (procedure: setup_guide §3.4)
 
 ### 1.2 Project Scaffolding
 - [x] 1.2.1 Create the root folder structure (`backend/`, `frontend/`, `data/`). `docs/` follows the `docs/` folder rule at the top of this file.
@@ -152,16 +152,26 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 ### 1.3 Git & GitHub
 - [x] 1.3.1 `git init` and create `.gitignore` (`.env`, `.venv`, `node_modules`, `data/cache`, `__pycache__`, build outputs)
 - [x] 1.3.2 Create the initial `README.md` skeleton
-- [!] 1.3.3 Create the GitHub repository (public or private: your choice) `[!] manual`
+- [x] 1.3.3 Create the GitHub repository (public or private: your choice): https://github.com/SherwinDmonte/NeuralVest
 - [~] 1.3.4 Add the remote, make the initial commit and push: local initial commit done; remote + push wait for 1.3.3
-- [~] 1.3.5 Agree on a branching and commit convention: **proposed** `main` + one `phase-N-<topic>` branch per phase, merged after approval; Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`)
+- [x] 1.3.5 Agree on a branching and commit convention: **approved** `main` + one `phase-N-<topic>` branch per phase, merged after approval; Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`)
 
 ### 1.4 Verification
 - [x] 1.4.1 `python --version`, `node --version`, `git --version`, `ollama list` all succeed
 - [x] 1.4.2 Ollama responds to a test prompt through its local REST API (`qwen3:0.6b`, `think: false` respected, no `<think>` output; 783 MB loaded at `num_ctx` 2048, 100% CPU; unload verified)
 - [x] 1.4.3 Vite dev server starts and renders a Tailwind-styled test page (HTTP 200 on :5173; `npm run build` and `npm run lint` clean; Tailwind classes present in the CSS bundle)
 - [x] 1.4.4 Confirm that no secrets are tracked by git (29 files staged; no `.env`, `.venv`, `node_modules`, `dist`)
-- [ ] 1.4.5 Choose the default LLM (1.7B or 0.6B) from the measurements, using the ≤ 6.5 GB peak rule (architecture §10.2); record the numbers and the decision here
+- [x] 1.4.5 Choose the default LLM (1.7B or 0.6B) from the measurements, using the ≤ 6.5 GB peak rule (architecture §10.2); record the numbers and the decision here
+  - Measured 2026-11-23 (i5-1235U, 7.68 GB usable RAM, `num_ctx` 2048, thinking off, VS Code + a few background apps open):
+
+    | Model | Ollama-reported size | Runner process (`llama-server.exe`) | Load time | Speed |
+    |---|---|---|---|---|
+    | `qwen3:0.6b` | 747 MB | ~0.8–1.0 GB | 1.1–1.7 s | ~63 tokens/s |
+    | `qwen3:1.7b` | 1,573 MB | ~1.4 GB | 3.4–3.6 s | ~25 tokens/s |
+
+  - RAM in use **before** loading any model: 5.8–6.9 GB (varies with background apps). With a model loaded: 7.1–7.55 GB (93–98% of RAM). Unloading released 0.8–1.6 GB (≈ the model size).
+  - **Decision (approved rule):** the measured baseline already exceeds 6.5 GB, so **`qwen3:0.6b` is the default** (`LLM_PRIMARY_MODEL`). 1.7B stays available as an opt-in when more RAM is free. Even with 0.6B, the 6.5 GB target is met only if background apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) are closed during analysis runs.
+  - Good news: both models are **faster than estimated** (architecture §11 assumed 5–20 tokens/s).
 
 ### 🛑 Phase 1 Approval Gate
 - [ ] Phase 1 completion summary posted in chat
@@ -668,8 +678,9 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Done | Final Phase 0 approval | `[x]` |
 | Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[ ]` |
 | Phase 1 | Install Python, Node.js, Git, Ollama (if missing); pull Qwen3 models | `[x]` done |
-| Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[!]` |
-| Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[!]` |
+| Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[x]` |
+| Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
+| Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
 | Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
 | Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
@@ -702,6 +713,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Default LLM = `qwen3:0.6b`; 1.7B opt-in | Phase 1 measurements: baseline RAM already above 6.5 GB |
+| 2026-11-23 | Branching: `main` + `phase-N-<topic>` branches merged after approval; Conventional Commits | Approved by you |
 | 2026-11-23 | Frontend linting uses oxlint (Vite 8 template default) | Faster, zero-config; ESLint not needed |
 | 2026-11-23 | Note: installed yfinance is 1.8.0 and pandas is 3.1 (newer than assumed in architecture §8.1) | Check the yfinance API and pandas 3 Copy-on-Write behaviour in Phase 3 |
 

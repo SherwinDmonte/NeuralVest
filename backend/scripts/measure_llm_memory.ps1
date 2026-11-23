@@ -27,8 +27,16 @@ function Get-TotalGB {
     [math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB, 2)
 }
 
+function Stop-OllamaModel([string]$Name) {
+    # Unload via the REST API (keep_alive = 0). The CLI's progress spinner is written to
+    # stderr, which Windows PowerShell 5.1 treats as an error.
+    $b = @{ model = $Name; keep_alive = 0 } | ConvertTo-Json
+    Invoke-RestMethod -Uri "$OllamaUrl/api/generate" -Method Post -Body $b -ContentType 'application/json' | Out-Null
+}
+
 function Get-OllamaRamMB {
-    $sum = (Get-Process ollama* -ErrorAction SilentlyContinue | Measure-Object WorkingSet64 -Sum).Sum
+    # The model itself runs in a separate runner process (llama-server.exe), not in ollama.exe.
+    $sum = (Get-Process ollama*, llama-server -ErrorAction SilentlyContinue | Measure-Object WorkingSet64 -Sum).Sum
     [math]::Round($sum / 1MB)
 }
 
@@ -43,7 +51,7 @@ Write-Host ("Total RAM: {0} GB" -f (Get-TotalGB))
 
 foreach ($model in $Models) {
     Write-Host "`n=== $model ==="
-    & ollama stop $model 2>$null | Out-Null
+    Stop-OllamaModel $model
     Start-Sleep -Seconds 5
     $before = Get-InUseGB
 
@@ -60,7 +68,7 @@ foreach ($model in $Models) {
     $ollamaMB = Get-OllamaRamMB
     $ps = (Invoke-RestMethod "$OllamaUrl/api/ps").models | Where-Object { $_.name -eq $model }
 
-    & ollama stop $model | Out-Null
+    Stop-OllamaModel $model
     Start-Sleep -Seconds 10
     $after = Get-InUseGB
 
