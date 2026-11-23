@@ -84,7 +84,9 @@ export default function PortfolioCard({ portfolio }) {
         </div>
         <p className="mt-2 text-xs text-ink-muted">
           Whole shares at the last close ({fmtDate(portfolio.allocations[0]?.last_price_date)}): {inr(portfolio.invested_inr, 0)} invested,
-          {' '}{inr(portfolio.leftover_cash_inr, 0)} left as cash.
+          {' '}{inr(portfolio.leftover_cash_inr, 0)} left as cash. &ldquo;Past return / yr&rdquo; is the average daily return
+          × 252 over the last {portfolio.assumptions?.lookback_days ?? 252} trading days (the optimiser&apos;s input), so it
+          differs from the 1-year price change shown in the market tiles.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -31,10 +31,11 @@ logger = logging.getLogger("neuralvest.agents.portfolio_optimizer")
 AGENT_NAME = "portfolio_optimization"
 LEFTOVER_WARNING_PCT = 5.0
 CONCENTRATION_WARNING_PCT = 40.0
+SIMILAR_CAGR_PTS = 0.5  # backtest CAGRs closer than this are reported as "about the same"
 
 
 def _money(value: float) -> str:
-    return f"Rs {value:,.0f}"
+    return f"₹{value:,.0f}"
 
 
 def readings(out: PortfolioOutput) -> dict[str, str]:
@@ -70,12 +71,16 @@ def readings(out: PortfolioOutput) -> dict[str, str]:
                 f"{bk['cagr_pct']}% a year (CAGR, after costs), compared with {eq}% for equal weights")
         if nifty is not None:
             text += f" and {nifty}% for the NIFTY 50"
-        better = [name for name, v in (("equal weights", eq), ("the NIFTY 50", nifty)) if v is not None
-                  and bk["cagr_pct"] > v]
-        worse = [name for name, v in (("equal weights", eq), ("the NIFTY 50", nifty)) if v is not None
-                 and bk["cagr_pct"] <= v]
-        text += (f"; it did better than {' and '.join(better)}" if better else "") + \
-                (f"; it did not beat {' and '.join(worse)}" if worse else "")
+        pairs = [(name, v) for name, v in (("equal weights", eq), ("the NIFTY 50", nifty)) if v is not None]
+        same = [n for n, v in pairs if abs(bk["cagr_pct"] - v) < SIMILAR_CAGR_PTS]
+        better = [n for n, v in pairs if bk["cagr_pct"] - v >= SIMILAR_CAGR_PTS]
+        worse = [n for n, v in pairs if v - bk["cagr_pct"] >= SIMILAR_CAGR_PTS]
+        if better:
+            text += f"; it did better than {' and '.join(better)}"
+        if same:
+            text += f"; it did about the same as {' and '.join(same)} (less than {SIMILAR_CAGR_PTS} points apart)"
+        if worse:
+            text += f"; it did worse than {' and '.join(worse)}"
         r["backtest_reading"] = text
     if out.invested_inr is not None:
         shares = sum(a["shares"] for a in out.allocations)

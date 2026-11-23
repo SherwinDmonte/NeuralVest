@@ -179,3 +179,11 @@ def test_optimize_api_stores_and_reads_back(monkeypatch, clean_db):
     job = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": body["request_id"]})
     assert job["status"] == body["status"] and job["request_params"]["source"] == "api/portfolio/optimize"
     assert saved["portfolio"]["source_agent_result_ids"]
+
+
+def test_backtest_reading_treats_tiny_gaps_as_equal():
+    out = po.run_portfolio_optimization(records(*SEEDS), request(method="equal_weight"), benchmark_frame=BENCH,
+                                        settings=settings(**RFR))
+    reading = out.readings["backtest_reading"]  # equal-weight rule vs equal weights: identical CAGR
+    assert "about the same as equal weights" in reading and "did better than equal weights" not in reading
+    assert "₹" in out.readings["cash_reading"] and "Rs " not in out.readings["cash_reading"]
