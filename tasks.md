@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 9 complete: waiting for developer approval (Phase 9 gate)**; branch `phase-9-portfolio` |
-| Last completed task | 9.3.6 agent tests; live RELIANCE + TCS + INFY portfolio run |
-| Next task | After Phase 9 approval merge → `main`; Phase 10 only when you say |
-| Open blockers | Phase 9 approval |
+| Current phase | **Phase 10 in progress**; branch `phase-10-orchestration` |
+| Last completed task | Phase 9 approved and merged into `main` |
+| Next task | 10.1 supervisor (input validation, routing, retries, output validation) |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -51,8 +51,8 @@
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
-| 9 | Agent 5: Portfolio Optimization & Backtesting | `[~]` awaiting approval | Optimizer + backtester agent |
-| 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
+| 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
+| 10 | Full LangGraph Orchestration & Report Generation | `[~]` in progress | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
@@ -496,7 +496,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 9 Approval Gate
 - [x] Phase 9 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -510,7 +510,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [ ] 10.1.2 Routing: decide which agents run (single-stock vs. portfolio request)
 - [ ] 10.1.3 Conditional edges for failures (skip dependent agents, mark partial results)
 - [ ] 10.1.4 Retry policy for recoverable errors (network, LLM timeout) with limits
-- [ ] 10.1.5 Output validation node before Portfolio Optimization
+- [ ] 10.1.5 Output validation node before Portfolio Optimization (includes the deferred Phase 9 review item: reject AI text that contradicts a rule-based reading, e.g. "the benchmark underperformed" when the stock did; remove loose benchmark fields from the market facts)
 - [ ] 10.1.6 Sequential execution by default; optional parallel fan-out for News / Stock Analysis / Risk behind a config flag
 
 ### 10.2 State & Checkpointing
@@ -761,6 +761,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 9 approved and merged into `main`. Market-text contradiction check deferred to 10.1.5 at your request. Phase 10 started on `phase-10-orchestration`. |
 | 2026-11-23 | Phase 9 completed on `phase-9-portfolio`: optimisation + walk-forward backtest modules, Portfolio Optimization Agent, graph branch, runner/projection, 3 portfolio endpoints, dashboard Portfolio card, 326 tests, live 3-stock run cross-checked with SciPy. Awaiting approval. |
 | 2026-11-23 | Phase 8 approved (risk-free rate 5.8602%, RBI 2026-11-18) and merged into `main`. Phase 9 started on `phase-9-portfolio`. |
 | 2026-11-23 | Phase 8 completed on `phase-8-risk`: risk metrics, Risk Assessment Agent, graph/runner/API, `POST /api/risk/analyze`, dashboard Risk card, 284 tests, live RELIANCE + TCS. Awaiting approval and the risk-free rate. |
