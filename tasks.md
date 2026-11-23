@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 10 complete: waiting for developer approval (Phase 10 gate)**; branch `phase-10-orchestration` |
-| Last completed task | 10.4.2 live 5-agent run with RAM check |
-| Next task | After Phase 10 approval merge → `main`; Phase 11 only when you say |
-| Open blockers | Phase 10 approval |
+| Current phase | **Phase 10 approved and merged into `main`; paused before Phase 11** |
+| Last completed task | Phase 10 approved and merged into `main` |
+| Next task | Phase 11 (authentication, complete API, PDF reports) only when you say "start Phase 11" |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -52,7 +52,7 @@
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
-| 10 | Full LangGraph Orchestration & Report Generation | `[~]` awaiting approval | Supervisor-driven 5-agent workflow + unified report |
+| 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
@@ -530,7 +530,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 10 Approval Gate
 - [x] Phase 10 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -762,6 +762,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 10 approved and merged into `main`. Paused before Phase 11. |
 | 2026-11-23 | Phase 10 completed on `phase-10-orchestration`: supervisor (validation, routing, retries, output validation, contradiction guard), parallel mode, optional checkpoints, unified report with glossary and number tracing, report endpoint, dashboard report card, 360 tests, live 5-agent run. Awaiting approval. |
 | 2026-11-23 | Phase 9 approved and merged into `main`. Market-text contradiction check deferred to 10.1.5 at your request. Phase 10 started on `phase-10-orchestration`. |
 | 2026-11-23 | Phase 9 completed on `phase-9-portfolio`: optimisation + walk-forward backtest modules, Portfolio Optimization Agent, graph branch, runner/projection, 3 portfolio endpoints, dashboard Portfolio card, 326 tests, live 3-stock run cross-checked with SciPy. Awaiting approval. |
