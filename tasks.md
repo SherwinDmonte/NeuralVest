@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Paused after Phase 7** (approved and merged into `main`). Phase 8 not started, by your request |
-| Last completed task | Phase 7 approved; `phase-7-fundamentals` merged into `main` |
-| Next task | Phase 8 → 8.1.1 on branch `phase-8-risk`, **only when you say to start** |
-| Open blockers | Waiting for your go-ahead for Phase 8; risk-free rate value/date/source needed in Phase 8 (8.1.5) |
+| Current phase | **Phase 9 in progress**; branch `phase-9-portfolio` |
+| Last completed task | Phase 8 approved and merged into `main` |
+| Next task | 9.1.1 expected-return estimate |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -50,8 +50,8 @@
 | 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
-| 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
-| 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
+| 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
+| 9 | Agent 5: Portfolio Optimization & Backtesting | `[~]` in progress | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
@@ -434,30 +434,30 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Risk Assessment Agent integrated into the graph.
 
 ### 8.1 Risk Metrics (`analysis/risk_metrics.py`)
-- [ ] 8.1.1 Daily and log returns; return distribution statistics (mean, std, skew, kurtosis, percentiles)
-- [ ] 8.1.2 Historical and annualized volatility (252 trading days)
-- [ ] 8.1.3 Beta vs. NIFTY 50 (aligned dates)
-- [ ] 8.1.4 Maximum drawdown (+ drawdown duration)
-- [ ] 8.1.5 Sharpe ratio using the manually configured risk-free rate (`RISK_FREE_RATE_PCT`, `_DATE`, `_SOURCE`) `[!] manual value`; the value, date and source are recorded in every risk report and portfolio result; Sharpe is not computed if any setting is missing
-- [ ] 8.1.6 Correlation matrix (multi-stock)
-- [ ] 8.1.7 Portfolio concentration (for example the Herfindahl index)
-- [ ] 8.1.8 Unit tests vs. reference calculations
+- [x] 8.1.1 Daily and log returns; return distribution statistics (mean, std, skew, kurtosis, percentiles) (simple + log returns of the adjusted close; excess kurtosis; best/worst day)
+- [x] 8.1.2 Historical and annualized volatility (252 trading days) (sample std × √252)
+- [x] 8.1.3 Beta vs. NIFTY 50 (aligned dates) (inner join of dates; ≥ 60 overlapping days; correlation and R² too)
+- [x] 8.1.4 Maximum drawdown (+ drawdown duration) (peak/trough/recovery dates; duration in trading days; current drawdown)
+- [x] 8.1.5 Sharpe ratio using the manually configured risk-free rate (`RISK_FREE_RATE_PCT`, `_DATE`, `_SOURCE`) `[!] manual value`; the value, date and source are recorded in every risk report and portfolio result; Sharpe is not computed if any setting is missing. Rate set by developer: 5.8602% (RBI Press Release 2026-2027/1517, 91-day T-bill cut-off YTM, 2026-11-18); live Sharpe verified (RELIANCE −0.632)
+- [x] 8.1.6 Correlation matrix (multi-stock) (common dates; ≥ 60 observations)
+- [x] 8.1.7 Portfolio concentration (for example the Herfindahl index) (HHI + effective number of stocks; equal weights until Phase 9; caller weights via the API)
+- [x] 8.1.8 Unit tests vs. reference calculations (`tests/test_risk_metrics.py`: hand examples and independent loops; real RELIANCE volatility/beta/drawdown match a separate NumPy calculation exactly)
 
 ### 8.2 Agent 4 (`agents/risk_assessment.py`)
-- [ ] 8.2.1 Input/output schemas
-- [ ] 8.2.2 Rule-based risk classification (low / moderate / high), with documented thresholds
-- [ ] 8.2.3 Diversification assessment + risk warnings
-- [ ] 8.2.4 LLM explanation + "historical risk is not a forecast" disclaimer
-- [ ] 8.2.5 Store in `risk_reports` and `agent_results`
-- [ ] 8.2.6 Agent tests (single stock, multiple stocks, insufficient overlapping history)
+- [x] 8.2.1 Input/output schemas
+- [x] 8.2.2 Rule-based risk classification (low / moderate / high), with documented thresholds (volatility bands + drawdown bump; beta → defensive/market-like/aggressive)
+- [x] 8.2.3 Diversification assessment + risk warnings (average pairwise correlation; high-correlation, deep-drawdown and high-beta warnings)
+- [x] 8.2.4 LLM explanation + "historical risk is not a forecast" disclaimer (rule-based readings first; AI restates them)
+- [x] 8.2.5 Store in `risk_reports` and `agent_results` (agent_results per symbol + request-scope; `risk_reports` written by the runner **when the rate is configured**)
+- [x] 8.2.6 Agent tests (single stock, multiple stocks, insufficient overlapping history) (single, multiple, insufficient overlap, no benchmark, no rate)
 
 ### 8.3 Integration
-- [ ] 8.3.1 Add the node to the graph (reuses market data from state, so nothing is fetched twice)
-- [ ] 8.3.2 `POST /api/risk/analyze` endpoint
+- [x] 8.3.1 Add the node to the graph (reuses market data from state, so nothing is fetched twice) (after Stock Analysis; prices from state, NIFTY 50 from cache)
+- [x] 8.3.2 `POST /api/risk/analyze` endpoint (synchronous, no LLM, nothing stored; optional weights; tested)
 
 ### 🛑 Phase 8 Approval Gate
-- [ ] Phase 8 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 8 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -676,7 +676,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Done | Review and approve `tasks.md` | `[x]` |
 | Done | Answer decisions D1–D4 | `[x]` |
 | Done | Final Phase 0 approval | `[x]` |
-| Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[ ]` |
+| Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[x]` 5.8602%, RBI 2026-11-18 |
 | Phase 1 | Install Python, Node.js, Git, Ollama (if missing); pull Qwen3 models | `[x]` done |
 | Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[x]` |
 | Phase 6 | View the dashboard in a browser (task 6.3.7) | `[x]` |
@@ -716,6 +716,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
 | 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | Risk: simple daily returns of adjusted close, 252-day annualisation, sample std, beta on common dates, Sharpe on arithmetic annualised return, equal weights until Phase 9; documented thresholds | Standard, reproducible conventions |
 | 2026-11-23 | Fundamentals: trailing-annual ratios from Yahoo annual statements; ROE/ROA on average equity/assets; simple documented thresholds; banks: current ratio/operating margin not applicable, debt-to-equity not assessed | Free data source; transparent rules a beginner can follow |
 | 2026-11-23 | LLM output guard extended: text with prompt markup or under 20 characters is rejected | Live run returned a digest that was just "<article>" |
 | 2026-11-23 | A Fundamentals card added to the MVP dashboard now (full Stock Analysis page stays in Phase 12) | Lets you check Phase 7 results in the browser |
@@ -759,6 +760,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 8 approved (risk-free rate 5.8602%, RBI 2026-11-18) and merged into `main`. Phase 9 started on `phase-9-portfolio`. |
+| 2026-11-23 | Phase 8 completed on `phase-8-risk`: risk metrics, Risk Assessment Agent, graph/runner/API, `POST /api/risk/analyze`, dashboard Risk card, 284 tests, live RELIANCE + TCS. Awaiting approval and the risk-free rate. |
 | 2026-11-23 | Phase 7 approved and merged into `main`. Work paused before Phase 8 at your request. |
 | 2026-11-23 | Phase 7 completed on `phase-7-fundamentals`: fundamentals module, Stock Analysis Agent, graph/runner/API integration, dashboard card, 254 tests, live RELIANCE + HDFCBANK. Awaiting approval. |
 | 2026-11-23 | Phase 6 approved and merged into `main`. Work paused before Phase 7 at your request. |

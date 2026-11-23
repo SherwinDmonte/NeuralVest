@@ -6,6 +6,7 @@ import AgentStatus from '../components/AgentStatus'
 import { MacdChart, PriceChart, RsiChart } from '../components/charts'
 import { Explanation, MarketTiles } from '../components/MarketSummary'
 import Fundamentals from '../components/Fundamentals'
+import RiskCard from '../components/RiskCard'
 import NewsList from '../components/NewsList'
 import { Card, EmptyState, ErrorState, Loading } from '../components/ui'
 import { useAnalysis } from '../hooks/useAnalysis'
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const mr = key ? result.market_research?.[key] : null
   const news = key ? result.financial_news?.[key] : null
   const sa = key ? result.stock_analysis?.[key] : null
+  const risk = key ? result.risk_assessment?.[key] : null
   const series = indicators?.series || []
 
   return (
@@ -110,6 +112,8 @@ export default function DashboardPage() {
       )}
 
       {sa && <Fundamentals sa={sa} />}
+
+      {risk && <RiskCard risk={risk} />}
 
       {news && <NewsList news={news} />}
     </div>

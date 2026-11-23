@@ -6,7 +6,7 @@ from typing import Any, Protocol
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
-from app.database.models import AgentResultDocument
+from app.database.models import REQUEST_SCOPE_KEY, AgentResultDocument
 from app.database.repository import upsert_document
 from app.schemas.agents import AgentEnvelope
 
@@ -25,6 +25,7 @@ def save_agent_result(
     output: AgentEnvelope,
     input_summary: dict[str, Any],
     stored_output: dict[str, Any] | None = None,
+    scope: str = "symbol",
 ) -> str | None:
     """Upsert the agent's result into `agent_results` (the authoritative store).
 
@@ -37,9 +38,10 @@ def save_agent_result(
         doc = AgentResultDocument(
             request_id=request_id,
             agent_name=output.agent,
-            scope="symbol",
-            scope_key=output.symbol,
-            symbol=output.symbol,
+            scope=scope,
+            # request-level results (e.g. correlation of several stocks) use the fixed key
+            scope_key=output.symbol if scope == "symbol" else REQUEST_SCOPE_KEY,
+            symbol=output.symbol if scope == "symbol" else None,
             execution_status=output.status,
             input_summary=input_summary,
             output=stored_output if stored_output is not None else output.model_dump(mode="json"),

@@ -6,7 +6,7 @@
               market_research --(no symbol succeeded)--------------------> report
                      |
                      v
-              financial_news -> stock_analysis --------------------------> report
+              financial_news -> stock_analysis -> risk_assessment -------> report
 
 Execution is sequential (8 GB RAM). Each node runs one agent for every symbol and returns
 only the state keys it owns. The full supervisor (retries, output validation, agents 3-5,
@@ -25,9 +25,11 @@ from pymongo.database import Database
 from app.agents.common import LLMClient
 from app.agents.financial_news import run_financial_news
 from app.agents.market_research import run_market_research
+from app.agents.risk_assessment import run_risk_assessment
 from app.agents.stock_analysis import run_stock_analysis
 from app.config import Settings, get_settings
-from app.data.errors import InvalidSymbolError
+from app.data.errors import DataError, InvalidSymbolError
+from app.data.stock_data import get_benchmark_history
 from app.data.symbols import base_ticker, normalize_symbol
 from app.orchestration.state import NeuralVestState
 from app.utils.timing import utc_now
@@ -151,6 +153,28 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                 "agent_status": {"stock_analysis": _aggregate(statuses)},
                 "timestamps": _timing("stock_analysis", started_at, t0)}
 
+    def risk_assessment(state: NeuralVestState) -> dict[str, Any]:
+        """Reuses the prices in the shared state (fetched once by Market Research)."""
+        started_at, t0 = utc_now(), time.perf_counter()
+        records = {s: state["market_data"][s]["records"] for s in state["stock_symbols"]
+                   if state.get("market_analysis", {}).get(s, {}).get("status") in OK_STATUSES
+                   and s in state.get("market_data", {})}
+        try:  # NIFTY 50: already in the file cache from the Market Research Agent (no new download)
+            bench = get_benchmark_history(period="2y", settings=settings).frame
+        except DataError:
+            bench = None
+        results, portfolio = run_risk_assessment(records, benchmark_frame=bench, llm=llm, db=db,
+                                                 request_id=state.get("request_id"), settings=settings)
+        statuses = [o.status for o in results.values()] + ([portfolio.status] if portfolio else [])
+        errors = [{"agent": "risk_assessment", "symbol": s, "message": e} for s, o in results.items() for e in o.errors]
+        sources = [d.model_dump(mode="json") | {"agent": "risk_assessment", "symbol": s}
+                   for s, o in results.items() for d in o.data_sources]
+        return {"risk_analysis": {"per_symbol": {s: o.model_dump(mode="json") for s, o in results.items()},
+                                  "portfolio": portfolio.model_dump(mode="json") if portfolio else None},
+                "errors": errors, "data_sources": sources,
+                "agent_status": {"risk_assessment": _aggregate(statuses)},
+                "timestamps": _timing("risk_assessment", started_at, t0)}
+
     def report(state: NeuralVestState) -> dict[str, Any]:
         """REPORT STUB (Phase 5): collects key results per symbol. The full report with all
         sections, explanations and source references is generated in Phase 10."""
@@ -166,6 +190,7 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
             mr = state.get("market_analysis", {}).get(symbol, {})
             news = state.get("news_analysis", {}).get(symbol, {})
             sa = state.get("stock_analysis", {}).get(symbol, {})
+            risk = (state.get("risk_analysis", {}).get("per_symbol") or {}).get(symbol, {})
             sections[symbol] = {
                 "company_name": mr.get("company_name"),
                 "market_research": {k: mr.get(k) for k in ("status", "last_close", "last_close_date", "trend",
@@ -175,8 +200,13 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                                                             "digest", "articles_analyzed", "disclaimer")},
                 "stock_analysis": {k: sa.get(k) for k in ("status", "overall", "assessments", "strengths",
                                                           "weaknesses", "statement_periods", "explanation")},
+                "risk_assessment": {k: risk.get(k) for k in ("status", "risk_classification", "annualized_volatility_pct",
+                                                             "beta", "max_drawdown", "sharpe", "readings",
+                                                             "explanation", "disclaimer")},
             }
+        portfolio_risk = (state.get("risk_analysis") or {}).get("portfolio")
         return {"final_report": {"status": overall, "request_id": state.get("request_id"),
+                                 "portfolio_risk": portfolio_risk,
                                  "symbols": state.get("stock_symbols", []), "sections": sections,
                                  "errors": state.get("errors", []), "generated_at": utc_now().isoformat(),
                                  "note": "Report stub (Phase 5). The full report is generated in Phase 10."},
@@ -188,6 +218,7 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
     graph.add_node("market_research", market_research)
     graph.add_node("financial_news", financial_news)
     graph.add_node("stock_analysis", stock_analysis)
+    graph.add_node("risk_assessment", risk_assessment)
     graph.add_node("report", report)
 
     graph.add_edge(START, "validate_input")
@@ -199,7 +230,8 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
         {"financial_news": "financial_news", "report": "report"},
     )
     graph.add_edge("financial_news", "stock_analysis")
-    graph.add_edge("stock_analysis", "report")
+    graph.add_edge("stock_analysis", "risk_assessment")
+    graph.add_edge("risk_assessment", "report")
     graph.add_edge("report", END)
     return graph.compile()
 

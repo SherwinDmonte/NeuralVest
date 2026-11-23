@@ -205,9 +205,32 @@ def stock_analysis_fallback(facts: dict[str, Any]) -> Callable[[], FundamentalEx
     return build
 
 
-def risk_explanation_prompt(*_args, **_kwargs) -> PromptSpec:
-    """PLACEHOLDER: implemented in Phase 8 (Risk Assessment Agent)."""
-    raise NotImplementedError("risk_explanation_prompt is implemented in Phase 8")
+class RiskExplanationOutput(BaseModel):
+    explanation: str = Field(min_length=1, max_length=900)
+
+
+def risk_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
+    """Phase 8: `facts` hold historical risk metrics and rule-based readings (Python)."""
+    system = (
+        "You explain the HISTORICAL risk of an Indian stock to a beginner investor. Write 3 to 4 short "
+        "sentences in plain English using ONLY the JSON facts: volatility, risk class, sensitivity to the "
+        "NIFTY 50 (beta), the largest fall (maximum drawdown) and the Sharpe ratio if available. The fields "
+        "ending in _reading are the correct interpretation: restate them, never contradict them. Say that "
+        "past risk does not predict the future. No buy or sell advice. Copy numbers exactly as given or "
+        "leave them out. Return JSON with one field: explanation. " + SAFETY_RULES
+    )
+    user = "Facts (computed by NeuralVest from daily prices, JSON):\n" + json.dumps(
+        facts, default=str, separators=(",", ":"))
+    return PromptSpec(name="risk_explanation", system=system, user=user, max_tokens=240,
+                      guarded_fields=("explanation",))
+
+
+def risk_explanation_fallback(facts: dict[str, Any]) -> Callable[[], RiskExplanationOutput]:
+    def build() -> RiskExplanationOutput:
+        parts = [r[0].upper() + r[1:] + "." for k, r in facts.items() if k.endswith("_reading") and r]
+        parts.append("Past risk does not predict future risk. This explanation was generated without the AI model.")
+        return RiskExplanationOutput(explanation=" ".join(parts)[:900])
+    return build
 
 
 def portfolio_explanation_prompt(*_args, **_kwargs) -> PromptSpec:

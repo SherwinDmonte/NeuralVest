@@ -39,6 +39,10 @@ const TONE = {
   insufficient_data: { cls: 'text-ink-muted border-line', Icon: HelpCircle },
   solid: { cls: 'text-good border-good/40', Icon: ArrowUpRight },
   weak: { cls: 'text-critical border-critical/40', Icon: ArrowDownRight },
+  // risk levels (historical risk)
+  low: { cls: 'text-good border-good/40', Icon: Minus },
+  moderate: { cls: 'text-warning border-warning/40', Icon: AlertTriangle },
+  high: { cls: 'text-critical border-critical/40', Icon: AlertTriangle },
 }
 
 export function ToneBadge({ value }) {

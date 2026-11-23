@@ -28,17 +28,19 @@ from app.database.models import (
     AGENT_RESULTS,
     ANALYSIS_REPORTS,
     AnalysisReportDocument,
+    RiskReportDocument,
     SectionRef,
     StatusEvent,
 )
-from app.database.repository import insert_document
+from app.agents.risk_assessment import risk_report_fields
+from app.database.repository import insert_document, upsert_document
 from app.orchestration.graph import build_graph, initial_state
 from app.utils.timing import utc_now
 
 logger = logging.getLogger("neuralvest.runner")
 
 # Agents in execution order (Phase 5 graph). Later phases extend this list.
-AGENT_ORDER = ["market_research", "financial_news", "stock_analysis"]
+AGENT_ORDER = ["market_research", "financial_news", "stock_analysis", "risk_assessment"]
 TERMINAL = ("completed", "partial", "failed", "interrupted")
 MAX_PENDING_JOBS = 5
 
@@ -158,6 +160,14 @@ class AnalysisRunner:
                | {"pe": ((v.get("metrics") or {}).get("pe") or {}).get("value"),
                   "roe_pct": ((v.get("metrics") or {}).get("roe_pct") or {}).get("value")}
             for s, v in final.get("stock_analysis", {}).items()}
+        risk = final.get("risk_analysis") or {}
+        risk_symbols = risk.get("per_symbol") or {}
+        risk_headline = {s: {"risk_classification": v.get("risk_classification"),
+                             "annualized_volatility_pct": v.get("annualized_volatility_pct"),
+                             "beta": (v.get("beta") or {}).get("value"), "status": v.get("status")}
+                         for s, v in risk_symbols.items()}
+        if risk.get("portfolio"):
+            risk_headline["__portfolio__"] = {"diversification": risk["portfolio"].get("diversification")}
         news_headline = {
             s: {k: v.get(k) for k in ("overall_sentiment", "articles_analyzed", "sentiment_breakdown", "status")}
             for s, v in final.get("news_analysis", {}).items()}
@@ -168,10 +178,28 @@ class AnalysisRunner:
             "news_analysis": SectionRef(agent_result_ids=ids("financial_news"), headline=news_headline).model_dump(),
             "fundamental_analysis": SectionRef(agent_result_ids=ids("stock_analysis"),
                                                headline=fundamentals_headline).model_dump(),
+            "risk_analysis": SectionRef(agent_result_ids=ids("risk_assessment"), headline=risk_headline).model_dump(),
             "generated_at": utc_now(),
             "completed_at": utc_now(),
         }
         self._set_status(request_id, status, None, fields)
+        self._write_risk_report(request_id, risk_symbols, risk.get("portfolio"), ids("risk_assessment"))
+
+    def _write_risk_report(self, request_id: str, per_symbol: dict, portfolio: dict | None, source_ids: list) -> None:
+        """Write-once `risk_reports` projection. It REQUIRES the risk-free rate used (decision D4),
+        so it is only written when the rate is configured."""
+        rfr = self.settings.risk_free_rate
+        if not per_symbol:
+            return
+        if rfr is None:
+            logger.warning("risk_reports not written for %s: risk-free rate not configured", request_id)
+            return
+        try:
+            doc = RiskReportDocument(request_id=request_id, risk_free_rate=rfr, source_agent_result_ids=source_ids,
+                                     **risk_report_fields(per_symbol, portfolio))
+            upsert_document(self.db, doc, ["request_id"])
+        except Exception as exc:  # a projection must never break the job
+            logger.error("risk_reports not written for %s: %s", request_id, exc.__class__.__name__)
 
     # ---------------------------------------------------------------- status
     def status(self, request_id: str) -> dict | None:

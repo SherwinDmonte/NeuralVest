@@ -81,6 +81,42 @@ class StockAnalysisOutput(AgentEnvelope):
     explanation: str | None = None
 
 
+# ---------------------------------------------------------------- Agent 4: Risk Assessment
+RISK_DISCLAIMER = ("Historical risk measurements describe the past. They are not forecasts and do not "
+                   "guarantee future volatility, losses or returns.")
+
+
+class RiskSymbolOutput(AgentEnvelope):
+    agent: str = "risk_assessment"
+    window: dict[str, Any] = Field(default_factory=dict)  # from, to, observations
+    annualized_volatility_pct: float | None = None
+    annualized_return_pct: float | None = None
+    beta: dict[str, Any] = Field(default_factory=dict)
+    max_drawdown: dict[str, Any] = Field(default_factory=dict)
+    sharpe: dict[str, Any] = Field(default_factory=dict)
+    return_distribution: dict[str, Any] = Field(default_factory=dict)
+    risk_classification: str = "insufficient_data"
+    market_sensitivity: str | None = None
+    readings: dict[str, str] = Field(default_factory=dict)
+    risk_free_rate: dict[str, Any] | None = None
+    rules: dict[str, str] = Field(default_factory=dict)
+    explanation: str | None = None
+    disclaimer: str = RISK_DISCLAIMER
+
+
+class RiskPortfolioOutput(AgentEnvelope):
+    """Request-level result (correlation, concentration, diversification)."""
+    agent: str = "risk_assessment"
+    symbol: str = "__request__"
+    symbols: list[str] = Field(default_factory=list)
+    correlation: dict[str, Any] = Field(default_factory=dict)
+    concentration: dict[str, Any] = Field(default_factory=dict)
+    weights_assumption: str = "equal weights (portfolio weights are added in Phase 9)"
+    diversification: dict[str, Any] = Field(default_factory=dict)
+    risk_free_rate: dict[str, Any] | None = None
+    disclaimer: str = RISK_DISCLAIMER
+
+
 # ---------------------------------------------------------------- Agent 2: Financial News
 class FinancialNewsInput(BaseModel):
     symbol: str

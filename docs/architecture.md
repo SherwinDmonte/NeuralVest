@@ -558,6 +558,8 @@ NEURALVEST/                         # repository root
 
 11. *(Phase 6)* Extra endpoint `POST /api/analysis/{request_id}/rerun` (the Re-run button for interrupted/failed analyses, database_design §6.2). The Market Research Agent computes indicators on a **2-year lookback** (SMA200 and the recursive EMA/RSI/MACD need warm-up), while returns, the benchmark comparison and volume use the 1-year analysis window. The chart endpoint uses the same lookback, so dashboard tiles and charts always show identical values. Frontend: `components/ui.jsx` (shared UI), `components/charts.jsx`, `utils/format.js`.
 
+12. *(Phase 8)* The Risk Assessment Agent reads prices from the workflow state and NIFTY 50 from the file cache filled by Agent 1 (no second download). `risk_analysis` in the state is `{per_symbol, portfolio}`; the portfolio-level result is saved with request scope (`scope_key="__request__"`). The `risk_reports` projection is written only when the risk-free rate is configured (it is a required field, D4). `POST /api/risk/analyze` computes metrics on demand without the LLM and stores nothing.
+
 No other deviations. Helper modules such as `services/analysis_runner.py` sit inside folders the specification already defines.
 
 ---

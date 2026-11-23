@@ -4,6 +4,7 @@ All settings live in one typed object so that every module reads configuration t
 way and invalid values fail fast at startup instead of deep inside a request.
 """
 
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -78,10 +79,31 @@ class Settings(BaseSettings):
     llm_min_free_ram_mb: int = Field(default=1800, ge=0)
     max_news_articles_llm: int = Field(default=8, ge=1, le=30)
 
+    # ----- Risk-free rate (Phase 8, decision D4): entered manually, all three required -----
+    risk_free_rate_pct: float | None = Field(default=None, ge=-5, le=50)
+    risk_free_rate_date: date | None = None
+    risk_free_rate_source: str | None = None
+
     @field_validator("llm_fallback_model", mode="before")
     @classmethod
     def _empty_to_none(cls, value):
         return value.strip() or None if isinstance(value, str) else value
+
+    @field_validator("risk_free_rate_pct", "risk_free_rate_date", "risk_free_rate_source", mode="before")
+    @classmethod
+    def _placeholder_to_none(cls, value):
+        """Template placeholders like <value> or <YYYY-MM-DD> mean "not set yet"."""
+        if isinstance(value, str) and (not value.strip() or value.strip().startswith("<")):
+            return None
+        return value
+
+    @property
+    def risk_free_rate(self) -> dict | None:
+        """{value_pct, as_of_date, source} only when ALL three settings are present."""
+        if self.risk_free_rate_pct is None or self.risk_free_rate_date is None or not self.risk_free_rate_source:
+            return None
+        return {"value_pct": self.risk_free_rate_pct, "as_of_date": self.risk_free_rate_date.isoformat(),
+                "source": self.risk_free_rate_source.strip()}
 
     @model_validator(mode="after")
     def _check_thresholds(self) -> "Settings":

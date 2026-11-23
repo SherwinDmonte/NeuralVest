@@ -86,6 +86,7 @@ def analysis_result(request: Request, request_id: str = REQUEST_ID) -> dict:
         "market_research": agents.get("market_research", {}),
         "financial_news": agents.get("financial_news", {}),
         "stock_analysis": agents.get("stock_analysis", {}),
+        "risk_assessment": agents.get("risk_assessment", {}),  # per symbol + "__request__" (correlation)
         "errors": job.get("error_summary", []),
         "retry_of": job.get("retry_of"),
     }
