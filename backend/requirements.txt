@@ -1,0 +1,46 @@
+# NeuralVest backend dependencies — Python 3.12 (64-bit, Windows)
+# Top-level packages pinned to the versions verified in Phase 1 (2026-11-23).
+# Sub-dependencies are resolved by pip. Upgrade deliberately and re-run the tests.
+
+# --- API ---
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic[email]==2.14.4
+pydantic-settings==2.16.3
+python-dotenv==1.2.4
+
+# --- Database ---
+pymongo==4.20.1
+
+# --- HTTP client (Ollama REST API, GDELT) ---
+httpx==0.28.1
+
+# --- Agent orchestration ---
+langgraph==1.2.24
+
+# --- Market data & analysis ---
+yfinance==1.8.0
+pandas==3.1.1
+numpy==2.5.5
+scipy==1.18.1
+pyportfolioopt==1.6.0
+cvxpy==1.9.3
+
+# --- News ---
+feedparser==6.0.14
+beautifulsoup4==4.15.0
+
+# --- Documents ---
+pypdf==7.1.1
+reportlab==5.1.0
+
+# --- Auth & security ---
+pyjwt==2.15.1
+pwdlib[argon2]==0.4.2
+slowapi==0.1.10
+
+# --- System ---
+psutil==7.2.2
+
+# --- Testing ---
+pytest==9.2.0

@@ -1,0 +1,729 @@
+# NeuralVest — Development Task Tracker
+
+> **NeuralVest – AI-Powered Financial Intelligence Platform**
+> Multi-agent (LangGraph + local Qwen3 via Ollama) financial intelligence system for Indian equities (NSE/BSE).
+> Constraints: Windows · VS Code · 8 GB RAM · CPU only · zero software budget · GitHub-only (no live hosting).
+> Starting point: the project folder is empty. The whole project is built from scratch, and there is no existing codebase to inspect.
+
+### Rule for the `docs/` folder
+- If `docs/` already exists, keep all of its existing contents unchanged. New files are only added next to them.
+- If `docs/` does not exist, it is created only because the approved project structure (Section 15) requires it. It is not created for any other reason.
+
+---
+
+## Status Legend
+
+| Mark | Meaning |
+|------|---------|
+| `[x]` | Completed (implemented **and** verified) |
+| `[~]` | In Progress |
+| `[ ]` | Pending |
+| `[!]` | Blocked: needs manual action from the developer |
+
+**Approval rule:** Each phase ends with a **🛑 Approval Gate**. Work on the next phase starts only after explicit approval in chat.
+
+---
+
+## 📍 Session Resume Pointer
+
+> Read this block first at the start of every working session.
+
+| Field | Value |
+|-------|-------|
+| Current phase | **Phase 1 in progress** |
+| Last completed task | 1.4.4 No secrets tracked; local initial commit |
+| Next task | 1.1.6 memory measurement → 1.4.5 default model; 1.3.3/1.3.4 GitHub remote + push |
+| Open blockers | You: close heavy apps for the memory measurement; create the GitHub repository and share its URL |
+| Last updated | 2026-11-23 |
+
+---
+
+## Phase Overview
+
+| # | Phase | Status | Key Deliverable |
+|---|-------|--------|-----------------|
+| 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
+| 1 | Development Environment & Git/GitHub Setup | `[~]` | Working toolchain, Ollama + Qwen3, repo on GitHub |
+| 2 | Backend Foundation & MongoDB Atlas | `[ ]` | FastAPI app connected to Atlas with indexed collections |
+| 3 | Financial Data Collection & Validation | `[ ]` | Reliable market, news and fundamentals data modules |
+| 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
+| 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
+| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
+| 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
+| 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
+| 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
+| 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
+| 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
+| 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
+| 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
+| 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
+
+### Why the phase order differs from the original roadmap
+
+The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8) after all five agents. The **First Development Milestone** (Section 19), however, needs LLM news summaries and a basic React dashboard for RELIANCE.NS **before** Agents 3–5 exist. To satisfy both:
+
+- LLM integration moves earlier (Phase 4), because the News Agent needs it.
+- A basic dashboard is built in Phase 6 as the MVP. The full frontend stays in Phase 12.
+- LangGraph is added in Phase 5 with two nodes and grows with each agent. Phase 10 adds the full supervisor: retries, validation and the report.
+- Agents 3, 4 and 5 are built one per phase, as Section 19 requires ("Do not attempt to implement all five agents simultaneously").
+- Live hosting and production deployment are **excluded**. Only Git/GitHub version control is kept (Phases 1 and 14).
+
+---
+
+## Phase 0 — Architecture & Planning Documentation
+
+**Objective:** Produce the design documents the prompt requires before any code is written.
+**Deliverable:** Markdown documents in `docs/` that you have reviewed.
+
+### 0.1 System & Agent Architecture
+- [x] 0.1.0 Check whether `docs/` exists. If it does, keep its contents unchanged. If it does not, create it, because the approved structure (Section 15) requires it.
+- [x] 0.1.1 Write the complete system architecture (React ↔ FastAPI ↔ LangGraph ↔ Ollama ↔ MongoDB Atlas ↔ data sources) → `docs/architecture.md`
+- [x] 0.1.2 Write the multi-agent workflow architecture: supervisor, node order, conditional edges, failure paths
+- [x] 0.1.3 Define the shared workflow state (`TypedDict`) field by field
+- [x] 0.1.4 Define the input/output JSON schema contract for each of the 5 agents
+- [x] 0.1.5 Define the split between work done by Python and work done by the LLM (the "no LLM numbers" rule)
+- [x] 0.1.6 Define the background execution model (one worker, polling status endpoint)
+
+### 0.2 Technology Stack Justification
+- [x] 0.2.1 Justify each frontend, backend, AI, data and database choice for 8 GB RAM / zero budget
+- [x] 0.2.2 Choose and pin target versions (Python, Node.js, key libraries) and verify compatibility on Windows
+- [x] 0.2.3 Decide on indicator implementation: pandas-ta vs. custom NumPy/pandas (check pandas-ta's maintenance and NumPy 2 compatibility)
+- [x] 0.2.4 Decide on the PDF generation library (for example ReportLab) and the authentication libraries (JWT + password hashing)
+- [x] 0.2.5 Check license implications (for example, PyMuPDF is AGPL; Qwen3 and Ollama licenses) and record them
+
+### 0.3 Database Schema Design
+- [x] 0.3.1 Design all 8 collections (`users`, `stocks`, `market_data`, `financial_news`, `agent_results`, `risk_reports`, `portfolios`, `analysis_reports`) → `docs/database_design.md`
+- [x] 0.3.2 Define indexes (unique keys, compound `symbol+date`, `request_id`, `user_id`) and where TTL is justified (if anywhere)
+- [x] 0.3.3 Estimate storage against the Atlas M0 storage limit and set a data-retention strategy
+
+### 0.4 Folder Structure & Roadmap
+- [x] 0.4.1 Finalize the folder structure (based on Section 15; document any deviations with reasons)
+- [x] 0.4.2 Confirm this phase roadmap in the architecture doc
+
+### 0.5 Environment, Hardware & Limitations
+- [x] 0.5.1 Write Windows environment setup instructions → `docs/setup_guide.md`
+- [x] 0.5.2 Write the hardware/memory optimization strategy (single model, `keep_alive`, small `num_ctx`, sequential execution, caching)
+- [x] 0.5.3 Check the **current** terms and limits of each external service and record them:
+  - [x] yfinance / Yahoo Finance (unofficial, personal-use terms, rate limiting, delayed data)
+  - [x] GDELT (rate limits, coverage of Indian news)
+  - [x] RSS feeds (publisher terms, redistribution)
+  - [x] NSE / BSE websites (bot protection, terms of use for automated access)
+  - [x] MongoDB Atlas M0 (storage, connections, throughput limits)
+  - [x] Ollama + Qwen3 (license, CPU performance expectations)
+- [x] 0.5.4 Write a "data limitations & disclaimers" section (not real-time, not investment advice)
+
+### 0.6 Review Round 1 Corrections (requested by developer, 2026-11-23)
+- [x] 0.6.1 Source of truth: `agent_results` is authoritative; `analysis_reports` holds references + write-once headline summaries; `risk_reports`/`portfolios` are write-once projections (database_design §2)
+- [x] 0.6.2 `agent_results` unique key uses a never-null `scope_key` instead of the nullable `symbol` (database_design §3.5)
+- [x] 0.6.3 Job recovery: `queued` jobs re-queued from stored `request_params`; `running` jobs become `interrupted` with completed results kept; re-run links via `retry_of`; append-only `status_history` (database_design §6, architecture §7)
+- [x] 0.6.4 Database-level safeguards: `$jsonSchema` validators (strict/error), unique indexes, least-privilege Atlas user, read-only integrity check (database_design §5)
+- [x] 0.6.5 Storage estimate restated: what is included (documents + all indexes + 25% overhead), growth per analysis, scenarios, configurable retention and storage guards (database_design §4)
+- [x] 0.6.6 Memory: removed the "frees about 2 GB" claim; set a ≤ 6.5 GB peak target with ≥ 1.5 GB headroom; Standard/Low-memory profiles; rule for choosing the default model from Phase 1 measurements (architecture §10, setup_guide §3.4)
+- [x] 0.6.7 D1–D4 applied: pypdf replaces PyMuPDF; Python 3.12; custom indicators; risk-free rate value/date/source recorded in every risk and portfolio result
+- [x] 0.6.8 Later-phase tasks updated to reflect these corrections (1.1.6, 1.4.5, 2.1.2, 2.3.6–2.3.8, 3.5.4, 4.1.7, 6.1.7–6.1.8, 8.1.5, 14.2.1)
+
+### 🛑 Phase 0 Approval Gate
+- [x] Phase 0 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
+
+---
+
+## Phase 1 — Development Environment & Git/GitHub Setup
+
+**Objective:** Get a working local toolchain and a version-controlled repository.
+**Deliverable:** Verified environment, Ollama serving Qwen3, initial commit pushed to GitHub.
+
+### 1.1 Tool Installation (Windows)
+- [x] 1.1.1 Install or verify Python: **3.12.10** installed per-user from python.org (signature verified). Not added to PATH on purpose; used via `py -3.12` and the project venv. Existing 3.11.9 / 3.13.0 untouched.
+- [x] 1.1.2 Install or verify Node.js LTS + npm: **Node 22.19.0 / npm 10.9.3** kept (your decision; Maintenance LTS to April 2027; meets Vite 8's `>=22.12`)
+- [x] 1.1.3 Install or verify Git and configure `user.name` / `user.email`: Git 2.42 with name/email already set; `init.defaultBranch=main`; line endings via repo `.gitattributes` (no global change)
+- [x] 1.1.4 Install the recommended VS Code extensions (Python, Pylance, ESLint, Tailwind CSS IntelliSense): Python/Pylance present; ESLint + Tailwind installed. Note: the Vite 8 template lints with **oxlint**, not ESLint.
+- [x] 1.1.5 Install Ollama for Windows: 0.40.16 already installed; `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1` set (user env) and Ollama restarted
+- [~] 1.1.6 Pull `qwen3:1.7b` and `qwen3:0.6b`; measure idle RAM, RAM with each model loaded, RAM after unload, and tokens/sec (procedure: setup_guide §3.4)
+
+### 1.2 Project Scaffolding
+- [x] 1.2.1 Create the root folder structure (`backend/`, `frontend/`, `data/`). `docs/` follows the `docs/` folder rule at the top of this file.
+- [x] 1.2.2 Create the Python virtual environment in `backend/.venv` (Python 3.12.10, pip 26.3)
+- [x] 1.2.3 Create `backend/requirements.txt` with pinned initial dependencies and install them: 24 top-level packages, binary wheels only, all import OK, `pip check` clean
+- [x] 1.2.4 Scaffold the React app with Vite (JavaScript) in `frontend/` (Vite 8.3, React 19.3)
+- [x] 1.2.5 Install and configure Tailwind CSS, React Router, Axios, Recharts and Lucide React (Tailwind 4.3 via `@tailwindcss/vite`; versions locked in `package-lock.json`)
+- [x] 1.2.6 Create `backend/.env.example` (placeholders only) and `frontend/.env.example`
+
+### 1.3 Git & GitHub
+- [x] 1.3.1 `git init` and create `.gitignore` (`.env`, `.venv`, `node_modules`, `data/cache`, `__pycache__`, build outputs)
+- [x] 1.3.2 Create the initial `README.md` skeleton
+- [!] 1.3.3 Create the GitHub repository (public or private: your choice) `[!] manual`
+- [~] 1.3.4 Add the remote, make the initial commit and push: local initial commit done; remote + push wait for 1.3.3
+- [~] 1.3.5 Agree on a branching and commit convention: **proposed** `main` + one `phase-N-<topic>` branch per phase, merged after approval; Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`)
+
+### 1.4 Verification
+- [x] 1.4.1 `python --version`, `node --version`, `git --version`, `ollama list` all succeed
+- [x] 1.4.2 Ollama responds to a test prompt through its local REST API (`qwen3:0.6b`, `think: false` respected, no `<think>` output; 783 MB loaded at `num_ctx` 2048, 100% CPU; unload verified)
+- [x] 1.4.3 Vite dev server starts and renders a Tailwind-styled test page (HTTP 200 on :5173; `npm run build` and `npm run lint` clean; Tailwind classes present in the CSS bundle)
+- [x] 1.4.4 Confirm that no secrets are tracked by git (29 files staged; no `.env`, `.venv`, `node_modules`, `dist`)
+- [ ] 1.4.5 Choose the default LLM (1.7B or 0.6B) from the measurements, using the ≤ 6.5 GB peak rule (architecture §10.2); record the numbers and the decision here
+
+### 🛑 Phase 1 Approval Gate
+- [ ] Phase 1 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 2 — Backend Foundation & MongoDB Atlas
+
+**Objective:** Get a FastAPI service running with configuration, logging, error handling and a working Atlas connection.
+**Deliverable:** Backend connected to MongoDB Atlas, collections and indexes created, basic stock endpoints.
+
+### 2.1 MongoDB Atlas Setup `[!] manual`
+- [ ] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster
+- [ ] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only
+- [ ] 2.1.3 Configure Network Access (your current IP)
+- [ ] 2.1.4 Copy the connection URI into `backend/.env` (never commit it)
+
+### 2.2 FastAPI Core
+- [ ] 2.2.1 `app/config.py`: settings from environment variables (Pydantic settings / python-dotenv)
+- [ ] 2.2.2 `app/main.py`: app factory, CORS (localhost frontend only), router registration, health endpoint
+- [ ] 2.2.3 Centralized exception handlers + a consistent error response schema
+- [ ] 2.2.4 Request ID middleware + structured logging that never logs secrets
+- [ ] 2.2.5 `utils/`: timing helpers and common response helpers
+
+### 2.3 Database Layer
+- [ ] 2.3.1 `database/database.py`: reusable PyMongo client (singleton), timeouts, connection-failure handling
+- [ ] 2.3.2 `database/models.py`: Pydantic document models for all 8 collections
+- [ ] 2.3.3 Index-creation routine run at startup (idempotent)
+- [ ] 2.3.4 Generic repository helpers: insert with validation, upsert (no duplicates), paginated find
+- [ ] 2.3.5 `/api/health/db` endpoint to check connectivity and report storage use (`dataSize + indexSize` vs. `STORAGE_WARN_PCT` / `STORAGE_BLOCK_PCT`)
+- [ ] 2.3.6 Apply `$jsonSchema` validators (strict / error) at startup; verify they are permitted on the Atlas free tier and document the fallback if not
+- [ ] 2.3.7 Read-only integrity check (`check_integrity`): schema violations, cross-field rules, projection mismatches, orphans
+- [ ] 2.3.8 Configurable market-data retention clean-up (`MARKET_DATA_MAX_YEARS`)
+
+### 2.4 Basic Stock Endpoints
+- [ ] 2.4.1 `GET /api/stocks/{symbol}`: basic company info (stub until Phase 3, clearly marked as a placeholder)
+- [ ] 2.4.2 Swagger docs reachable at `/docs`
+
+### 2.5 Tests & Verification
+- [ ] 2.5.1 Set up pytest + test configuration (separate test database name)
+- [ ] 2.5.2 Unit tests for config loading and database utilities
+- [ ] 2.5.3 Manual check: collections and indexes are visible in the Atlas UI
+
+### 🛑 Phase 2 Approval Gate
+- [ ] Phase 2 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 3 — Financial Data Collection & Validation
+
+**Objective:** Build reliable, cached and validated data modules, with provenance recorded for every dataset.
+**Deliverable:** `data/` modules with tests.
+
+### 3.1 Symbol Handling
+- [ ] 3.1.1 Normalize symbols (NSE `.NS`, BSE `.BO`, plain input → default exchange)
+- [ ] 3.1.2 Detect invalid symbols (empty data / unknown ticker)
+- [ ] 3.1.3 Seed a small curated list of NSE stocks for search (for example NIFTY 50 constituents) with source and date
+
+### 3.2 Market Data (`data/stock_data.py`)
+- [ ] 3.2.1 Fetch OHLCV + adjusted close with yfinance (configurable period, default 1y)
+- [ ] 3.2.2 Fetch the benchmark (NIFTY 50 `^NSEI`)
+- [ ] 3.2.3 Local file cache in `data/cache/` with a freshness window (to limit calls to Yahoo)
+- [ ] 3.2.4 Upsert to the `market_data` collection (unique `symbol + date`)
+- [ ] 3.2.5 Record source + `fetched_at` timestamps
+
+### 3.3 Data Validation (`data/data_validator.py`)
+- [ ] 3.3.1 Handle missing values (forward-fill rules, drop rules, reporting)
+- [ ] 3.3.2 Detect and remove duplicate rows
+- [ ] 3.3.3 Validate dates (trading days, no future dates, sorted index)
+- [ ] 3.3.4 Check for outliers (extreme daily returns flagged, not silently removed)
+- [ ] 3.3.5 Check data freshness (warn if the latest bar is stale)
+- [ ] 3.3.6 Return a validation report object attached to every dataset
+
+### 3.4 News Data (`data/news_data.py`)
+- [ ] 3.4.1 GDELT DOC API client (company-name + ticker queries, India focus)
+- [ ] 3.4.2 RSS client using feedparser (curated list of Indian financial feeds, verified working)
+- [ ] 3.4.3 Normalize articles (headline, publisher, URL, published date, source)
+- [ ] 3.4.4 Deduplicate (by URL + fuzzy headline similarity)
+- [ ] 3.4.5 Validate URLs (http/https only) and treat all article text as untrusted data
+- [ ] 3.4.6 Cache results and respect rate limits (backoff)
+
+### 3.5 Fundamentals Data (`data/financial_data.py`)
+- [ ] 3.5.1 Get the income statement, balance sheet and cash flow (yfinance as the primary free source)
+- [ ] 3.5.2 Record the reporting-period date and source for each statement; flag missing or stale values
+- [ ] 3.5.3 Assess whether NSE/BSE filings can be accessed legitimately; if automated access is blocked or not permitted, support **manually downloaded** annual-report PDFs instead
+- [ ] 3.5.4 PDF text extraction utility (pypdf, decision D1) for `data/financial_reports/`
+
+### 3.6 Tests & Verification
+- [ ] 3.6.1 Unit tests for the validator using fixed sample data (no network)
+- [ ] 3.6.2 Save reproducible historical fixtures to `backend/tests/fixtures/`
+- [ ] 3.6.3 Manual run: RELIANCE.NS, TCS.NS, INFY.NS, HDFCBANK.NS, ICICIBANK.NS fetch successfully
+
+### 🛑 Phase 3 Approval Gate
+- [ ] Phase 3 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 4 — Local LLM Integration (Ollama + Qwen3)
+
+**Objective:** Build one shared, memory-efficient LLM service that every agent uses.
+**Deliverable:** `llm/` package with tests.
+
+### 4.1 Ollama Client (`llm/ollama_client.py`)
+- [ ] 4.1.1 Single shared client (one model loaded at a time) using the Ollama REST API
+- [ ] 4.1.2 Configurable model (`qwen3:1.7b` primary → `qwen3:0.6b` fallback)
+- [ ] 4.1.3 Small context window (`num_ctx`), low temperature, `keep_alive` tuning
+- [ ] 4.1.4 Handle Qwen3 "thinking" mode (disable or strip it for structured output)
+- [ ] 4.1.5 Timeouts, retry once, then fall back to the smaller model, then fall back to a deterministic (non-LLM) template
+- [ ] 4.1.6 Request serialization (lock / queue) so inference never runs concurrently
+- [ ] 4.1.7 Free-RAM check before each call (`LLM_MIN_FREE_RAM_MB`); switch to the smaller model below the threshold; unload the model (`keep_alive: 0`) after each workflow
+
+### 4.2 Structured Output
+- [ ] 4.2.1 JSON-mode / format-schema requests
+- [ ] 4.2.2 Pydantic validation of LLM output; repair or retry on invalid JSON
+- [ ] 4.2.3 Guard: check that any numbers in LLM text match the computed inputs (numbers are injected, never generated)
+
+### 4.3 Prompt Templates (`llm/prompts.py`)
+- [ ] 4.3.1 News summarization + sentiment prompt
+- [ ] 4.3.2 Market research explanation prompt
+- [ ] 4.3.3 Prompt-injection defense: retrieved text wrapped as data, with explicit instructions to ignore any instructions inside it
+- [ ] 4.3.4 (Placeholders for prompts used by later agents; marked as such)
+
+### 4.4 Tests & Verification
+- [ ] 4.4.1 Unit tests with a mocked LLM (valid JSON, invalid JSON, timeout, Ollama down)
+- [ ] 4.4.2 Live test: summarize 3 real headlines; record latency and RAM use
+
+### 🛑 Phase 4 Approval Gate
+- [ ] Phase 4 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 5 — MVP Agents: Market Research + Financial News
+
+**Objective:** Build the first two specialized agents and wire them into a minimal LangGraph graph.
+**Deliverable:** Both agents work on their own and through LangGraph.
+
+### 5.1 Technical Indicators (`analysis/technical_indicators.py`)
+- [ ] 5.1.1 SMA 20 / 50 / 200
+- [ ] 5.1.2 EMA (configurable spans, for example 12/26)
+- [ ] 5.1.3 RSI (14, Wilder smoothing)
+- [ ] 5.1.4 MACD (12, 26, 9) + signal + histogram
+- [ ] 5.1.5 Bollinger Bands (20, 2σ)
+- [ ] 5.1.6 Volume analysis (average volume, volume spikes vs. 20-day average)
+- [ ] 5.1.7 Trend classification rules (bullish / bearish / sideways), documented and deterministic
+- [ ] 5.1.8 Benchmark comparison (relative return vs. NIFTY 50 over matching periods)
+- [ ] 5.1.9 Unit tests against independently computed reference values
+
+### 5.2 Agent 1 — Market Research (`agents/market_research.py`)
+- [ ] 5.2.1 Input/output Pydantic schemas
+- [ ] 5.2.2 Fetch → validate → compute indicators → classify trend → benchmark compare
+- [ ] 5.2.3 LLM-generated plain-language interpretation of the computed metrics only
+- [ ] 5.2.4 Output includes the data freshness timestamp and source information
+- [ ] 5.2.5 Store the result in `agent_results`
+- [ ] 5.2.6 Agent tests (valid symbol, invalid symbol, short history < 200 days, network failure)
+
+### 5.3 Agent 2 — Financial News (`agents/financial_news.py`)
+- [ ] 5.3.1 Input/output Pydantic schemas
+- [ ] 5.3.2 Collect → dedupe → filter by relevance to the company
+- [ ] 5.3.3 Categorize (results, M&A, policy, regulatory, governance, legal, etc.)
+- [ ] 5.3.4 Sentiment: positive / negative / neutral / uncertain (LLM, with validation)
+- [ ] 5.3.5 Short summary per article + overall news digest
+- [ ] 5.3.6 Store in `financial_news` (deduplicated) and `agent_results`
+- [ ] 5.3.7 Disclaimer: sentiment is not a prediction of returns
+- [ ] 5.3.8 Agent tests (no news found, LLM down, malformed feed)
+
+### 5.4 Minimal LangGraph Workflow
+- [ ] 5.4.1 `orchestration/state.py`: full shared state `TypedDict` (all fields, some unused for now)
+- [ ] 5.4.2 `orchestration/graph.py`: Input Validation → Market Research → Financial News → Report stub
+- [ ] 5.4.3 Track `agent_status`, `errors`, `timestamps`, `data_sources`
+- [ ] 5.4.4 Integration test: graph run for RELIANCE.NS
+
+### 🛑 Phase 5 Approval Gate
+- [ ] Phase 5 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 6 — MVP Dashboard & First Milestone (RELIANCE.NS)
+
+**Objective:** Complete the Section 19 milestone end to end.
+**Deliverable:** You enter RELIANCE.NS in React, the analysis runs in the background, and the results are saved to Atlas and displayed.
+
+### 6.1 Backend Endpoints (MVP subset)
+- [ ] 6.1.1 `POST /api/analysis/start`: starts a background workflow run and returns `request_id`
+- [ ] 6.1.2 `GET /api/analysis/{request_id}/status`: per-agent status for polling
+- [ ] 6.1.3 `GET /api/analysis/{request_id}`: result
+- [ ] 6.1.4 `GET /api/stocks/{symbol}/history` and `/indicators`
+- [ ] 6.1.5 `GET /api/news/{symbol}`
+- [ ] 6.1.6 Initial market research report saved to `analysis_reports` (references + headline summaries; full outputs in `agent_results`)
+- [ ] 6.1.7 Job record with `request_params` and append-only `status_history`; single-worker runner
+- [ ] 6.1.8 Startup recovery: re-queue `queued` jobs, mark `running` jobs `interrupted` (keep completed results); re-run creates a new request with `retry_of`
+
+### 6.2 Basic React Dashboard
+- [ ] 6.2.1 Base layout (dark navy theme, sidebar or top nav)
+- [ ] 6.2.2 Axios API service layer + environment-based base URL
+- [ ] 6.2.3 Symbol input + "Run Analysis" button + polling hook
+- [ ] 6.2.4 Price chart with SMA 20/50 (Recharts)
+- [ ] 6.2.5 RSI and MACD panels
+- [ ] 6.2.6 News list with sentiment badges, summaries and source links
+- [ ] 6.2.7 Basic agent status display
+- [ ] 6.2.8 Loading, empty and error states
+
+### 6.3 Milestone Verification Checklist
+- [ ] 6.3.1 One year of RELIANCE.NS data fetched
+- [ ] 6.3.2 SMA 20, SMA 50, RSI and MACD calculated and checked against reference values
+- [ ] 6.3.3 Relevant news collected
+- [ ] 6.3.4 News summarized by local Qwen
+- [ ] 6.3.5 Initial market research report generated
+- [ ] 6.3.6 Analysis saved in MongoDB Atlas (checked in the Atlas UI)
+- [ ] 6.3.7 Results displayed in the React dashboard
+- [ ] 6.3.8 Peak RAM use recorded during a full run
+
+### 🛑 Phase 6 Approval Gate (MVP Milestone)
+- [ ] Phase 6 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 7 — Agent 3: Stock Analysis (Fundamentals)
+
+**Objective:** Assess company financial health using only real retrieved data.
+**Deliverable:** Stock Analysis Agent integrated into the graph.
+
+### 7.1 Ratio Calculations (`analysis/fundamentals.py`)
+- [ ] 7.1.1 Revenue growth and net profit growth (YoY, multi-year where available)
+- [ ] 7.1.2 EPS, P/E, P/B
+- [ ] 7.1.3 ROE, ROA
+- [ ] 7.1.4 Debt-to-equity, current ratio
+- [ ] 7.1.5 Operating margin, net margin
+- [ ] 7.1.6 Edge cases: negative earnings (P/E not meaningful), zero denominators, missing fields → explicit `null` + reason
+- [ ] 7.1.7 Every value tagged with its source, statement period and date
+- [ ] 7.1.8 Unit tests with hand-computed reference values
+
+### 7.2 Agent 3 (`agents/stock_analysis.py`)
+- [ ] 7.2.1 Input/output schemas
+- [ ] 7.2.2 Profitability, liquidity, debt and growth assessments (rule-based)
+- [ ] 7.2.3 Strengths / weaknesses lists derived from the computed metrics
+- [ ] 7.2.4 LLM-written plain-language fundamental assessment (numbers injected)
+- [ ] 7.2.5 Clear flags for "unavailable" / "outdated" data
+- [ ] 7.2.6 Store in `stocks` and `agent_results`
+- [ ] 7.2.7 Agent tests (bank stock with different statement structure, missing statements)
+
+### 7.3 Integration
+- [ ] 7.3.1 Add the node to the LangGraph graph after Market Research
+- [ ] 7.3.2 Integration test with RELIANCE.NS and HDFCBANK.NS
+
+### 🛑 Phase 7 Approval Gate
+- [ ] Phase 7 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 8 — Agent 4: Risk Assessment
+
+**Objective:** Measure the historical risk of individual stocks and of a set of stocks.
+**Deliverable:** Risk Assessment Agent integrated into the graph.
+
+### 8.1 Risk Metrics (`analysis/risk_metrics.py`)
+- [ ] 8.1.1 Daily and log returns; return distribution statistics (mean, std, skew, kurtosis, percentiles)
+- [ ] 8.1.2 Historical and annualized volatility (252 trading days)
+- [ ] 8.1.3 Beta vs. NIFTY 50 (aligned dates)
+- [ ] 8.1.4 Maximum drawdown (+ drawdown duration)
+- [ ] 8.1.5 Sharpe ratio using the manually configured risk-free rate (`RISK_FREE_RATE_PCT`, `_DATE`, `_SOURCE`) `[!] manual value`; the value, date and source are recorded in every risk report and portfolio result; Sharpe is not computed if any setting is missing
+- [ ] 8.1.6 Correlation matrix (multi-stock)
+- [ ] 8.1.7 Portfolio concentration (for example the Herfindahl index)
+- [ ] 8.1.8 Unit tests vs. reference calculations
+
+### 8.2 Agent 4 (`agents/risk_assessment.py`)
+- [ ] 8.2.1 Input/output schemas
+- [ ] 8.2.2 Rule-based risk classification (low / moderate / high), with documented thresholds
+- [ ] 8.2.3 Diversification assessment + risk warnings
+- [ ] 8.2.4 LLM explanation + "historical risk is not a forecast" disclaimer
+- [ ] 8.2.5 Store in `risk_reports` and `agent_results`
+- [ ] 8.2.6 Agent tests (single stock, multiple stocks, insufficient overlapping history)
+
+### 8.3 Integration
+- [ ] 8.3.1 Add the node to the graph (reuses market data from state, so nothing is fetched twice)
+- [ ] 8.3.2 `POST /api/risk/analyze` endpoint
+
+### 🛑 Phase 8 Approval Gate
+- [ ] Phase 8 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 9 — Agent 5: Portfolio Optimization & Backtesting
+
+**Objective:** Produce illustrative quantitative allocations and evaluate them on historical data.
+**Deliverable:** Portfolio Optimization Agent + backtester.
+
+### 9.1 Optimization (`analysis/optimization.py`)
+- [ ] 9.1.1 Expected-return estimate (for example mean historical, optionally EMA) with assumptions documented
+- [ ] 9.1.2 Covariance estimate (sample + Ledoit-Wolf shrinkage option)
+- [ ] 9.1.3 Mean-variance (efficient risk / efficient return)
+- [ ] 9.1.4 Minimum volatility
+- [ ] 9.1.5 Maximum Sharpe
+- [ ] 9.1.6 Equal weight
+- [ ] 9.1.7 Risk-based allocation (for example inverse volatility or HRP), where feasible
+- [ ] 9.1.8 Constraints: no shorting (default), min/max weight per stock, mapping from risk preference to method/parameters
+- [ ] 9.1.9 Convert weights into rupee amounts and whole-share quantities (discrete allocation) + leftover cash
+- [ ] 9.1.10 Unit tests (weights sum to 1, constraints respected, edge cases such as 2 stocks or highly correlated stocks)
+
+### 9.2 Backtesting
+- [ ] 9.2.1 Walk-forward or in-sample/out-of-sample backtest
+- [ ] 9.2.2 Rebalancing schedule (configurable, for example monthly or quarterly)
+- [ ] 9.2.3 Transaction-cost assumption (configurable basis points)
+- [ ] 9.2.4 Benchmark comparison vs. NIFTY 50 and equal weight
+- [ ] 9.2.5 Output: equity curve, CAGR, volatility, Sharpe, max drawdown
+- [ ] 9.2.6 Documented look-ahead-bias safeguards
+
+### 9.3 Agent 5 (`agents/portfolio_optimizer.py`)
+- [ ] 9.3.1 Input/output schemas (symbols, capital, risk preference, method, constraints)
+- [ ] 9.3.2 Waits for validated price data + risk output in the graph
+- [ ] 9.3.3 LLM explanation of the allocation + "illustrative, not investment advice" disclaimer
+- [ ] 9.3.4 Store in `portfolios` and `agent_results`
+- [ ] 9.3.5 Endpoints: `POST /api/portfolio/optimize`, `POST /api/portfolio/backtest`, `GET /api/portfolio/{portfolio_id}`
+- [ ] 9.3.6 Agent tests (infeasible constraints, one symbol, invalid capital)
+
+### 🛑 Phase 9 Approval Gate
+- [ ] Phase 9 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 10 — Full LangGraph Orchestration & Report Generation
+
+**Objective:** Connect all five agents under a supervisor that validates, retries and combines their results.
+**Deliverable:** Complete multi-agent workflow and unified financial intelligence report.
+
+### 10.1 Supervisor (`orchestration/supervisor.py`)
+- [ ] 10.1.1 Input validation node (symbols, amount, risk preference)
+- [ ] 10.1.2 Routing: decide which agents run (single-stock vs. portfolio request)
+- [ ] 10.1.3 Conditional edges for failures (skip dependent agents, mark partial results)
+- [ ] 10.1.4 Retry policy for recoverable errors (network, LLM timeout) with limits
+- [ ] 10.1.5 Output validation node before Portfolio Optimization
+- [ ] 10.1.6 Sequential execution by default; optional parallel fan-out for News / Stock Analysis / Risk behind a config flag
+
+### 10.2 State & Checkpointing
+- [ ] 10.2.1 Finalize the shared state, with reducers for concurrent updates
+- [ ] 10.2.2 Optional lightweight checkpointing (SQLite, used only for LangGraph checkpoints, never as the app database)
+- [ ] 10.2.3 Per-agent execution time + status persisted for monitoring
+
+### 10.3 Report Generation
+- [ ] 10.3.1 Report sections: company overview, market summary, technical analysis, news summary, sentiment, fundamentals, financial health, risk, portfolio (if requested), key observations, data limitations, source references, timestamp
+- [ ] 10.3.2 Metric explanations (glossary-style, for non-technical readers)
+- [ ] 10.3.3 Check that every number in the report traces back to an agent output
+- [ ] 10.3.4 Save to `analysis_reports`
+
+### 10.4 Tests
+- [ ] 10.4.1 Integration tests: full run, single-agent failure, LLM unavailable, invalid symbol
+- [ ] 10.4.2 Check RAM use during a full 5-agent run
+
+### 🛑 Phase 10 Approval Gate
+- [ ] Phase 10 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 11 — Authentication, Complete API & PDF Reports
+
+**Objective:** Secure the API and complete every endpoint.
+**Deliverable:** Full REST API documented in Swagger.
+
+### 11.1 Authentication
+- [ ] 11.1.1 `POST /api/auth/register`: validation + password hashing (bcrypt/argon2)
+- [ ] 11.1.2 `POST /api/auth/login`: JWT access token (expiry configured)
+- [ ] 11.1.3 `GET /api/auth/me`
+- [ ] 11.1.4 Auth dependency protecting user-specific routes; reports and portfolios scoped by `user_id`
+- [ ] 11.1.5 JWT secret in `.env` (generated locally) `[!] manual`
+
+### 11.2 Remaining Endpoints
+- [ ] 11.2.1 `GET /api/stocks/search`
+- [ ] 11.2.2 `GET /api/news/{symbol}/sentiment`
+- [ ] 11.2.3 `GET /api/analysis/{request_id}/report`
+- [ ] 11.2.4 `GET /api/reports` (paginated), `GET /api/reports/{report_id}`
+- [ ] 11.2.5 `GET /api/reports/{report_id}/pdf`
+
+### 11.3 Reliability & Security
+- [ ] 11.3.1 Rate limiting on expensive endpoints (analysis start, auth)
+- [ ] 11.3.2 Request timeouts on external calls
+- [ ] 11.3.3 Validate external URLs before storing or rendering them
+- [ ] 11.3.4 Review: no secrets in logs, responses or the repository
+
+### 11.4 PDF Export
+- [ ] 11.4.1 PDF report template (sections from 10.3.1, tables, disclaimer)
+- [ ] 11.4.2 Embed charts as images in the PDF (optional; generated server-side)
+
+### 11.5 Tests
+- [ ] 11.5.1 API tests with FastAPI TestClient (auth flow, protected routes, pagination, error codes)
+
+### 🛑 Phase 11 Approval Gate
+- [ ] Phase 11 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 12 — Complete Frontend
+
+**Objective:** Build a professional, responsive fintech UI covering all features.
+**Deliverable:** All pages integrated with the backend.
+
+### 12.1 Design System
+- [ ] 12.1.1 Tailwind theme tokens (navy background, blue/cyan accents, typography, spacing)
+- [ ] 12.1.2 Reusable components: Card, StatTile, Badge, Button, Input, Table, Tabs, Skeleton, ErrorState, Disclaimer
+- [ ] 12.1.3 Chart wrappers (line, area, bar, pie/donut, heatmap for correlation)
+- [ ] 12.1.4 App layout with responsive sidebar + top bar
+
+### 12.2 Authentication UI
+- [ ] 12.2.1 Register and login pages
+- [ ] 12.2.2 Token storage strategy + Axios interceptor + logout
+- [ ] 12.2.3 Protected routes
+
+### 12.3 Pages
+- [ ] 12.3.1 Landing page: hero, features, agent architecture overview, tech stack, CTAs, footer
+- [ ] 12.3.2 Dashboard: market overview, search, recently analyzed, watchlist, latest news, agent status, recent reports
+- [ ] 12.3.3 Stock Analysis page: overview, price chart, performance, indicators, fundamentals, news, risk
+- [ ] 12.3.4 AI Agent Monitoring page: 5 agent cards (status, progress, time, output, errors) + LangGraph workflow visualization
+- [ ] 12.3.5 Financial News page: list + sentiment filters + source links
+- [ ] 12.3.6 Portfolio Optimization page: stock picker, capital, risk preference, method, constraints, allocation chart, amounts, metrics, backtest chart
+- [ ] 12.3.7 Risk Analysis page: volatility, beta, drawdown, Sharpe, correlation matrix, classification, concentration
+- [ ] 12.3.8 Reports page: list, view, compare two reports, download PDF, review agent outputs
+
+### 12.4 Quality
+- [ ] 12.4.1 Check responsiveness (mobile, tablet, desktop)
+- [ ] 12.4.2 Loading, empty and error states on every page
+- [ ] 12.4.3 Accessibility basics (contrast, focus states, labels)
+- [ ] 12.4.4 Watchlist persisted per user (needs a `watchlist` field or collection, to be confirmed before implementation)
+
+### 🛑 Phase 12 Approval Gate
+- [ ] Phase 12 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 13 — Testing, Performance & Optimization
+
+**Objective:** Prove correctness, stability and that the app fits within 8 GB RAM.
+**Deliverable:** Test suite passing + testing/performance report.
+
+### 13.1 Test Coverage
+- [ ] 13.1.1 Fill unit test gaps (indicators, ratios, risk, optimization, validation, database utilities)
+- [ ] 13.1.2 Independent agent tests (inputs, outputs, invalid data, API failures, missing data, LLM failures)
+- [ ] 13.1.3 Integration tests (LangGraph, MongoDB, FastAPI endpoints)
+- [ ] 13.1.4 Frontend ↔ backend integration check (manual test script and/or Vitest for key hooks)
+- [ ] 13.1.5 Financial validation: compare metrics with independent reference calculations on fixed historical datasets
+
+### 13.2 Performance Measurement
+- [ ] 13.2.1 Per-agent execution time
+- [ ] 13.2.2 LLM inference time (1.7B vs 0.6B)
+- [ ] 13.2.3 Peak memory (backend + Ollama + browser)
+- [ ] 13.2.4 Database response times
+- [ ] 13.2.5 Total analysis completion time (single stock and 5-stock portfolio)
+
+### 13.3 Optimization
+- [ ] 13.3.1 Fix identified bottlenecks (caching, fewer LLM calls, smaller context)
+- [ ] 13.3.2 Edge-case hardening based on test findings
+- [ ] 13.3.3 Write the test report → `docs/testing_report.md`
+
+### 🛑 Phase 13 Approval Gate
+- [ ] Phase 13 completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Phase 14 — Final Documentation & GitHub Finalization
+
+**Objective:** Produce complete academic and professional documentation, maintained on GitHub (no live hosting).
+**Deliverable:** Polished repository and documentation package.
+
+### 14.1 Documentation
+- [ ] 14.1.1 Final `README.md` (overview, features, architecture, setup, usage, screenshots, limitations, disclaimer, license)
+- [ ] 14.1.2 System architecture diagram
+- [ ] 14.1.3 Agent workflow (LangGraph) diagram
+- [ ] 14.1.4 Database schema diagram
+- [ ] 14.1.5 `docs/api_documentation.md` (+ exported OpenAPI JSON)
+- [ ] 14.1.6 `docs/setup_guide.md` final version (Windows installation guide)
+- [ ] 14.1.7 Application screenshots `[!] manual review`
+- [ ] 14.1.8 Project presentation outline/deck
+- [ ] 14.1.9 Final project report
+
+### 14.2 GitHub Finalization
+- [ ] 14.2.1 Choose a license for the repository `[!] your decision` (no AGPL constraint, since pypdf replaced PyMuPDF; check the licenses of the remaining dependencies)
+- [ ] 14.2.2 Final secret scan of the git history
+- [ ] 14.2.3 Clean up branches; merge to `main`
+- [ ] 14.2.4 Tag release `v1.0.0` with release notes
+- [ ] 14.2.5 Repository description, topics and README badges
+
+### 🛑 Phase 14 Approval Gate (Project Complete)
+- [ ] Final completion summary posted in chat
+- [ ] Developer approval received
+
+---
+
+## Manual Actions Required From You (running list)
+
+| When | Action | Status |
+|------|--------|--------|
+| Done | Review and approve `tasks.md` | `[x]` |
+| Done | Answer decisions D1–D4 | `[x]` |
+| Done | Final Phase 0 approval | `[x]` |
+| Phase 8 | Enter the risk-free rate value, date and source in `.env` | `[ ]` |
+| Phase 1 | Install Python, Node.js, Git, Ollama (if missing); pull Qwen3 models | `[x]` done |
+| Phase 1 | Close heavy apps (Chrome, ChatGPT, WhatsApp, extra VS Code windows) so the memory measurement is representative | `[!]` |
+| Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[!]` |
+| Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
+| Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
+| Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
+| Phase 14 | Choose the repository license; review screenshots | `[ ]` |
+
+---
+
+## Decisions Log
+
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-11-23 | Phases reordered (LLM before agents; MVP dashboard before Agents 3–5) | Needed to meet the Section 19 first milestone |
+| 2026-11-23 | Live hosting/deployment excluded; GitHub only | Your project constraint |
+| 2026-11-23 | Sequential agent execution by default; parallel mode only behind a config flag | Stability on 8 GB RAM |
+| 2026-11-23 | No codebase inspection step; the project is built from scratch | The project folder is empty (your clarification) |
+| 2026-11-23 | Existing `docs/` contents are kept unchanged; the folder is created only because Section 15 requires it | Your clarification |
+| 2026-11-23 | `docs/` did not exist, so it was created (task 0.1.0) | Required by Section 15 |
+| 2026-11-23 | **Approved:** Python 3.12 (D2); Node 26 LTS | Wheel availability; cvxpy needs ≥3.11 |
+| 2026-11-23 | **Approved:** custom pandas/NumPy indicators instead of pandas-ta (D3) | pandas-ta appears unmaintained; NumPy 2 issues |
+| 2026-11-23 | **Decided:** pypdf replaces PyMuPDF (D1) | Avoids AGPL licensing complications |
+| 2026-11-23 | **Approved:** risk-free rate set manually in `.env` in Phase 8; value, date and source recorded in every risk/portfolio result (D4) | Reproducible Sharpe ratios |
+| 2026-11-23 | `agent_results` is the source of truth; other collections hold references or write-once projections | Avoid competing versions (review item 1) |
+| 2026-11-23 | Never-null `scope_key` in the `agent_results` unique index | MongoDB unique indexes treat null and missing as the same value (review item 2) |
+| 2026-11-23 | Restart: re-queue `queued`, mark `running` as `interrupted`, keep `status_history` | No silent loss of job status (review item 3) |
+| 2026-11-23 | `$jsonSchema` validators + least-privilege DB user + integrity check | Protect against writes that bypass Pydantic (review item 4) |
+| 2026-11-23 | Memory target: ≤ 6.5 GB peak, ≥ 1.5 GB headroom; default model chosen from Phase 1 measurements | 8.5 GB upper estimate exceeded physical RAM (review) |
+| 2026-11-23 | Proposed: pwdlib (Argon2) + PyJWT for auth; ReportLab for PDF export; slowapi for rate limiting | passlib unmaintained; ReportLab is BSD and needs no browser engine |
+| 2026-11-23 | Proposed: single-worker ThreadPoolExecutor for background workflows | Bounded RAM; no Redis/Celery |
+| 2026-11-23 | Proposed: no TTL indexes initially; retention via clean-up of old market data | No collection genuinely requires expiry |
+| 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
+| 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
+| 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Frontend linting uses oxlint (Vite 8 template default) | Faster, zero-config; ESLint not needed |
+| 2026-11-23 | Note: installed yfinance is 1.8.0 and pandas is 3.1 (newer than assumed in architecture §8.1) | Check the yfinance API and pandas 3 Copy-on-Write behaviour in Phase 3 |
+
+## Known Risks & Limitations (checked in Phase 0; details in `docs/architecture.md` §11)
+
+- yfinance is an **unofficial** Yahoo Finance wrapper: data may be delayed or incomplete, it can break when Yahoo changes, and its terms restrict usage. It is not real-time exchange data.
+- NSE/BSE websites use bot protection, and automated scraping may break their terms. Fundamentals may need yfinance plus manually downloaded filings.
+- Coverage and freshness of Indian company news in GDELT and RSS vary.
+- The MongoDB Atlas M0 tier has storage and throughput limits, so market data needs a retention strategy.
+- Qwen3 1.7B/0.6B on CPU is slow and limited in reasoning, so the LLM is used only for summaries and explanations.
+- RAM is tight. The standard profile (1.7B model) may exceed the ≤ 6.5 GB target on some machines; Phase 1 measurements decide the default model.
+- Atlas's 512 MB covers documents and indexes. Heavy repeated portfolio runs could approach it, so storage guards and monitoring are planned.
+- All outputs are **educational and illustrative**, not regulated investment advice.
+
+---
+
+## Change History
+
+| Date | Change |
+|------|--------|
+| 2026-11-23 | Initial task plan created; nothing implemented yet |
+| 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
+| 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
+| 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 0 approved. Phase 1 started: Python 3.12.10, venv + backend packages, Vite/React/Tailwind frontend, Ollama settings + Qwen3 models, env templates, `.gitignore`/`.gitattributes`, README, measurement script, local git repo. |

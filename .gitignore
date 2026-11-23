@@ -1,0 +1,40 @@
+# ===== Secrets (never commit) =====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ===== Node / frontend =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+
+# ===== NeuralVest data (generated or third-party; not redistributed) =====
+data/cache/*
+data/historical/*
+data/financial_reports/*
+data/exports/*
+!data/**/.gitkeep
+*.sqlite
+*.sqlite3
+
+# ===== Editors / OS =====
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log

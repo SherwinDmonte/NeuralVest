@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* NeuralVest design tokens (initial set; expanded in Phase 12). */
+@theme {
+  --color-navy-950: #050b1a;
+  --color-navy-900: #0a1428;
+  --color-navy-800: #111d38;
+  --color-accent: #22d3ee;
+}
+
+body {
+  @apply bg-navy-950 text-slate-100 antialiased;
+}
