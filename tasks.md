@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 7 complete: waiting for developer approval (Phase 7 gate)**; branch `phase-7-fundamentals` |
-| Last completed task | 7.3.2 live RELIANCE.NS + HDFCBANK.NS run |
-| Next task | After approval: merge → `main`; Phase 8 (Risk Assessment) only when you say to start |
-| Open blockers | Phase 7 approval; your look at the Fundamentals card |
+| Current phase | **Paused after Phase 7** (approved and merged into `main`). Phase 8 not started, by your request |
+| Last completed task | Phase 7 approved; `phase-7-fundamentals` merged into `main` |
+| Next task | Phase 8 → 8.1.1 on branch `phase-8-risk`, **only when you say to start** |
+| Open blockers | Waiting for your go-ahead for Phase 8; risk-free rate value/date/source needed in Phase 8 (8.1.5) |
 | Last updated | 2026-11-23 |
 
 ---
@@ -49,7 +49,7 @@
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
-| 7 | Agent 3: Stock Analysis (Fundamentals) | `[~]` awaiting approval | Fundamental analysis agent |
+| 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
@@ -424,7 +424,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 7 Approval Gate
 - [x] Phase 7 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -759,6 +759,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 7 approved and merged into `main`. Work paused before Phase 8 at your request. |
 | 2026-11-23 | Phase 7 completed on `phase-7-fundamentals`: fundamentals module, Stock Analysis Agent, graph/runner/API integration, dashboard card, 254 tests, live RELIANCE + HDFCBANK. Awaiting approval. |
 | 2026-11-23 | Phase 6 approved and merged into `main`. Work paused before Phase 7 at your request. |
 | 2026-11-23 | Phase 6 completed on `phase-6-mvp`: background runner with recovery/re-run, analysis/stocks/news endpoints, React MVP dashboard, real-data indicator verification, strict milestone check, 219 tests. Awaiting your UI check and approval. |
