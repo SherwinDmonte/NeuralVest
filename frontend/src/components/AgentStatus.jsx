@@ -5,6 +5,7 @@ import { Card } from './ui'
 const AGENTS = [
   { key: 'market_research', name: 'Market Research Agent', does: 'Prices, indicators, trend, NIFTY 50 comparison' },
   { key: 'financial_news', name: 'Financial News Agent', does: 'News collection, AI summaries and sentiment' },
+  { key: 'stock_analysis', name: 'Stock Analysis Agent', does: 'Financial statements, ratios, financial health' },
 ]
 
 const STATE = {
@@ -30,7 +31,7 @@ export default function AgentStatus({ status, onRerun }) {
   if (!status) return null
   const job = status.status
   return (
-    <Card title="Agent execution" subtitle="LangGraph workflow: validate input, Market Research, then Financial News">
+    <Card title="Agent execution" subtitle="LangGraph workflow: validate input, Market Research, Financial News, then Stock Analysis">
       <p className="mb-3 text-sm text-ink-secondary" aria-live="polite">
         {JOB_TEXT[job] || job}
         {status.queue_position ? ` (position ${status.queue_position} in queue)` : ''}

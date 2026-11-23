@@ -37,6 +37,8 @@ const TONE = {
   sideways: { cls: 'text-ink-secondary border-line', Icon: Minus },
   uncertain: { cls: 'text-ink-muted border-line', Icon: HelpCircle },
   insufficient_data: { cls: 'text-ink-muted border-line', Icon: HelpCircle },
+  solid: { cls: 'text-good border-good/40', Icon: ArrowUpRight },
+  weak: { cls: 'text-critical border-critical/40', Icon: ArrowDownRight },
 }
 
 export function ToneBadge({ value }) {

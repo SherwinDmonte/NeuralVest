@@ -38,7 +38,7 @@ from app.utils.timing import utc_now
 logger = logging.getLogger("neuralvest.runner")
 
 # Agents in execution order (Phase 5 graph). Later phases extend this list.
-AGENT_ORDER = ["market_research", "financial_news"]
+AGENT_ORDER = ["market_research", "financial_news", "stock_analysis"]
 TERMINAL = ("completed", "partial", "failed", "interrupted")
 MAX_PENDING_JOBS = 5
 
@@ -153,6 +153,11 @@ class AnalysisRunner:
             s: {k: v.get(k) for k in ("last_close", "last_close_date", "period_return_pct", "rsi_zone")}
                | {"trend": (v.get("trend") or {}).get("classification"), "status": v.get("status")}
             for s, v in final.get("market_analysis", {}).items()}
+        fundamentals_headline = {
+            s: {k: v.get(k) for k in ("overall", "assessments", "status")}
+               | {"pe": ((v.get("metrics") or {}).get("pe") or {}).get("value"),
+                  "roe_pct": ((v.get("metrics") or {}).get("roe_pct") or {}).get("value")}
+            for s, v in final.get("stock_analysis", {}).items()}
         news_headline = {
             s: {k: v.get(k) for k in ("overall_sentiment", "articles_analyzed", "sentiment_breakdown", "status")}
             for s, v in final.get("news_analysis", {}).items()}
@@ -161,6 +166,8 @@ class AnalysisRunner:
             "error_summary": final.get("errors", []),
             "market_analysis": SectionRef(agent_result_ids=ids("market_research"), headline=market_headline).model_dump(),
             "news_analysis": SectionRef(agent_result_ids=ids("financial_news"), headline=news_headline).model_dump(),
+            "fundamental_analysis": SectionRef(agent_result_ids=ids("stock_analysis"),
+                                               headline=fundamentals_headline).model_dump(),
             "generated_at": utc_now(),
             "completed_at": utc_now(),
         }

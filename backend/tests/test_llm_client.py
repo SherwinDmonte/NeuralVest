@@ -172,3 +172,11 @@ def test_unload_sends_keep_alive_zero():
 
 def test_fallback_model_empty_string_means_none():
     assert Settings(_env_file=None, llm_fallback_model="  ").llm_fallback_model is None
+
+
+def test_markup_echo_is_rejected_and_retried():
+    # Phase 7 live run: the model answered a digest with just "<article>".
+    echoed = {**GOOD_NEWS, "summary": "<article>"}
+    mock = Recorder(chat_response(json.dumps(echoed)), chat_response(json.dumps(GOOD_NEWS)))
+    result = run_news(mock)
+    assert result.source == "llm" and "prompt markup" in result.attempts[0]["reason"]

@@ -6,7 +6,7 @@
               market_research --(no symbol succeeded)--------------------> report
                      |
                      v
-              financial_news -------------------------------------------> report
+              financial_news -> stock_analysis --------------------------> report
 
 Execution is sequential (8 GB RAM). Each node runs one agent for every symbol and returns
 only the state keys it owns. The full supervisor (retries, output validation, agents 3-5,
@@ -25,6 +25,7 @@ from pymongo.database import Database
 from app.agents.common import LLMClient
 from app.agents.financial_news import run_financial_news
 from app.agents.market_research import run_market_research
+from app.agents.stock_analysis import run_stock_analysis
 from app.config import Settings, get_settings
 from app.data.errors import InvalidSymbolError
 from app.data.symbols import base_ticker, normalize_symbol
@@ -38,8 +39,10 @@ OK_STATUSES = ("completed", "partial")
 
 
 def _aggregate(statuses: list[str]) -> str:
-    """Per-symbol statuses -> one agent status."""
-    if not statuses:
+    """Per-symbol statuses -> one agent status. 'skipped' symbols (e.g. an index for the
+    fundamentals agent) do not count as failures."""
+    statuses = [s for s in statuses if s != "skipped"] or (["skipped"] if statuses else [])
+    if not statuses or statuses == ["skipped"]:
         return "skipped"
     if all(s == "completed" for s in statuses):
         return "completed"
@@ -126,13 +129,35 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                 "agent_status": {"financial_news": _aggregate(statuses)},
                 "timestamps": _timing("financial_news", started_at, t0)}
 
+    def stock_analysis(state: NeuralVestState) -> dict[str, Any]:
+        started_at, t0 = utc_now(), time.perf_counter()
+        analysis, fin_data, errors, sources, statuses = {}, {}, [], [], []
+        for symbol in state["stock_symbols"]:
+            mr = state.get("market_analysis", {}).get(symbol, {})
+            if mr.get("status") not in OK_STATUSES:
+                continue
+            out, fs = run_stock_analysis(symbol, last_close=mr.get("last_close"), price_date=mr.get("last_close_date"),
+                                         llm=llm, db=db, request_id=state.get("request_id"), settings=settings)
+            analysis[symbol] = out.model_dump(mode="json")
+            if fs is not None:
+                fin_data[symbol] = {"latest_period": fs.latest_period, "missing_key_items": fs.missing_key_items,
+                                    "is_stale": fs.is_stale, "source": fs.source,
+                                    "fetched_at": fs.fetched_at.isoformat()}
+            statuses.append(out.status)
+            sources += [s.model_dump(mode="json") | {"agent": "stock_analysis", "symbol": symbol}
+                        for s in out.data_sources]
+            errors += [{"agent": "stock_analysis", "symbol": symbol, "message": e} for e in out.errors]
+        return {"stock_analysis": analysis, "financial_data": fin_data, "errors": errors, "data_sources": sources,
+                "agent_status": {"stock_analysis": _aggregate(statuses)},
+                "timestamps": _timing("stock_analysis", started_at, t0)}
+
     def report(state: NeuralVestState) -> dict[str, Any]:
         """REPORT STUB (Phase 5): collects key results per symbol. The full report with all
         sections, explanations and source references is generated in Phase 10."""
         statuses = {k: v for k, v in state.get("agent_status", {}).items() if k != "validate_input"}
         if not state.get("stock_symbols") or statuses.get("market_research") in (None, "failed", "skipped"):
             overall = "failed"
-        elif all(v == "completed" for v in statuses.values()):
+        elif all(v in ("completed", "skipped") for v in statuses.values()):
             overall = "completed"
         else:
             overall = "partial"
@@ -140,6 +165,7 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
         for symbol in state.get("stock_symbols", []):
             mr = state.get("market_analysis", {}).get(symbol, {})
             news = state.get("news_analysis", {}).get(symbol, {})
+            sa = state.get("stock_analysis", {}).get(symbol, {})
             sections[symbol] = {
                 "company_name": mr.get("company_name"),
                 "market_research": {k: mr.get(k) for k in ("status", "last_close", "last_close_date", "trend",
@@ -147,6 +173,8 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
                                                            "explanation")},
                 "financial_news": {k: news.get(k) for k in ("status", "overall_sentiment", "sentiment_breakdown",
                                                             "digest", "articles_analyzed", "disclaimer")},
+                "stock_analysis": {k: sa.get(k) for k in ("status", "overall", "assessments", "strengths",
+                                                          "weaknesses", "statement_periods", "explanation")},
             }
         return {"final_report": {"status": overall, "request_id": state.get("request_id"),
                                  "symbols": state.get("stock_symbols", []), "sections": sections,
@@ -159,6 +187,7 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
     graph.add_node("validate_input", validate_input)
     graph.add_node("market_research", market_research)
     graph.add_node("financial_news", financial_news)
+    graph.add_node("stock_analysis", stock_analysis)
     graph.add_node("report", report)
 
     graph.add_edge(START, "validate_input")
@@ -169,7 +198,8 @@ def build_graph(llm: LLMClient | None = None, db: Database | None = None, settin
         lambda s: "financial_news" if s.get("agent_status", {}).get("market_research") in OK_STATUSES else "report",
         {"financial_news": "financial_news", "report": "report"},
     )
-    graph.add_edge("financial_news", "report")
+    graph.add_edge("financial_news", "stock_analysis")
+    graph.add_edge("stock_analysis", "report")
     graph.add_edge("report", END)
     return graph.compile()
 

@@ -25,7 +25,7 @@ import psutil
 from pydantic import BaseModel, ValidationError
 
 from app.config import Settings, get_settings
-from app.llm.guards import strip_thinking, unsupported_numbers
+from app.llm.guards import strip_thinking, suspicious_text, unsupported_numbers
 from app.llm.prompts import PromptSpec
 
 logger = logging.getLogger("neuralvest.llm")
@@ -174,6 +174,9 @@ class OllamaClient:
                     if data.get("done_reason") == "length":
                         raise LLMCallError("output truncated (max tokens reached)")
                     value = parse(content)
+                    for text in spec.guarded_text(value):
+                        if problem := suspicious_text(text):
+                            raise LLMCallError(f"invalid text: {problem}")
                     invented = unsupported_numbers(" ".join(spec.guarded_text(value)), prompt_text)
                     if invented:
                         raise LLMCallError(f"numbers not in the input: {invented[:5]}")

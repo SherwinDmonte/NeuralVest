@@ -46,6 +46,21 @@ def _rounding_of(ref: float, value: float) -> bool:
     return any(round(ref, digits) == round(value, digits) for digits in (0, 1, 2))
 
 
+_MARKUP = re.compile(r"</?\s*(article|think|system|user|assistant)\b|```", re.IGNORECASE)
+MIN_TEXT_CHARS = 20
+
+
+def suspicious_text(text: str) -> str | None:
+    """Reason why a free-text answer is unusable, or None. Catches a model echoing our
+    prompt markup (seen in Phase 7: a digest that was just "<article>") or saying nothing."""
+    stripped = text.strip()
+    if _MARKUP.search(stripped):
+        return "output contains prompt markup"
+    if len(stripped) < MIN_TEXT_CHARS:
+        return "output too short"
+    return None
+
+
 def unsupported_numbers(output_text: str, prompt_text: str) -> list[float]:
     """Numbers in `output_text` that are not present (up to rounding) in `prompt_text`."""
     allowed = extract_numbers(prompt_text)

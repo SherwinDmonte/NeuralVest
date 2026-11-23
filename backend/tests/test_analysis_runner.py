@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agents import market_research as mr
+from app.agents import stock_analysis as sa
 from app.api.routes import stocks as stocks_routes
 from app.config import get_settings
 from app.data import news_data as nd
@@ -15,7 +16,7 @@ from app.database.repository import insert_document
 from app.main import create_app
 from app.orchestration.graph import build_graph
 from app.services import analysis_runner as ar
-from tests.agent_fakes import FakeLLM, news_transport, patch_market_data, synthetic_history
+from tests.agent_fakes import FakeLLM, news_transport, patch_fundamentals, patch_market_data, synthetic_history
 
 pytestmark = pytest.mark.integration
 
@@ -23,6 +24,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def runner(clean_db, tmp_path, monkeypatch):
     patch_market_data(monkeypatch, mr)
+    patch_fundamentals(monkeypatch, sa)
     monkeypatch.setattr(nd, "utc_now", lambda: datetime(2026, 11, 22, tzinfo=UTC))
     settings = get_settings().model_copy(update={"data_cache_dir": tmp_path})
     llm = FakeLLM()
@@ -49,12 +51,14 @@ def test_submit_runs_in_background_and_writes_report(runner, clean_db):
     runner.wait_idle()
     status = runner.status(started["request_id"])
     assert status["status"] == "completed"
-    assert status["agents"] == {"market_research": "completed", "financial_news": "completed"}
+    assert status["agents"] == {"market_research": "completed", "financial_news": "completed",
+                                "stock_analysis": "completed"}
     assert [e["status"] for e in status["status_history"]] == ["queued", "running", "completed"]
     doc = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": started["request_id"]})
     assert doc["market_analysis"]["agent_result_ids"] and doc["news_analysis"]["agent_result_ids"]
     assert doc["market_analysis"]["headline"]["RELIANCE.NS"]["trend"]  # small headline, not a copy
     assert doc["final_summary"]["status"] == "completed" and doc["completed_at"]
+    assert doc["fundamental_analysis"]["headline"]["RELIANCE.NS"]["overall"] == "solid"
 
 
 def test_unexpected_error_marks_job_failed(clean_db, tmp_path):
@@ -103,7 +107,8 @@ def test_status_after_restart_comes_from_database(runner, clean_db):
     rid = runner.submit(["RELIANCE"])["request_id"]
     runner.wait_idle()
     fresh = ar.AnalysisRunner(clean_db, runner.settings)  # new process: no live progress
-    assert fresh.status(rid)["agents"] == {"market_research": "completed", "financial_news": "completed"}
+    assert fresh.status(rid)["agents"] == {"market_research": "completed", "financial_news": "completed",
+                                           "stock_analysis": "completed"}
     fresh.shutdown()
 
 
@@ -140,6 +145,7 @@ def test_api_full_flow(client, runner):
 
     result = client.get(f"/api/analysis/{rid}").json()
     assert result["market_research"]["RELIANCE.NS"]["trend"]["classification"]
+    assert result["stock_analysis"]["RELIANCE.NS"]["overall"] == "solid"
     news = result["financial_news"]["RELIANCE.NS"]
     assert news["articles"] and news["articles"][0]["article_url"].startswith("https://")  # joined from financial_news
 

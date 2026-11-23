@@ -48,6 +48,53 @@ def patch_market_data(monkeypatch, module, *, rows=None, fail_prices=False, fail
     monkeypatch.setattr(module, "get_company_profile", profile)
 
 
+def synthetic_statements(bank: bool = False) -> dict:
+    """Hand-built annual statements with round numbers, so every ratio can be checked by hand
+    (see tests/test_fundamentals.py). Banks lack operating income and current items."""
+    income = {
+        "2026-03-31": {"Total Revenue": 1200.0, "Net Income": 120.0, "Operating Income": 180.0, "Diluted EPS": 12.0},
+        "2025-03-31": {"Total Revenue": 1000.0, "Net Income": 100.0, "Operating Income": 150.0, "Diluted EPS": 10.0},
+        "2024-03-31": {"Total Revenue": 900.0, "Net Income": 90.0, "Operating Income": 130.0, "Diluted EPS": 9.0},
+    }
+    balance = {
+        "2026-03-31": {"Stockholders Equity": 800.0, "Total Assets": 2000.0, "Total Debt": 400.0,
+                       "Current Assets": 600.0, "Current Liabilities": 300.0, "Ordinary Shares Number": 10.0},
+        "2025-03-31": {"Stockholders Equity": 700.0, "Total Assets": 1800.0, "Total Debt": 350.0,
+                       "Current Assets": 500.0, "Current Liabilities": 280.0, "Ordinary Shares Number": 10.0},
+    }
+    if bank:
+        for period in income.values():
+            period.pop("Operating Income")
+        for period in balance.values():
+            period.pop("Current Assets"), period.pop("Current Liabilities")
+            period["Total Debt"] *= 5
+    return {"income_statement": income, "balance_sheet": balance, "cash_flow": {}}
+
+
+def patch_fundamentals(monkeypatch, module, *, bank=False, fail=False, financial_currency="INR"):
+    """Replace the data functions used by the Stock Analysis agent."""
+    from app.data.errors import NoDataError as _NoData
+    from app.data.financial_data import FinancialStatements, summarize
+
+    def statements(symbol, settings=None, **_):
+        if fail:
+            raise _NoData(f"No financial statements available for {symbol}.")
+        st = synthetic_statements(bank)
+        latest, missing, stale, warnings = summarize(st, today=datetime(2026, 11, 23).date())
+        return FinancialStatements(symbol=symbol, statements=st, latest_period=latest, missing_key_items=missing,
+                                   is_stale=stale, fetched_at=NOW, from_cache=False, warnings=warnings)
+
+    def profile(symbol, settings=None, **_):
+        return {"symbol": symbol, "company_name": "Example Bank Limited" if bank else "Example Industries Limited",
+                "sector": "Financial Services" if bank else "Energy",
+                "industry": "Banks - Regional" if bank else "Oil & Gas Refining & Marketing",
+                "currency": "INR", "financial_currency": financial_currency, "source": "test",
+                "fetched_at": NOW.isoformat()}
+
+    monkeypatch.setattr(module, "get_financial_statements", statements)
+    monkeypatch.setattr(module, "get_company_profile", profile)
+
+
 class FakeLLM:
     """Returns fixed, valid answers and records which prompts were used."""
 
@@ -62,6 +109,7 @@ class FakeLLM:
                               "category": "company_announcement", "relevance": self.relevance},
             "market_explanation": {"explanation": "The trend is described using the given facts."},
             "news_digest": {"digest": "Recent coverage was mostly about company announcements."},
+            "stock_analysis": {"explanation": "The company's finances are described using the given facts."},
         }[spec.name]
         return LLMResult(value=schema(**values), source="llm", model="fake-model",
                          attempts=[{"model": "fake-model", "ok": True, "seconds": 0.0}])

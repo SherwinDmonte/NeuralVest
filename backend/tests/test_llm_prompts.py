@@ -28,7 +28,7 @@ def test_market_prompt_contains_facts_and_fallback_uses_them():
     assert "bullish" in text and "56.2" in text and "without the AI model" in text
 
 
-@pytest.mark.parametrize("fn", [p.stock_analysis_prompt, p.risk_explanation_prompt,
+@pytest.mark.parametrize("fn", [p.risk_explanation_prompt,
                                 p.portfolio_explanation_prompt, p.report_summary_prompt])
 def test_later_phase_prompts_are_marked_placeholders(fn):
     with pytest.raises(NotImplementedError):

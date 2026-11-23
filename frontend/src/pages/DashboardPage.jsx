@@ -5,6 +5,7 @@ import { Play, Search } from 'lucide-react'
 import AgentStatus from '../components/AgentStatus'
 import { MacdChart, PriceChart, RsiChart } from '../components/charts'
 import { Explanation, MarketTiles } from '../components/MarketSummary'
+import Fundamentals from '../components/Fundamentals'
 import NewsList from '../components/NewsList'
 import { Card, EmptyState, ErrorState, Loading } from '../components/ui'
 import { useAnalysis } from '../hooks/useAnalysis'
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const key = result?.symbols?.[0]
   const mr = key ? result.market_research?.[key] : null
   const news = key ? result.financial_news?.[key] : null
+  const sa = key ? result.stock_analysis?.[key] : null
   const series = indicators?.series || []
 
   return (
@@ -106,6 +108,8 @@ export default function DashboardPage() {
       {mr && !indicators && !busy && (
         <ErrorState message="Indicator charts could not be loaded (price source unavailable). The analysis above is still valid." />
       )}
+
+      {sa && <Fundamentals sa={sa} />}
 
       {news && <NewsList news={news} />}
     </div>

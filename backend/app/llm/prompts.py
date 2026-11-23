@@ -171,9 +171,38 @@ def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExp
 
 
 # ================================================================ 4.3.4 later phases (PLACEHOLDERS)
-def stock_analysis_prompt(*_args, **_kwargs) -> PromptSpec:
-    """PLACEHOLDER: implemented in Phase 7 (Stock Analysis Agent)."""
-    raise NotImplementedError("stock_analysis_prompt is implemented in Phase 7")
+class FundamentalExplanationOutput(BaseModel):
+    explanation: str = Field(min_length=1, max_length=900)
+
+
+def stock_analysis_prompt(facts: dict[str, Any]) -> PromptSpec:
+    """Phase 7: `facts` hold ratios, rule-based assessments, strengths and weaknesses (Python)."""
+    system = (
+        "You explain the financial health of an Indian company to a beginner investor. "
+        "Write 3 to 5 short sentences in plain English using ONLY the JSON facts: profitability, "
+        "growth, debt and liquidity. The assessments, strengths and weaknesses were decided by fixed "
+        "rules: restate them, never contradict them. Mention clearly when a figure is unavailable. "
+        "Do not give buy or sell advice. Copy numbers exactly as given or leave them out. "
+        "Return JSON with one field: explanation. " + SAFETY_RULES
+    )
+    user = "Facts (computed by NeuralVest from annual statements, JSON):\n" + json.dumps(
+        facts, default=str, separators=(",", ":"))
+    return PromptSpec(name="stock_analysis", system=system, user=user, max_tokens=280,
+                      guarded_fields=("explanation",))
+
+
+def stock_analysis_fallback(facts: dict[str, Any]) -> Callable[[], FundamentalExplanationOutput]:
+    def build() -> FundamentalExplanationOutput:
+        a = facts.get("assessments", {})
+        parts = [f"Based on the {facts.get('period') or 'latest'} annual statements, the overall picture is "
+                 f"{facts.get('overall', 'unclear').replace('_', ' ')}."]
+        parts.append("Profitability: {p}; growth: {g}; debt: {l}; liquidity: {q}.".format(
+            p=a.get("profitability", "n/a"), g=a.get("growth", "n/a"),
+            l=a.get("leverage", "n/a"), q=a.get("liquidity", "n/a")).replace("_", " "))
+        parts += facts.get("strengths", [])[:2] + facts.get("weaknesses", [])[:2]
+        parts.append("This explanation was generated without the AI model.")
+        return FundamentalExplanationOutput(explanation=" ".join(parts)[:900])
+    return build
 
 
 def risk_explanation_prompt(*_args, **_kwargs) -> PromptSpec:
