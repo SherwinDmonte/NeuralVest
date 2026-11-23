@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 5 in progress** (branch `phase-5-agents`) |
-| Last completed task | Phase 4 approved; adaptive model setup applied |
-| Next task | 5.1.1 technical indicators |
+| Current phase | **Phase 6 in progress** (branch `phase-6-mvp`) |
+| Last completed task | Phase 5 approved and merged into `main` |
+| Next task | 6.1.7 analysis runner, then 6.1.x endpoints, then 6.2 dashboard |
 | Open blockers | None |
 | Last updated | 2026-11-23 |
 
@@ -47,8 +47,8 @@
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
-| 5 | MVP Agents: Market Research + Financial News | `[~]` | Two working agents + minimal LangGraph graph |
-| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
+| 5 | MVP Agents: Market Research + Financial News | `[x]` approved 2026-11-23 | Two working agents + minimal LangGraph graph |
+| 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[~]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[ ]` | Optimizer + backtester agent |
@@ -313,43 +313,43 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Both agents work on their own and through LangGraph.
 
 ### 5.1 Technical Indicators (`analysis/technical_indicators.py`)
-- [ ] 5.1.1 SMA 20 / 50 / 200
-- [ ] 5.1.2 EMA (configurable spans, for example 12/26)
-- [ ] 5.1.3 RSI (14, Wilder smoothing)
-- [ ] 5.1.4 MACD (12, 26, 9) + signal + histogram
-- [ ] 5.1.5 Bollinger Bands (20, 2σ)
-- [ ] 5.1.6 Volume analysis (average volume, volume spikes vs. 20-day average)
-- [ ] 5.1.7 Trend classification rules (bullish / bearish / sideways), documented and deterministic
-- [ ] 5.1.8 Benchmark comparison (relative return vs. NIFTY 50 over matching periods)
-- [ ] 5.1.9 Unit tests against independently computed reference values
+- [x] 5.1.1 SMA 20 / 50 / 200
+- [x] 5.1.2 EMA (configurable spans, for example 12/26) (pandas `ewm(adjust=False)`; documented convention)
+- [x] 5.1.3 RSI (14, Wilder smoothing)
+- [x] 5.1.4 MACD (12, 26, 9) + signal + histogram
+- [x] 5.1.5 Bollinger Bands (20, 2σ) (population std, ddof=0)
+- [x] 5.1.6 Volume analysis (average volume, volume spikes vs. 20-day average) (20-day average, ratio, spike days > 2×)
+- [x] 5.1.7 Trend classification rules (bullish / bearish / sideways), documented and deterministic: close vs SMA50 vs SMA200 alignment; SMA20/SMA50 short-history rule; `insufficient_data` below 50 days
+- [x] 5.1.8 Benchmark comparison (relative return vs. NIFTY 50 over matching periods) (common dates only, adjusted close)
+- [x] 5.1.9 Unit tests against independently computed reference values: SMA/EMA/RSI checked value-by-value against independent loop implementations + a hand-computed RSI example (16 tests)
 
 ### 5.2 Agent 1 — Market Research (`agents/market_research.py`)
-- [ ] 5.2.1 Input/output Pydantic schemas
-- [ ] 5.2.2 Fetch → validate → compute indicators → classify trend → benchmark compare
-- [ ] 5.2.3 LLM-generated plain-language interpretation of the computed metrics only
-- [ ] 5.2.4 Output includes the data freshness timestamp and source information
-- [ ] 5.2.5 Store the result in `agent_results`
-- [ ] 5.2.6 Agent tests (valid symbol, invalid symbol, short history < 200 days, network failure)
+- [x] 5.2.1 Input/output Pydantic schemas (`schemas/agents.py`)
+- [x] 5.2.2 Fetch → validate → compute indicators → classify trend → benchmark compare
+- [x] 5.2.3 LLM-generated plain-language interpretation of the computed metrics only (facts JSON only; number guard verified live: it rejected an invented "20")
+- [x] 5.2.4 Output includes the data freshness timestamp and source information
+- [x] 5.2.5 Store the result in `agent_results` (+ prices of stock and benchmark in `market_data`)
+- [x] 5.2.6 Agent tests (valid symbol, invalid symbol, short history < 200 days, network failure)
 
 ### 5.3 Agent 2 — Financial News (`agents/financial_news.py`)
-- [ ] 5.3.1 Input/output Pydantic schemas
-- [ ] 5.3.2 Collect → dedupe → filter by relevance to the company
-- [ ] 5.3.3 Categorize (results, M&A, policy, regulatory, governance, legal, etc.)
-- [ ] 5.3.4 Sentiment: positive / negative / neutral / uncertain (LLM, with validation)
-- [ ] 5.3.5 Short summary per article + overall news digest
-- [ ] 5.3.6 Store in `financial_news` (deduplicated) and `agent_results`
-- [ ] 5.3.7 Disclaimer: sentiment is not a prediction of returns
-- [ ] 5.3.8 Agent tests (no news found, LLM down, malformed feed)
+- [x] 5.3.1 Input/output Pydantic schemas
+- [x] 5.3.2 Collect → dedupe → filter by relevance to the company (ranking: company in headline first)
+- [x] 5.3.3 Categorize (results, M&A, policy, regulatory, governance, legal, etc.)
+- [x] 5.3.4 Sentiment: positive / negative / neutral / uncertain (LLM, with validation) (Python caps relevance: 'high' needs the company in the headline)
+- [x] 5.3.5 Short summary per article + overall news digest (digest via LLM, template fallback)
+- [x] 5.3.6 Store in `financial_news` (deduplicated) and `agent_results` (`agent_results` keeps url_hash references, not copies)
+- [x] 5.3.7 Disclaimer: sentiment is not a prediction of returns
+- [x] 5.3.8 Agent tests (no news found, LLM down, malformed feed)
 
 ### 5.4 Minimal LangGraph Workflow
-- [ ] 5.4.1 `orchestration/state.py`: full shared state `TypedDict` (all fields, some unused for now)
-- [ ] 5.4.2 `orchestration/graph.py`: Input Validation → Market Research → Financial News → Report stub
-- [ ] 5.4.3 Track `agent_status`, `errors`, `timestamps`, `data_sources`
-- [ ] 5.4.4 Integration test: graph run for RELIANCE.NS
+- [x] 5.4.1 `orchestration/state.py`: full shared state `TypedDict` (all fields, some unused for now)
+- [x] 5.4.2 `orchestration/graph.py`: Input Validation → Market Research → Financial News → Report stub (conditional edges skip agents when input or prices fail)
+- [x] 5.4.3 Track `agent_status`, `errors`, `timestamps`, `data_sources`
+- [x] 5.4.4 Integration test: graph run for RELIANCE.NS: offline graph tests + **live RELIANCE.NS run: all agents completed in 25 s (10.7 s cached)**; adaptive LLM used 0.6B because only ~0.5 GB RAM was free; integrity check clean (`scripts/run_analysis.py`)
 
 ### 🛑 Phase 5 Approval Gate
-- [ ] Phase 5 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 5 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -714,6 +714,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Technical indicators use the unadjusted close; returns/benchmark use the adjusted close; splits flagged | Matches what price charts show while keeping returns correct |
+| 2026-11-23 | News relevance: Python caps the model's label ('high' only if the company is in the headline) | The 0.6B model over-rated passing mentions (Phase 4 test) |
 | 2026-11-23 | **Adaptive LLM setup (option 3):** primary `qwen3:1.7b`, fallback `qwen3:0.6b`, `LLM_MIN_FREE_RAM_MB=1800`; replaces the 0.6B-only default from 1.4.5 | Your choice after the Phase 4 comparison: 1.7B quality when RAM allows |
 | 2026-11-23 | Every LLM call returns a result: model → retry → fallback model → deterministic template (sentiment `uncertain`, never guessed) | Agents must never fail or invent content because the LLM failed |
 | 2026-11-23 | Keep the existing Atlas database user (no dedicated `neuralvest_app` user) | Your decision; it has the permissions the app needs (incl. `collMod`); credentials only in local `.env` |
@@ -750,6 +752,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 5 completed on `phase-5-agents`: indicators, Market Research + Financial News agents, LangGraph workflow, 208 tests, live RELIANCE.NS run. Fixed a Phase 2 test-isolation bug (shared MongoClient closed by another fixture). Awaiting approval. |
 | 2026-11-23 | Phase 4 completed on `phase-4-llm`: shared Ollama client, guards, prompts, live 0.6B vs 1.7B comparison; 164 tests. Awaiting approval. |
 | 2026-11-23 | Phase 3 completed on `phase-3-data`: symbols, cache, validator, prices, news, financials, PDF text; 133 tests; 5-symbol live run; 30 symbols seeded. Awaiting approval. |
 | 2026-11-23 | Phase 2 completed on `phase-2-backend`: FastAPI core, database layer (models, validators, indexes, repository, integrity, retention), health + stock placeholder routes, 64 tests, scripts. Awaiting approval. |

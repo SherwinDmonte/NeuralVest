@@ -23,27 +23,32 @@ _client: MongoClient | None = None
 _client_lock = threading.Lock()
 
 
-def get_client(settings: Settings | None = None) -> MongoClient:
-    """Return the shared MongoClient, creating it on first use."""
-    global _client
-    settings = settings or get_settings()
+def create_client(settings: Settings) -> MongoClient:
+    """A new, independent MongoClient (the app uses the shared one from get_client)."""
     if not settings.mongodb_configured:
         raise AppError(
             503,
             "database_not_configured",
             "MongoDB is not configured. Set MONGODB_URI (with the real password) in backend/.env.",
         )
+    return MongoClient(
+        settings.mongodb_uri.get_secret_value(),
+        serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
+        connectTimeoutMS=settings.mongodb_connect_timeout_ms,
+        retryWrites=True,
+        maxPoolSize=10,  # far below the Atlas free-tier limit of 500 connections
+        tz_aware=True,  # datetimes come back timezone-aware (UTC)
+        uuidRepresentation="standard",
+    )
+
+
+def get_client(settings: Settings | None = None) -> MongoClient:
+    """Return the shared MongoClient, creating it on first use."""
+    global _client
+    settings = settings or get_settings()
     with _client_lock:
         if _client is None:
-            _client = MongoClient(
-                settings.mongodb_uri.get_secret_value(),
-                serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
-                connectTimeoutMS=settings.mongodb_connect_timeout_ms,
-                retryWrites=True,
-                maxPoolSize=10,  # far below the Atlas free-tier limit of 500 connections
-                tz_aware=True,  # datetimes come back timezone-aware (UTC)
-                uuidRepresentation="standard",
-            )
+            _client = create_client(settings)
     return _client
 
 

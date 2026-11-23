@@ -554,6 +554,8 @@ NEURALVEST/                         # repository root
 
 9. *(Phase 4)* `llm/guards.py` holds the output guards (thinking-block removal, invented-number detection), so `ollama_client.py` stays focused on talking to Ollama.
 
+10. *(Phase 5)* `agents/common.py` (shared persistence + LLM protocol) and `schemas/agents.py` (agent contracts). In `analysis/technical_indicators.py`, indicators use the unadjusted close and returns use the adjusted close; a corporate-action warning flags splits.
+
 No other deviations. Helper modules such as `services/analysis_runner.py` sit inside folders the specification already defines.
 
 ---
