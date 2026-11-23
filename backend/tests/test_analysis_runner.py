@@ -57,7 +57,8 @@ def test_submit_runs_in_background_and_writes_report(runner, clean_db):
     status = runner.status(started["request_id"])
     assert status["status"] == "completed"
     assert status["agents"] == {"market_research": "completed", "financial_news": "completed",
-                                "stock_analysis": "completed", "risk_assessment": "completed"}
+                                "stock_analysis": "completed", "risk_assessment": "completed",
+                                "portfolio_optimization": "skipped"}  # single stock: not a portfolio
     assert [e["status"] for e in status["status_history"]] == ["queued", "running", "completed"]
     doc = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": started["request_id"]})
     assert doc["market_analysis"]["agent_result_ids"] and doc["news_analysis"]["agent_result_ids"]
@@ -117,7 +118,8 @@ def test_status_after_restart_comes_from_database(runner, clean_db):
     runner.wait_idle()
     fresh = ar.AnalysisRunner(clean_db, runner.settings)  # new process: no live progress
     assert fresh.status(rid)["agents"] == {"market_research": "completed", "financial_news": "completed",
-                                           "stock_analysis": "completed", "risk_assessment": "completed"}
+                                           "stock_analysis": "completed", "risk_assessment": "completed",
+                                "portfolio_optimization": "skipped"}  # single stock: not a portfolio
     fresh.shutdown()
 
 
@@ -201,3 +203,38 @@ def test_no_risk_report_without_risk_free_rate(clean_db, tmp_path, monkeypatch):
     r.shutdown()
     assert r.status(rid)["agents"]["risk_assessment"] == "partial"  # Sharpe unavailable
     assert clean_db[m.RISK_REPORTS].count_documents({"request_id": rid}) == 0  # D4: rate required
+
+
+def test_portfolio_request_runs_agent_5_and_writes_projection(runner, clean_db):
+    started = runner.submit(["RELIANCE", "TCS"], investment_amount=100000, risk_preference="aggressive",
+                            portfolio_options={"method": "equal_weight", "rebalance": "monthly"})
+    runner.wait_idle()
+    status = runner.status(started["request_id"])
+    # the synthetic history is one year, too short for a backtest -> partial, but allocated
+    assert status["agents"]["portfolio_optimization"] == "partial"
+    doc = clean_db[m.ANALYSIS_REPORTS].find_one({"request_id": started["request_id"]})
+    assert doc["request_params"]["request_type"] == "portfolio" and doc["request_params"]["investment_amount"] == 100000
+    assert doc["portfolio_analysis"]["agent_result_ids"]
+    assert doc["portfolio_analysis"]["headline"]["weights_pct"] == {"RELIANCE.NS": 50.0, "TCS.NS": 50.0}
+    proj = clean_db[m.PORTFOLIOS].find_one({"request_id": started["request_id"]})
+    assert proj["optimization_method"] == "equal_weight" and proj["investment_amount"] == 100000
+    assert sum(a["weight_pct"] for a in proj["stock_allocations"]) == 100
+    assert proj["expected_metrics"]["risk_free_rate"]["source"] == "test rate"
+    assert doc["final_summary"]["portfolio"]["portfolio_id"] == proj["portfolio_id"]
+
+
+def test_api_portfolio_analysis(client, runner):
+    bad = client.post("/api/analysis/start", json={"symbols": ["RELIANCE"], "investment_amount": 1000})
+    assert bad.status_code == 422
+    resp = client.post("/api/analysis/start", json={"symbols": ["RELIANCE", "TCS"], "investment_amount": 250000,
+                                                    "risk_preference": "conservative",
+                                                    "portfolio": {"constraints": {"max_weight_pct": 60}}})
+    assert resp.status_code == 202
+    runner.wait_idle()
+    result = client.get(f"/api/analysis/{resp.json()['request_id']}").json()
+    p = result["portfolio_optimization"]
+    assert p["method"] == "min_volatility" and p["constraints"]["max_weight_pct"] == 60.0
+    assert p["investment_amount"] == 250000 and p["explanation"]
+    single = client.post("/api/analysis/start", json={"symbols": ["RELIANCE"]}).json()
+    runner.wait_idle()
+    assert client.get(f"/api/analysis/{single['request_id']}").json()["portfolio_optimization"] is None

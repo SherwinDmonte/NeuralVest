@@ -233,9 +233,34 @@ def risk_explanation_fallback(facts: dict[str, Any]) -> Callable[[], RiskExplana
     return build
 
 
-def portfolio_explanation_prompt(*_args, **_kwargs) -> PromptSpec:
-    """PLACEHOLDER: implemented in Phase 9 (Portfolio Optimization Agent)."""
-    raise NotImplementedError("portfolio_explanation_prompt is implemented in Phase 9")
+class PortfolioExplanationOutput(BaseModel):
+    explanation: str = Field(min_length=1, max_length=1000)
+
+
+def portfolio_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
+    """Phase 9: `facts` hold the computed allocation, expected figures, backtest summary and
+    rule-based readings (all from Python)."""
+    system = (
+        "You explain an ILLUSTRATIVE stock allocation to a beginner investor in India. Write 3 to 5 short "
+        "sentences in plain English using ONLY the JSON facts: which method was used and why, how the money "
+        "is split between the stocks, what the historical figures and the backtest showed. The fields ending "
+        "in _reading are the correct interpretation: restate them, never contradict them. Say that the figures "
+        "come from past prices and do not predict the future. Never tell the reader to buy or sell. Copy "
+        "numbers exactly as given or leave them out. Return JSON with one field: explanation. " + SAFETY_RULES
+    )
+    user = "Facts (computed by NeuralVest from daily prices, JSON):\n" + json.dumps(
+        facts, default=str, separators=(",", ":"))
+    return PromptSpec(name="portfolio_explanation", system=system, user=user, max_tokens=280,
+                      guarded_fields=("explanation",))
+
+
+def portfolio_explanation_fallback(facts: dict[str, Any]) -> Callable[[], PortfolioExplanationOutput]:
+    def build() -> PortfolioExplanationOutput:
+        parts = [r[0].upper() + r[1:] + "." for k, r in facts.items() if k.endswith("_reading") and r]
+        parts.append("All figures come from past prices and do not predict future results. "
+                     "This explanation was generated without the AI model.")
+        return PortfolioExplanationOutput(explanation=" ".join(parts)[:1000])
+    return build
 
 
 def report_summary_prompt(*_args, **_kwargs) -> PromptSpec:

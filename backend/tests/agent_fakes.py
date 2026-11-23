@@ -117,6 +117,7 @@ class FakeLLM:
             "news_digest": {"digest": "Recent coverage was mostly about company announcements."},
             "stock_analysis": {"explanation": "The company's finances are described using the given facts."},
             "risk_explanation": {"explanation": "Historical risk is described using the given facts only."},
+            "portfolio_explanation": {"explanation": "The illustrative allocation is described using the given facts."},
         }[spec.name]
         return LLMResult(value=schema(**values), source="llm", model="fake-model",
                          attempts=[{"model": "fake-model", "ok": True, "seconds": 0.0}])

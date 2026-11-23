@@ -117,6 +117,69 @@ class RiskPortfolioOutput(AgentEnvelope):
     disclaimer: str = RISK_DISCLAIMER
 
 
+# ---------------------------------------------------------------- Agent 5: Portfolio Optimization
+PORTFOLIO_DISCLAIMER = ("Illustrative allocation based on historical data. It is not personalised investment "
+                        "advice (NeuralVest is not a SEBI-registered adviser), and past performance, including "
+                        "the backtest, does not guarantee future results.")
+PortfolioMethod = Literal["max_sharpe", "min_volatility", "efficient_risk", "efficient_return", "equal_weight",
+                          "inverse_volatility", "hrp"]
+RiskPreferenceLiteral = Literal["conservative", "moderate", "aggressive"]
+MAX_INVESTMENT_INR = 1_000_000_000  # Rs 100 crore: guards against typing errors
+
+
+class PortfolioConstraints(BaseModel):
+    min_weight_pct: float = Field(default=0.0, ge=0, le=100)
+    max_weight_pct: float | None = Field(default=None, gt=0, le=100,
+                                         description="Default from the risk preference (25/35/50%)")
+    allow_short: Literal[False] = Field(default=False, description="Short selling is not supported")
+
+
+class PortfolioOptimizationInput(BaseModel):
+    symbols: list[str] = Field(min_length=2, max_length=10)
+    investment_amount: float = Field(gt=0, le=MAX_INVESTMENT_INR, description="Amount in INR")
+    risk_preference: RiskPreferenceLiteral = "moderate"
+    method: PortfolioMethod | None = Field(default=None, description="Overrides the risk preference's method")
+    constraints: PortfolioConstraints = Field(default_factory=PortfolioConstraints)
+    target_volatility_pct: float | None = Field(default=None, gt=0, le=200)
+    target_return_pct: float | None = Field(default=None, ge=-100, le=500)
+    returns_model: Literal["mean", "ema"] = "mean"
+    covariance_model: Literal["ledoit_wolf", "sample"] = "ledoit_wolf"
+    backtest: bool = True
+    rebalance: Literal["monthly", "quarterly", "none"] = "quarterly"
+    transaction_cost_bps: float = Field(default=10.0, ge=0, le=200)
+
+
+class PortfolioOutput(AgentEnvelope):
+    """Request-level result: weights, rupee amounts, whole shares, expected figures, backtest."""
+    agent: str = "portfolio_optimization"
+    symbol: str = "__request__"
+    portfolio_id: str
+    symbols: list[str] = Field(default_factory=list)
+    excluded_symbols: dict[str, str] = Field(default_factory=dict)  # symbol -> reason
+    investment_amount: float
+    risk_preference: str
+    method_requested: str | None = None
+    method: str | None = None
+    method_source: str | None = None  # "requested" | "risk_preference"
+    method_label: str | None = None
+    fallback_reason: str | None = None
+    constraints: dict[str, Any] = Field(default_factory=dict)
+    assumptions: dict[str, Any] = Field(default_factory=dict)
+    allocations: list[dict[str, Any]] = Field(default_factory=list)
+    invested_inr: float | None = None
+    leftover_cash_inr: float | None = None
+    expected_metrics: dict[str, Any] = Field(default_factory=dict)
+    inputs_per_stock: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    concentration: dict[str, Any] = Field(default_factory=dict)
+    backtest: dict[str, Any] | None = None
+    backtest_reason: str | None = None
+    readings: dict[str, str] = Field(default_factory=dict)
+    rules: dict[str, str] = Field(default_factory=dict)
+    risk_free_rate: dict[str, Any] | None = None
+    explanation: str | None = None
+    disclaimer: str = PORTFOLIO_DISCLAIMER
+
+
 # ---------------------------------------------------------------- Agent 2: Financial News
 class FinancialNewsInput(BaseModel):
     symbol: str

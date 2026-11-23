@@ -73,6 +73,19 @@ def test_symbols_deduplicated_and_portfolio_detected(tmp_path, monkeypatch):
     final = graph(tmp_path).invoke(initial_state(["reliance", "RELIANCE.NS", "NSE:TCS"], investment_amount=100000))
     assert final["stock_symbols"] == ["RELIANCE.NS", "TCS.NS"] and final["request_type"] == "portfolio"
     assert final["risk_analysis"]["portfolio"]["correlation"]["matrix"]  # two stocks: portfolio view
+    po = final["portfolio_analysis"]  # amount + 2 stocks: the Portfolio Optimization branch ran
+    assert final["agent_status"]["portfolio_optimization"] in ("completed", "partial")
+    assert sum(x["weight_pct"] for x in po["allocations"]) == pytest.approx(100)
+    assert final["final_report"]["portfolio"]["portfolio_id"] == po["portfolio_id"]
+    assert "equity_curve" not in (final["final_report"]["portfolio"]["backtest"] or {})
+
+
+def test_single_stock_skips_portfolio_branch(tmp_path, monkeypatch):
+    patch_market_data(monkeypatch, mr)
+    final = graph(tmp_path).invoke(initial_state(["RELIANCE"], investment_amount=50000))
+    assert final["request_type"] == "single_stock" and "portfolio_optimization" not in final["agent_status"]
+    assert final["portfolio_analysis"] == {} and final["final_report"]["portfolio"] is None
+    assert any("at least 2 valid stocks" in e["message"] for e in final["errors"])
 
 
 @pytest.mark.integration

@@ -28,8 +28,15 @@ def test_market_prompt_contains_facts_and_fallback_uses_them():
     assert "bullish" in text and "56.2" in text and "without the AI model" in text
 
 
-@pytest.mark.parametrize("fn", [
-                                p.portfolio_explanation_prompt, p.report_summary_prompt])
-def test_later_phase_prompts_are_marked_placeholders(fn):
+def test_later_phase_prompts_are_marked_placeholders():
     with pytest.raises(NotImplementedError):
-        fn()
+        p.report_summary_prompt()
+
+
+def test_portfolio_prompt_and_fallback():
+    facts = {"method": "minimum volatility", "weights_pct": {"TCS.NS": 60.0, "INFY.NS": 40.0},
+             "split_reading": "the largest share of the money goes to TCS.NS (60.0%)"}
+    spec = p.portfolio_explanation_prompt(facts)
+    assert '"TCS.NS":60.0' in spec.user and "Never tell the reader to buy or sell" in spec.system
+    text = p.portfolio_explanation_fallback(facts)().explanation
+    assert text.startswith("The largest share") and "do not predict" in text and "without the AI model" in text

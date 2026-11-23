@@ -363,7 +363,7 @@ Rule: a metric that cannot be computed is `{"value": null, "reason": "..."}`. It
 ```json
 {
   "method": "max_sharpe | min_volatility | efficient_risk | equal_weight | inverse_volatility | hrp",
-  "assumptions": {"expected_returns": "mean historical daily returns, annualized (252)", "covariance": "Ledoit-Wolf shrinkage", "lookback": "2y", "transaction_cost_bps": 10, "rebalancing": "quarterly"},
+  "assumptions": {"expected_returns": "mean historical daily returns, annualized (252)", "covariance": "Ledoit-Wolf shrinkage", "lookback_days": 252, "transaction_cost_bps": 10, "rebalancing": "quarterly"},
   "allocations": [{"symbol": "TCS.NS", "weight_pct": 30.0, "amount_inr": 30000, "shares": 7, "last_price": 4000.0}],
   "leftover_cash_inr": 1250,
   "expected_metrics": {"annual_return_pct": 12.1, "annual_volatility_pct": 15.3, "sharpe_ratio": 0.37},
@@ -373,6 +373,8 @@ Rule: a metric that cannot be computed is `{"value": null, "reason": "..."}`. It
 ```
 
 **Risk preference → default method:** conservative → `min_volatility`, max weight 25%; moderate → `max_sharpe`, max weight 35%; aggressive → `efficient_risk` at a higher target volatility, max weight 50%. The user can override the method explicitly.
+
+**Fallbacks (Phase 9, always reported in `fallback_reason` and the warnings):** max Sharpe without a risk-free rate, or when no stock's past average return beat it, → min volatility; a target volatility below the minimum achievable → min volatility; any other solver failure → equal weights. A *default* cap that cannot add up to 100% with few stocks (e.g. 25% with 2 stocks) is raised to 1/n with a note; an *explicit* cap that cannot work is an error (422), because a user's constraint is never changed silently.
 
 ---
 
@@ -559,6 +561,8 @@ NEURALVEST/                         # repository root
 11. *(Phase 6)* Extra endpoint `POST /api/analysis/{request_id}/rerun` (the Re-run button for interrupted/failed analyses, database_design §6.2). The Market Research Agent computes indicators on a **2-year lookback** (SMA200 and the recursive EMA/RSI/MACD need warm-up), while returns, the benchmark comparison and volume use the 1-year analysis window. The chart endpoint uses the same lookback, so dashboard tiles and charts always show identical values. Frontend: `components/ui.jsx` (shared UI), `components/charts.jsx`, `utils/format.js`.
 
 12. *(Phase 8)* The Risk Assessment Agent reads prices from the workflow state and NIFTY 50 from the file cache filled by Agent 1 (no second download). `risk_analysis` in the state is `{per_symbol, portfolio}`; the portfolio-level result is saved with request scope (`scope_key="__request__"`). The `risk_reports` projection is written only when the risk-free rate is configured (it is a required field, D4). `POST /api/risk/analyze` computes metrics on demand without the LLM and stores nothing.
+
+13. *(Phase 9)* **Estimation window = the last 252 trading days**, for today's allocation AND at every backtest rebalance date (the earlier draft said "lookback 2y"). With the 2 years of prices already in the workflow state this leaves about one year for an out-of-sample backtest, and the backtest tests exactly the rule that produced today's weights. **HRP is implemented in `analysis/optimization.py`** (≈30 lines, tested): PyPortfolioOpt 1.6's `HRPOpt` reads a private SciPy attribute that SciPy 1.18 removed. PyPortfolioOpt is still used for the expected returns, Ledoit-Wolf covariance and the efficient-frontier solvers (cvxpy); discrete allocation is a small documented greedy rule. The Output Validation node stays in Phase 10 (task 10.1.5): in Phase 9 the Portfolio node itself leaves out stocks whose risk could not be measured. `POST /api/portfolio/optimize` runs without the LLM (template explanation) and, when MongoDB is configured, stores a job record, the agent result and the `portfolios` projection; `POST /api/portfolio/backtest` stores nothing and offers 2y or 5y of history.
 
 No other deviations. Helper modules such as `services/analysis_runner.py` sit inside folders the specification already defines.
 

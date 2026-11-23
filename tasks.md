@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 9 in progress**; branch `phase-9-portfolio` |
-| Last completed task | Phase 8 approved and merged into `main` |
-| Next task | 9.1.1 expected-return estimate |
-| Open blockers | None |
+| Current phase | **Phase 9 complete: waiting for developer approval (Phase 9 gate)**; branch `phase-9-portfolio` |
+| Last completed task | 9.3.6 agent tests; live RELIANCE + TCS + INFY portfolio run |
+| Next task | After Phase 9 approval merge → `main`; Phase 10 only when you say |
+| Open blockers | Phase 9 approval |
 | Last updated | 2026-11-23 |
 
 ---
@@ -51,7 +51,7 @@
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[x]` approved 2026-11-23 | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[x]` approved 2026-11-23 | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
-| 9 | Agent 5: Portfolio Optimization & Backtesting | `[~]` in progress | Optimizer + backtester agent |
+| 9 | Agent 5: Portfolio Optimization & Backtesting | `[~]` awaiting approval | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[ ]` | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
@@ -467,35 +467,35 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Portfolio Optimization Agent + backtester.
 
 ### 9.1 Optimization (`analysis/optimization.py`)
-- [ ] 9.1.1 Expected-return estimate (for example mean historical, optionally EMA) with assumptions documented
-- [ ] 9.1.2 Covariance estimate (sample + Ledoit-Wolf shrinkage option)
-- [ ] 9.1.3 Mean-variance (efficient risk / efficient return)
-- [ ] 9.1.4 Minimum volatility
-- [ ] 9.1.5 Maximum Sharpe
-- [ ] 9.1.6 Equal weight
-- [ ] 9.1.7 Risk-based allocation (for example inverse volatility or HRP), where feasible
-- [ ] 9.1.8 Constraints: no shorting (default), min/max weight per stock, mapping from risk preference to method/parameters
-- [ ] 9.1.9 Convert weights into rupee amounts and whole-share quantities (discrete allocation) + leftover cash
-- [ ] 9.1.10 Unit tests (weights sum to 1, constraints respected, edge cases such as 2 stocks or highly correlated stocks)
+- [x] 9.1.1 Expected-return estimate (for example mean historical, optionally EMA) with assumptions documented (mean of daily returns x 252 (default) or EMA (span 126); last 252 trading days; assumptions recorded in every result)
+- [x] 9.1.2 Covariance estimate (sample + Ledoit-Wolf shrinkage option) (Ledoit-Wolf (default) or sample, annualised)
+- [x] 9.1.3 Mean-variance (efficient risk / efficient return) (`efficient_risk` / `efficient_return` (PyPortfolioOpt + cvxpy); aggressive default target documented)
+- [x] 9.1.4 Minimum volatility
+- [x] 9.1.5 Maximum Sharpe (falls back to min volatility, with the reason, when no stock beat the risk-free rate or the rate is missing)
+- [x] 9.1.6 Equal weight
+- [x] 9.1.7 Risk-based allocation (for example inverse volatility or HRP), where feasible (inverse volatility + HRP (own implementation: PyPortfolioOpt's HRPOpt is broken with SciPy 1.18))
+- [x] 9.1.8 Constraints: no shorting (default), min/max weight per stock, mapping from risk preference to method/parameters (default caps raised to 1/n with a note; explicit infeasible caps are an error)
+- [x] 9.1.9 Convert weights into rupee amounts and whole-share quantities (discrete allocation) + leftover cash (greedy whole-share rounding at the last close; weights stored to add up to exactly 100)
+- [x] 9.1.10 Unit tests (weights sum to 1, constraints respected, edge cases such as 2 stocks or highly correlated stocks) (`test_optimization.py`: 20 tests; live weights cross-checked with an independent SciPy SLSQP solve)
 
 ### 9.2 Backtesting
-- [ ] 9.2.1 Walk-forward or in-sample/out-of-sample backtest
-- [ ] 9.2.2 Rebalancing schedule (configurable, for example monthly or quarterly)
-- [ ] 9.2.3 Transaction-cost assumption (configurable basis points)
-- [ ] 9.2.4 Benchmark comparison vs. NIFTY 50 and equal weight
-- [ ] 9.2.5 Output: equity curve, CAGR, volatility, Sharpe, max drawdown
-- [ ] 9.2.6 Documented look-ahead-bias safeguards
+- [x] 9.2.1 Walk-forward or in-sample/out-of-sample backtest (walk-forward: 252-day estimation, about 1 year out-of-sample from the 2y state data (5y via the API))
+- [x] 9.2.2 Rebalancing schedule (configurable, for example monthly or quarterly) (monthly, quarterly (default) or none)
+- [x] 9.2.3 Transaction-cost assumption (configurable basis points) (10 bps default on traded value; first purchase counts)
+- [x] 9.2.4 Benchmark comparison vs. NIFTY 50 and equal weight
+- [x] 9.2.5 Output: equity curve, CAGR, volatility, Sharpe, max drawdown
+- [x] 9.2.6 Documented look-ahead-bias safeguards (weight function only receives history ending on the decision date; tested by changing future prices)
 
 ### 9.3 Agent 5 (`agents/portfolio_optimizer.py`)
-- [ ] 9.3.1 Input/output schemas (symbols, capital, risk preference, method, constraints)
-- [ ] 9.3.2 Waits for validated price data + risk output in the graph
-- [ ] 9.3.3 LLM explanation of the allocation + "illustrative, not investment advice" disclaimer
-- [ ] 9.3.4 Store in `portfolios` and `agent_results`
-- [ ] 9.3.5 Endpoints: `POST /api/portfolio/optimize`, `POST /api/portfolio/backtest`, `GET /api/portfolio/{portfolio_id}`
-- [ ] 9.3.6 Agent tests (infeasible constraints, one symbol, invalid capital)
+- [x] 9.3.1 Input/output schemas (symbols, capital, risk preference, method, constraints) (`PortfolioOptimizationInput` / `PortfolioOutput` in `schemas/agents.py`)
+- [x] 9.3.2 Waits for validated price data + risk output in the graph (conditional edge after Risk Assessment for portfolio requests (2+ stocks + amount); stocks whose risk failed are left out)
+- [x] 9.3.3 LLM explanation of the allocation + "illustrative, not investment advice" disclaimer (rule-based readings shown above the labelled AI text)
+- [x] 9.3.4 Store in `portfolios` and `agent_results` (agent_results (request scope) + write-once `portfolios` projection (runner, CLI script and optimize endpoint))
+- [x] 9.3.5 Endpoints: `POST /api/portfolio/optimize`, `POST /api/portfolio/backtest`, `GET /api/portfolio/{portfolio_id}` (plus the analysis start body accepts `investment_amount`, `risk_preference`, `portfolio`)
+- [x] 9.3.6 Agent tests (infeasible constraints, one symbol, invalid capital) (`test_agent_portfolio.py` (12) + runner/graph tests)
 
 ### 🛑 Phase 9 Approval Gate
-- [ ] Phase 9 completion summary posted in chat
+- [x] Phase 9 completion summary posted in chat
 - [ ] Developer approval received
 
 ---
@@ -716,6 +716,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
 | 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | Portfolio: 252-day estimation window for live weights and every backtest rebalance; max Sharpe falls back to min volatility when no stock beat the risk-free rate; explicit infeasible caps are errors, default caps are raised to 1/n; HRP implemented in-house (SciPy 1.18 incompatibility) | Backtest tests the real rule; honest, explicit fallbacks |
 | 2026-11-23 | Risk: simple daily returns of adjusted close, 252-day annualisation, sample std, beta on common dates, Sharpe on arithmetic annualised return, equal weights until Phase 9; documented thresholds | Standard, reproducible conventions |
 | 2026-11-23 | Fundamentals: trailing-annual ratios from Yahoo annual statements; ROE/ROA on average equity/assets; simple documented thresholds; banks: current ratio/operating margin not applicable, debt-to-equity not assessed | Free data source; transparent rules a beginner can follow |
 | 2026-11-23 | LLM output guard extended: text with prompt markup or under 20 characters is rejected | Live run returned a digest that was just "<article>" |
@@ -760,6 +761,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 9 completed on `phase-9-portfolio`: optimisation + walk-forward backtest modules, Portfolio Optimization Agent, graph branch, runner/projection, 3 portfolio endpoints, dashboard Portfolio card, 326 tests, live 3-stock run cross-checked with SciPy. Awaiting approval. |
 | 2026-11-23 | Phase 8 approved (risk-free rate 5.8602%, RBI 2026-11-18) and merged into `main`. Phase 9 started on `phase-9-portfolio`. |
 | 2026-11-23 | Phase 8 completed on `phase-8-risk`: risk metrics, Risk Assessment Agent, graph/runner/API, `POST /api/risk/analyze`, dashboard Risk card, 284 tests, live RELIANCE + TCS. Awaiting approval and the risk-free rate. |
 | 2026-11-23 | Phase 7 approved and merged into `main`. Work paused before Phase 8 at your request. |
