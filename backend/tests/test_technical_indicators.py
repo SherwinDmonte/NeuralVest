@@ -130,3 +130,15 @@ def test_corporate_action_detection(frame):
     split = frame.copy()
     split.loc[split.index[100:], "adjusted_close"] = split.loc[split.index[100:], "close"] / 2
     assert "split" in ti.corporate_action_warning(split)
+    assert split.index[100].strftime("%Y-%m-%d") in ti.corporate_action_warning(split)
+
+
+def test_regular_dividends_are_not_flagged(frame):
+    # ~3% dividend twice a year over the period: the ratio drifts ~6% in total, but never
+    # jumps more than 3% in a day (the INFY case seen in the Phase 6 dashboard).
+    dividends = frame.copy()
+    factor = pd.Series(1.0, index=frame.index)
+    factor.iloc[:60] *= 1.03
+    factor.iloc[:180] *= 1.03
+    dividends["adjusted_close"] = frame["close"] / factor
+    assert ti.corporate_action_warning(dividends) is None

@@ -167,10 +167,16 @@ def benchmark_comparison(stock: pd.DataFrame, benchmark: pd.DataFrame, benchmark
 
 
 def corporate_action_warning(frame: pd.DataFrame, tolerance: float = 0.05) -> str | None:
-    """Unadjusted indicators can jump around splits/bonus issues. Detect them from the
-    close / adjusted_close ratio changing inside the window."""
+    """Unadjusted indicators jump around splits/bonus issues. Such an event changes the
+    close / adjusted_close ratio by a large amount on ONE day. Regular dividends only make
+    the ratio drift slowly (a few % per year), which does not distort the indicators."""
     ratio = (frame["close"] / frame["adjusted_close"]).replace([np.inf, -np.inf], np.nan).dropna()
-    if len(ratio) > 1 and (ratio.max() / ratio.min() - 1) > tolerance:
-        return ("A split, bonus issue or large dividend occurred in this period; indicators based on the "
-                "unadjusted close may show an artificial jump.")
+    if len(ratio) < 2:
+        return None
+    day_change = (ratio / ratio.shift(1) - 1).abs()
+    jumps = day_change[day_change > tolerance]
+    if not jumps.empty:
+        dates = ", ".join(d.strftime("%Y-%m-%d") for d in jumps.index[:3])
+        return (f"A split or bonus issue appears to have occurred ({dates}); indicators based on the "
+                "unadjusted close may show an artificial jump around that date.")
     return None

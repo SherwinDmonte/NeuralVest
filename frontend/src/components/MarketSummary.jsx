@@ -26,7 +26,7 @@ export function MarketTiles({ mr }) {
         sub={`As of ${fmtDate(mr.last_close_date)}${mr.last_bar_may_be_incomplete ? ' · market open: may change until close' : ''}`}
       />
       <Tile label="1-year return" value={pct(mr.period_return_pct)}
-            sub={bench?.available ? `NIFTY 50: ${pct(bench.benchmark_return_pct)} · difference ${pct(bench.relative_pct)} pts` : 'Benchmark unavailable'} />
+            sub={bench?.available ? `NIFTY 50: ${pct(bench.benchmark_return_pct)} · difference ${bench.relative_pct > 0 ? '+' : ''}${num(bench.relative_pct)} pts` : 'Benchmark unavailable'} />
       <Tile label="Trend (moving averages)" value={<ToneBadge value={mr.trend?.classification} />}
             sub={mr.trend?.rules_triggered?.[0]} />
       <Tile label="RSI (14)" value={num(ind.rsi_14)} sub={mr.rsi_zone ? `Zone: ${mr.rsi_zone}` : 'Not enough data'} />
@@ -34,22 +34,33 @@ export function MarketTiles({ mr }) {
   )
 }
 
+const READING_ORDER = ['rsi_reading', 'macd_reading', 'long_term_reading', 'benchmark_reading']
+
 export function Explanation({ mr }) {
   if (!mr?.explanation) return null
   const fromLlm = mr.llm?.source === 'llm'
+  const readings = READING_ORDER.map((k) => mr.readings?.[k]).filter(Boolean)
   return (
     <Card title="What the indicators say" subtitle={mr.company_name ? `${mr.company_name} (${mr.symbol})` : mr.symbol}>
-      <p className="text-sm leading-relaxed text-ink-secondary">{mr.explanation}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-        <span className="inline-flex items-center gap-1">
-          <Bot className="h-3.5 w-3.5" aria-hidden="true" />
-          {fromLlm ? `Written by local AI (${mr.llm.model})` : 'Generated without the AI model'}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
-          Numbers computed in Python and checked in this text
-        </span>
+      {readings.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
+            <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
+            Key readings (computed by NeuralVest rules)
+          </div>
+          <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink">
+            {readings.map((r) => <li key={r}>{r.charAt(0).toUpperCase() + r.slice(1)}.</li>)}
+          </ul>
+        </div>
+      )}
+      <div className="mb-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
+        <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+        {fromLlm ? `AI explanation (local ${mr.llm.model}; may contain wording errors)` : 'Explanation (generated without the AI model)'}
       </div>
+      <p className="text-sm leading-relaxed text-ink-secondary">{mr.explanation}</p>
+      <p className="mt-2 text-xs text-ink-muted">
+        Numbers in this text are checked against NeuralVest's calculations; if the wording disagrees with the key readings, the key readings are correct.
+      </p>
       {mr.warnings?.length > 0 && (
         <ul className="mt-3 list-disc space-y-0.5 pl-5 text-xs text-ink-muted">
           {mr.warnings.map((w) => <li key={w}>{w}</li>)}

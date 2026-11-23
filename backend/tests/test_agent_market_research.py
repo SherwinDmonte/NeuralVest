@@ -40,6 +40,18 @@ def test_facts_sent_to_llm_contain_only_computed_values(tmp_path, monkeypatch):
     assert facts["trend"] == out.trend["classification"]
 
 
+def test_python_readings_match_the_numbers(tmp_path, monkeypatch):
+    patch_market_data(monkeypatch, mr)
+    out, _ = run(tmp_path)
+    facts = mr.build_facts(out)
+    hist = out.indicators["macd"]["histogram"]
+    assert ("above its signal" in facts["macd_reading"]) == (hist > 0)
+    assert ("outperformed" in facts["benchmark_reading"]) == out.benchmark_comparison["outperformed"]
+    assert ("above its 200-day" in facts["long_term_reading"]) == (out.last_close > out.indicators["sma_200"])
+    assert out.rsi_zone in facts["rsi_reading"]
+    assert out.readings == mr.interpret(out)  # the same readings are stored for the dashboard
+
+
 def test_without_llm_uses_template(tmp_path, monkeypatch):
     patch_market_data(monkeypatch, mr)
     out, _ = run(tmp_path, llm=None)

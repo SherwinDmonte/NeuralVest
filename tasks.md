@@ -376,7 +376,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 6.2.5 RSI and MACD panels
 - [x] 6.2.6 News list with sentiment badges, summaries and source links (original headline linked to the source, above the AI summary)
 - [x] 6.2.7 Basic agent status display
-- [x] 6.2.8 Loading, empty and error states (+ table view for every chart)
+- [x] 6.2.8 Loading, empty and error states (+ table view for every chart; review fixes after your screenshots)
 
 ### 6.3 Milestone Verification Checklist
 - [x] 6.3.1 One year of RELIANCE.NS data fetched (495 validated rows: 2-year lookback, 1-year analysis window)
@@ -716,6 +716,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
 | 2026-11-23 | Indicators computed on a 2-year lookback; return/benchmark/volume on the 1-year window | SMA200 + EMA/RSI/MACD warm-up; tiles and charts must show identical values |
+| 2026-11-23 | UI review fixes (your screenshots): month-start axis ticks, fitted price axis, "pts" label, split detection by one-day jump (INFY dividends were falsely flagged), Python **key readings** shown above the AI explanation, no LLM digest for a single article | The 0.6B model inverted a reading even when given the correct one; the rule-based readings are the reliable source |
 | 2026-11-23 | GDELT is opt-in in the dashboard (checkbox) | Adds ~35 s per analysis and is often rate-limited; RSS alone sometimes finds nothing |
 | 2026-11-23 | Technical indicators use the unadjusted close; returns/benchmark use the adjusted close; splits flagged | Matches what price charts show while keeping returns correct |
 | 2026-11-23 | News relevance: Python caps the model's label ('high' only if the company is in the headline) | The 0.6B model over-rated passing mentions (Phase 4 test) |

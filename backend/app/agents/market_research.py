@@ -38,11 +38,35 @@ def analysis_window(frame, period: str):
     return frame[frame.index > cutoff]
 
 
+def interpret(out: MarketResearchOutput) -> dict[str, str]:
+    """Plain-language readings computed by Python. A small model misreads raw numbers
+    (e.g. "MACD signal is positive" when MACD is below its signal), so it is given the
+    correct reading and only has to put it into words."""
+    ind, bench, readings = out.indicators, out.benchmark_comparison or {}, {}
+    macd = ind.get("macd") or {}
+    if macd.get("histogram") is not None:
+        readings["macd_reading"] = ("MACD is above its signal line (momentum strengthening)"
+                                    if macd["histogram"] > 0 else
+                                    "MACD is below its signal line (momentum weakening)")
+    if ind.get("sma_200") is not None and out.last_close is not None:
+        readings["long_term_reading"] = ("the price is above its 200-day average" if out.last_close > ind["sma_200"]
+                                         else "the price is below its 200-day average")
+    if bench.get("available") and bench.get("outperformed") is not None:
+        readings["benchmark_reading"] = ("the stock outperformed the NIFTY 50 over the period" if bench["outperformed"]
+                                         else "the stock underperformed the NIFTY 50 over the period")
+    if out.rsi_zone:
+        readings["rsi_reading"] = {"overbought": "RSI is in the overbought zone (above 70)",
+                                   "oversold": "RSI is in the oversold zone (below 30)",
+                                   "neutral": "RSI is in the neutral zone (between 30 and 70)"}[out.rsi_zone]
+    return readings
+
+
 def build_facts(out: MarketResearchOutput) -> dict:
     """The ONLY information the LLM receives: values computed above, nothing else."""
     ind = out.indicators
     bench = out.benchmark_comparison or {}
     return {
+        **interpret(out),
         "symbol": out.symbol, "company": out.company_name, "as_of": out.last_close_date,
         "last_close": out.last_close, "period_return_pct": out.period_return_pct,
         "trend": out.trend.get("classification"), "trend_rule": (out.trend.get("rules_triggered") or [None])[0],
@@ -135,7 +159,8 @@ def run_market_research(
     except DataError as exc:
         out.warnings.append(f"Benchmark comparison unavailable: {exc}")
 
-    # 6. Plain-language explanation (LLM explains facts; template if the LLM is unavailable)
+    # 6. Rule-based readings (always shown) + plain-language explanation by the LLM
+    out.readings = interpret(out)
     facts = build_facts(out)
     if llm is not None:
         result = llm.generate_structured(p.market_explanation_prompt(facts), p.MarketExplanationOutput,

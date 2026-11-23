@@ -34,6 +34,23 @@ const C = {
 }
 
 const shortDate = (d) => new Date(d).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+
+// One tick on the first trading day of each month (thinned to at most `max`), so a month
+// never appears twice on the axis.
+function monthTicks(data, max) {
+  const firsts = []
+  let prev = null
+  for (const row of data) {
+    const month = row.date.slice(0, 7)
+    if (month !== prev) firsts.push(row.date)
+    prev = month
+  }
+  const step = Math.ceil(firsts.length / max)
+  return firsts.filter((_, i) => i % step === 0)
+}
+
+// Price range fitted to the data with ~3% margin (no empty band under the line).
+const priceDomain = [(min) => Math.floor(min * 0.97), (max) => Math.ceil(max * 1.03)]
 const longDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
 const axisProps = {
@@ -172,8 +189,8 @@ export function PriceChart({ data }) {
     <ChartCard title="Price and moving averages" subtitle="Daily close (unadjusted) with simple moving averages" data={data} series={series} height={300}>
       <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={C.grid} vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortDate} minTickGap={40} {...axisProps} />
-        <YAxis domain={['auto', 'auto']} width={56} tickFormatter={(v) => num(v, 0)} {...axisProps} />
+        <XAxis dataKey="date" ticks={monthTicks(data, 12)} interval={0} tickFormatter={shortDate} {...axisProps} />
+        <YAxis domain={priceDomain} width={56} tickFormatter={(v) => num(v, 0)} {...axisProps} />
         <Tooltip cursor={cursor} content={<ChartTooltip series={series} />} />
         {series.map((s, i) => <Line key={s.key} {...lineProps(s.key, s.color, i === 0 ? 2 : 1.5)} />)}
       </LineChart>
@@ -187,7 +204,7 @@ export function RsiChart({ data }) {
     <ChartCard title="RSI (14)" subtitle="Above 70 is often read as overbought, below 30 as oversold" data={data} series={series} height={180}>
       <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={C.grid} vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortDate} minTickGap={40} {...axisProps} />
+        <XAxis dataKey="date" ticks={monthTicks(data, 6)} interval={0} tickFormatter={shortDate} {...axisProps} />
         <YAxis domain={[0, 100]} ticks={[0, 30, 50, 70, 100]} width={56} {...axisProps} />
         <ReferenceLine y={70} stroke={C.muted} strokeWidth={1} label={{ value: '70', position: 'insideTopRight', fill: C.muted, fontSize: 10 }} />
         <ReferenceLine y={30} stroke={C.muted} strokeWidth={1} label={{ value: '30', position: 'insideBottomRight', fill: C.muted, fontSize: 10 }} />
@@ -208,7 +225,7 @@ export function MacdChart({ data }) {
     <ChartCard title="MACD (12, 26, 9)" subtitle="Histogram above zero: MACD above its signal line" data={data} series={series} height={200}>
       <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={C.grid} vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortDate} minTickGap={40} {...axisProps} />
+        <XAxis dataKey="date" ticks={monthTicks(data, 6)} interval={0} tickFormatter={shortDate} {...axisProps} />
         <YAxis width={56} tickFormatter={(v) => num(v, 0)} {...axisProps} />
         <ReferenceLine y={0} stroke={C.axis} />
         <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={<ChartTooltip series={series} />} />
