@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 3 complete: waiting for developer approval (Phase 3 gate)**; branch `phase-3-data` |
-| Last completed task | 3.6.3 live run for 5 symbols; 30 symbols seeded |
-| Next task | After approval: merge `phase-3-data` → `main`; Phase 4 → 4.1.1 on `phase-4-llm` |
-| Open blockers | Phase 3 approval |
+| Current phase | **Phase 4 in progress** (branch `phase-4-llm`) |
+| Last completed task | Phase 3 approved and merged into `main` |
+| Next task | 4.1.1 shared Ollama client |
+| Open blockers | None |
 | Last updated | 2026-11-23 |
 
 ---
@@ -45,8 +45,8 @@
 | 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
 | 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
-| 3 | Financial Data Collection & Validation | `[~]` awaiting approval | Reliable market, news and fundamentals data modules |
-| 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
+| 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
+| 4 | Local LLM Integration (Ollama + Qwen3) | `[~]` | Shared LLM client with prompts, JSON validation, fallback |
 | 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
@@ -186,7 +186,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 2.1 MongoDB Atlas Setup `[!] manual`
 - [x] 2.1.1 Create a MongoDB Atlas account and an M0 free cluster: **existing free cluster `cluster0` reused** (shared with the `inboxflow` project)
-- [!] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Deferred:** Phase 2 approved with this open; recommended to switch to a dedicated `neuralvest_app` user (`readWrite` + `dbAdmin` on the two NeuralVest databases)
+- [x] 2.1.2 Create a database user with a strong password and least-privilege `readWrite` on `neuralvest_db` + `neuralvest_db_test` only: **currently the existing `inboxflow` user is used.** It has admin-level rights (`collMod` succeeded). **Accepted deviation (your decision, 2026-11-23):** keep the existing Atlas user; no `neuralvest_app` user at this stage. Credentials stay only in the git-ignored `backend/.env`
 - [x] 2.1.3 Configure Network Access (your current IP): connection verified
 - [x] 2.1.4 Copy the connection URI into `backend/.env` (never commit it): done (password added by you); `.env` git-ignored
 
@@ -268,7 +268,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 3 Approval Gate
 - [x] Phase 3 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -682,7 +682,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | Every analysis run | Close heavy background apps so peak RAM stays near the 6.5 GB target | ongoing |
 | Phase 1 | Create the GitHub repository and authenticate Git (HTTPS token or SSH) | `[x]` repo created; authentication on first push |
 | Phase 2 | Create the MongoDB Atlas M0 cluster, database user and IP allowlist; put the URI in `.env` | `[ ]` |
-| Phase 2 | (Recommended) Create a dedicated `neuralvest_app` Atlas user and update `.env` | `[!]` deferred |
+| Phase 2 | Dedicated `neuralvest_app` Atlas user | `[x]` not needed: you chose to keep the existing user |
 | Phase 3 | (Optional) Download annual-report PDFs manually if automated NSE/BSE access is not permitted | `[ ]` |
 | Phase 11 | Generate a local JWT secret and put it in `.env` | `[ ]` |
 | Phase 14 | Choose the repository license; review screenshots | `[ ]` |
@@ -714,6 +714,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | Keep the existing Atlas database user (no dedicated `neuralvest_app` user) | Your decision; it has the permissions the app needs (incl. `collMod`); credentials only in local `.env` |
 | 2026-11-23 | Price rows with missing values are removed, never forward-filled | Filled prices would look like real data |
 | 2026-11-23 | Test fixtures are synthetic; real Yahoo data is not committed | Yahoo terms restrict redistribution |
 | 2026-11-23 | GDELT is a best-effort source; RSS is primary | GDELT rate-limits frequently and is slow (~25 s) |

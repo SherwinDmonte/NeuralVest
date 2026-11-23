@@ -20,6 +20,7 @@ from app.data.errors import DataError  # noqa: E402
 from app.data.financial_data import get_financial_statements  # noqa: E402
 from app.data.news_data import collect_news  # noqa: E402
 from app.data.stock_data import get_benchmark_history, get_company_profile, get_price_history, store_price_history  # noqa: E402
+from app.data.symbols import normalize_symbol  # noqa: E402
 from app.database.database import close_client, get_database, initialize_database  # noqa: E402
 from app.utils.timing import stopwatch  # noqa: E402
 
@@ -45,9 +46,10 @@ def main() -> int:
         if db is not None:
             store_price_history(db, bench)
 
-        for symbol in args.symbols:
-            print(f"\n=== {symbol} ===")
+        for raw_symbol in args.symbols:
             try:
+                symbol = normalize_symbol(raw_symbol)
+                print(f"\n=== {symbol} ===")
                 with stopwatch() as t:
                     profile = get_company_profile(symbol, settings=settings)
                     prices = get_price_history(symbol, settings=settings)
