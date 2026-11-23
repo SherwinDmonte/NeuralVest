@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 4 in progress** (branch `phase-4-llm`) |
-| Last completed task | Phase 3 approved and merged into `main` |
-| Next task | 4.1.1 shared Ollama client |
+| Current phase | **Phase 5 in progress** (branch `phase-5-agents`) |
+| Last completed task | Phase 4 approved; adaptive model setup applied |
+| Next task | 5.1.1 technical indicators |
 | Open blockers | None |
 | Last updated | 2026-11-23 |
 
@@ -46,8 +46,8 @@
 | 1 | Development Environment & Git/GitHub Setup | `[x]` approved 2026-11-23 | Working toolchain, Ollama + Qwen3, repo on GitHub |
 | 2 | Backend Foundation & MongoDB Atlas | `[x]` approved 2026-11-23 | FastAPI app connected to Atlas with indexed collections |
 | 3 | Financial Data Collection & Validation | `[x]` approved 2026-11-23 | Reliable market, news and fundamentals data modules |
-| 4 | Local LLM Integration (Ollama + Qwen3) | `[~]` | Shared LLM client with prompts, JSON validation, fallback |
-| 5 | MVP Agents: Market Research + Financial News | `[ ]` | Two working agents + minimal LangGraph graph |
+| 4 | Local LLM Integration (Ollama + Qwen3) | `[x]` approved 2026-11-23 | Shared LLM client with prompts, JSON validation, fallback |
+| 5 | MVP Agents: Market Research + Financial News | `[~]` | Two working agents + minimal LangGraph graph |
 | 6 | MVP Dashboard & First Milestone (RELIANCE.NS) | `[ ]` | End-to-end RELIANCE.NS analysis shown in React |
 | 7 | Agent 3: Stock Analysis (Fundamentals) | `[ ]` | Fundamental analysis agent |
 | 8 | Agent 4: Risk Assessment | `[ ]` | Risk metrics agent |
@@ -278,32 +278,32 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** `llm/` package with tests.
 
 ### 4.1 Ollama Client (`llm/ollama_client.py`)
-- [ ] 4.1.1 Single shared client (one model loaded at a time) using the Ollama REST API
-- [ ] 4.1.2 Configurable model (`qwen3:1.7b` primary → `qwen3:0.6b` fallback)
-- [ ] 4.1.3 Small context window (`num_ctx`), low temperature, `keep_alive` tuning
-- [ ] 4.1.4 Handle Qwen3 "thinking" mode (disable or strip it for structured output)
-- [ ] 4.1.5 Timeouts, retry once, then fall back to the smaller model, then fall back to a deterministic (non-LLM) template
-- [ ] 4.1.6 Request serialization (lock / queue) so inference never runs concurrently
-- [ ] 4.1.7 Free-RAM check before each call (`LLM_MIN_FREE_RAM_MB`); switch to the smaller model below the threshold; unload the model (`keep_alive: 0`) after each workflow
+- [x] 4.1.1 Single shared client (one model loaded at a time) using the Ollama REST API (`app/llm/ollama_client.py`, `get_llm_client()`; `/api/chat` over httpx)
+- [x] 4.1.2 Configurable model (`qwen3:1.7b` primary → `qwen3:0.6b` fallback) (default `qwen3:0.6b`; optional fallback model; empty fallback means template)
+- [x] 4.1.3 Small context window (`num_ctx`), low temperature, `keep_alive` tuning (`num_ctx` 2048, temperature 0.2, `keep_alive` 5m, `num_predict` per prompt)
+- [x] 4.1.4 Handle Qwen3 "thinking" mode (disable or strip it for structured output) (`think: false` + `<think>` blocks stripped defensively)
+- [x] 4.1.5 Timeouts, retry once, then fall back to the smaller model, then fall back to a deterministic (non-LLM) template (per model: 1 retry with repair hint; missing model / Ollama down: not retried; then deterministic template, so a result is always returned)
+- [x] 4.1.6 Request serialization (lock / queue) so inference never runs concurrently (process-wide lock; test proves peak concurrency = 1)
+- [x] 4.1.7 Free-RAM check before each call (`LLM_MIN_FREE_RAM_MB`); switch to the smaller model below the threshold; unload the model (`keep_alive: 0`) after each workflow (`psutil` free-RAM check selects the fallback model; `unload()` sends `keep_alive: 0`)
 
 ### 4.2 Structured Output
-- [ ] 4.2.1 JSON-mode / format-schema requests
-- [ ] 4.2.2 Pydantic validation of LLM output; repair or retry on invalid JSON
-- [ ] 4.2.3 Guard: check that any numbers in LLM text match the computed inputs (numbers are injected, never generated)
+- [x] 4.2.1 JSON-mode / format-schema requests (Ollama `format` = Pydantic JSON schema)
+- [x] 4.2.2 Pydantic validation of LLM output; repair or retry on invalid JSON (schema validation, JSON-in-prose recovery, truncation detected, repair retry)
+- [x] 4.2.3 Guard: check that any numbers in LLM text match the computed inputs (numbers are injected, never generated) (`app/llm/guards.py`: numbers in free text must appear in the prompt, up to rounding; otherwise rejected)
 
 ### 4.3 Prompt Templates (`llm/prompts.py`)
-- [ ] 4.3.1 News summarization + sentiment prompt
-- [ ] 4.3.2 Market research explanation prompt
-- [ ] 4.3.3 Prompt-injection defense: retrieved text wrapped as data, with explicit instructions to ignore any instructions inside it
-- [ ] 4.3.4 (Placeholders for prompts used by later agents; marked as such)
+- [x] 4.3.1 News summarization + sentiment prompt (one article per call; summary, sentiment, category, relevance)
+- [x] 4.3.2 Market research explanation prompt (facts JSON from Python; template fallback built from the same facts)
+- [x] 4.3.3 Prompt-injection defense: retrieved text wrapped as data, with explicit instructions to ignore any instructions inside it (`<article>` wrapper, angle brackets and control characters removed, explicit rule in the system prompt; tested)
+- [x] 4.3.4 (Placeholders for prompts used by later agents; marked as such) (Phases 7–10 prompts raise `NotImplementedError`, clearly marked)
 
 ### 4.4 Tests & Verification
-- [ ] 4.4.1 Unit tests with a mocked LLM (valid JSON, invalid JSON, timeout, Ollama down)
-- [ ] 4.4.2 Live test: summarize 3 real headlines; record latency and RAM use
+- [x] 4.4.1 Unit tests with a mocked LLM (valid JSON, invalid JSON, timeout, Ollama down) (31 new tests with a mock Ollama server; **164 tests pass** in total)
+- [x] 4.4.2 Live test: summarize 3 real headlines; record latency and RAM use: 3 real RSS headlines. 0.6B: 1.7–4.9 s, ~45 tok/s, ~0.7 GB; 1.7B: 3.7–9.7 s, ~20 tok/s, ~1.6 GB; 1.7B classified noticeably better (`scripts/llm_smoke_test.py`)
 
 ### 🛑 Phase 4 Approval Gate
-- [ ] Phase 4 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 4 completion summary posted in chat
+- [x] Developer approval received (2026-11-23)
 
 ---
 
@@ -714,6 +714,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | No automated NSE/BSE scraping; fundamentals from yfinance + manually downloaded PDFs | NSE Terms of Use prohibit automated data collection |
 | 2026-11-23 | Python 3.12.10 installed per-user (last 3.12 Windows installer); not on PATH | Keep D2 without disturbing existing 3.11/3.13 |
 | 2026-11-23 | Keep Node 22.19.0 instead of upgrading to 26 | Your decision; supported to April 2027 |
+| 2026-11-23 | **Adaptive LLM setup (option 3):** primary `qwen3:1.7b`, fallback `qwen3:0.6b`, `LLM_MIN_FREE_RAM_MB=1800`; replaces the 0.6B-only default from 1.4.5 | Your choice after the Phase 4 comparison: 1.7B quality when RAM allows |
+| 2026-11-23 | Every LLM call returns a result: model → retry → fallback model → deterministic template (sentiment `uncertain`, never guessed) | Agents must never fail or invent content because the LLM failed |
 | 2026-11-23 | Keep the existing Atlas database user (no dedicated `neuralvest_app` user) | Your decision; it has the permissions the app needs (incl. `collMod`); credentials only in local `.env` |
 | 2026-11-23 | Price rows with missing values are removed, never forward-filled | Filled prices would look like real data |
 | 2026-11-23 | Test fixtures are synthetic; real Yahoo data is not committed | Yahoo terms restrict redistribution |
@@ -748,6 +750,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 4 completed on `phase-4-llm`: shared Ollama client, guards, prompts, live 0.6B vs 1.7B comparison; 164 tests. Awaiting approval. |
 | 2026-11-23 | Phase 3 completed on `phase-3-data`: symbols, cache, validator, prices, news, financials, PDF text; 133 tests; 5-symbol live run; 30 symbols seeded. Awaiting approval. |
 | 2026-11-23 | Phase 2 completed on `phase-2-backend`: FastAPI core, database layer (models, validators, indexes, repository, integrity, retention), health + stock placeholder routes, 64 tests, scripts. Awaiting approval. |
 | 2026-11-23 | Phase 1 completed: measurements recorded, default model `qwen3:0.6b`, GitHub remote configured and `main` pushed. Awaiting approval. |
