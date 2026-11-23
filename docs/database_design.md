@@ -292,6 +292,7 @@ So typical academic use (up to ~1,000 mixed analyses) stays at roughly **90–13
 | `MARKET_DATA_MAX_YEARS` | `5` | Rows older than this are deleted per symbol by the clean-up routine. Any positive integer is allowed. |
 | `STORAGE_WARN_PCT` | `60` | The health check warns when `dataSize + indexSize` exceeds this % of 512 MB |
 | `STORAGE_BLOCK_PCT` | `85` | Above this %, new analyses are refused with a clear message (HTTP 507) until data is cleaned up. This prevents Atlas from hitting the hard limit mid-write. |
+| `STORAGE_RESERVED_MB` | `0` | *(Phase 2)* Space used by **other projects on a shared cluster**. NeuralVest measures only its own two databases, so this amount is added before computing the percentage. Enter the figure from the Atlas UI. |
 
 Clean-up of old reports is **manual and explicit** (a documented script that deletes a chosen user's old reports and their `agent_results` by `request_id`). Reports are never deleted automatically.
 
@@ -325,7 +326,7 @@ The validators enforce the **essentials** and deliberately stay simpler than the
 
 Cross-field rules (e.g. `low ≤ close ≤ high`, weights sum to 100) remain **Pydantic-only**, because `$jsonSchema` cannot express them cleanly. The integrity check covers them (§5.3).
 
-> Atlas free-tier compatibility of `collMod`/validators is **verified in Phase 2** (task 2.3.6). If any option is not permitted, the fallback is to rely on unique indexes + Pydantic + the integrity check, and to document this.
+> **Verified in Phase 2 (2026-11-23):** on the Atlas free cluster, creating collections with `$jsonSchema` validators (strict / error) works, and the integration tests confirm invalid raw writes are rejected with error 121 (`DocumentValidationFailure`). Creating a collection with a validator needs only `readWrite`. **Updating** an existing validator (`collMod`) needs `dbAdmin` on the database. Without it, startup reports `unchanged_no_permission` for that collection and keeps the existing validator, so data stays protected and only rule changes need manual action.
 
 ### 5.2 Other database-side protections
 
