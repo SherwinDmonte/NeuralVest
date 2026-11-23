@@ -632,6 +632,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 ### 13.3 Optimization
 - [ ] 13.3.1 Fix identified bottlenecks (caching, fewer LLM calls, smaller context)
 - [ ] 13.3.2 Edge-case hardening based on test findings
+- [ ] 13.3.4 Report key observations: reject an observation that attaches a fact to the wrong stock (found 2026-11-23: the 0.6B model wrote "RELIANCE.NS: the financial statements look solid overall", but "solid" was TCS.NS's rating; RELIANCE.NS was "mixed"), and require at least one observation per stock for 2-5 stocks; a rejected answer goes through the usual retry -> fallback model -> template path; add tests (deferred from the Phase 10 review at your request)
 - [ ] 13.3.3 Write the test report → `docs/testing_report.md`
 
 ### 🛑 Phase 13 Approval Gate
@@ -763,6 +764,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
 | 2026-11-23 | Phase 10 approved and merged into `main`. Paused before Phase 11. |
+| 2026-11-23 | Phase 10 review: key-observation stock mix-up recorded as task 13.3.4 at your request (no code change). |
 | 2026-11-23 | Phase 10 completed on `phase-10-orchestration`: supervisor (validation, routing, retries, output validation, contradiction guard), parallel mode, optional checkpoints, unified report with glossary and number tracing, report endpoint, dashboard report card, 360 tests, live 5-agent run. Awaiting approval. |
 | 2026-11-23 | Phase 9 approved and merged into `main`. Market-text contradiction check deferred to 10.1.5 at your request. Phase 10 started on `phase-10-orchestration`. |
 | 2026-11-23 | Phase 9 completed on `phase-9-portfolio`: optimisation + walk-forward backtest modules, Portfolio Optimization Agent, graph branch, runner/projection, 3 portfolio endpoints, dashboard Portfolio card, 326 tests, live 3-stock run cross-checked with SciPy. Awaiting approval. |
