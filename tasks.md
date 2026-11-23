@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 1 in progress** |
-| Last completed task | 1.4.4 No secrets tracked; local initial commit |
-| Next task | 1.1.6 memory measurement → 1.4.5 default model; 1.3.3/1.3.4 GitHub remote + push |
-| Open blockers | You: close heavy apps for the memory measurement; create the GitHub repository and share its URL |
+| Current phase | **Phase 1 complete: waiting for developer approval (Phase 1 gate)** |
+| Last completed task | 1.3.4 `main` pushed to GitHub and verified |
+| Next task | Phase 2 → 2.1.1 on branch `phase-2-backend` (only after explicit Phase 1 approval) |
+| Open blockers | Phase 1 approval |
 | Last updated | 2026-11-23 |
 
 ---
@@ -43,7 +43,7 @@
 | # | Phase | Status | Key Deliverable |
 |---|-------|--------|-----------------|
 | 0 | Architecture & Planning Documentation | `[x]` approved 2026-11-23 | Architecture, schema, limitations and setup docs |
-| 1 | Development Environment & Git/GitHub Setup | `[~]` | Working toolchain, Ollama + Qwen3, repo on GitHub |
+| 1 | Development Environment & Git/GitHub Setup | `[~]` awaiting approval | Working toolchain, Ollama + Qwen3, repo on GitHub |
 | 2 | Backend Foundation & MongoDB Atlas | `[ ]` | FastAPI app connected to Atlas with indexed collections |
 | 3 | Financial Data Collection & Validation | `[ ]` | Reliable market, news and fundamentals data modules |
 | 4 | Local LLM Integration (Ollama + Qwen3) | `[ ]` | Shared LLM client with prompts, JSON validation, fallback |
@@ -153,7 +153,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 1.3.1 `git init` and create `.gitignore` (`.env`, `.venv`, `node_modules`, `data/cache`, `__pycache__`, build outputs)
 - [x] 1.3.2 Create the initial `README.md` skeleton
 - [x] 1.3.3 Create the GitHub repository (public or private: your choice): https://github.com/SherwinDmonte/NeuralVest
-- [~] 1.3.4 Add the remote, make the initial commit and push: local initial commit done; remote + push wait for 1.3.3
+- [x] 1.3.4 Add the remote, make the initial commit and push: `origin` = GitHub; `main` pushed (verified local = remote `a3a70b2`)
 - [x] 1.3.5 Agree on a branching and commit convention: **approved** `main` + one `phase-N-<topic>` branch per phase, merged after approval; Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`)
 
 ### 1.4 Verification
@@ -174,7 +174,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
   - Good news: both models are **faster than estimated** (architecture §11 assumed 5–20 tokens/s).
 
 ### 🛑 Phase 1 Approval Gate
-- [ ] Phase 1 completion summary posted in chat
+- [x] Phase 1 completion summary posted in chat
 - [ ] Developer approval received
 
 ---
@@ -739,4 +739,5 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Revision 1: removed the codebase inspection step (empty folder); added the `docs/` folder rule (task 0.1.0, task 1.2.1 updated). No change to scope. |
 | 2026-11-23 | Plan approved. Phase 0 executed: created `docs/`, wrote `architecture.md`, `database_design.md`, `setup_guide.md`; all Phase 0 tasks marked complete pending gate approval. |
 | 2026-11-23 | Phase 0 Revision 2: applied developer review (source of truth, `scope_key`, job recovery, DB validators, storage estimate, memory target, D1–D4); added section 0.6 and the follow-up tasks in Phases 1, 2, 3, 4, 6, 8, 14. Phase 0 still awaiting approval. |
+| 2026-11-23 | Phase 1 completed: measurements recorded, default model `qwen3:0.6b`, GitHub remote configured and `main` pushed. Awaiting approval. |
 | 2026-11-23 | Phase 0 approved. Phase 1 started: Python 3.12.10, venv + backend packages, Vite/React/Tailwind frontend, Ollama settings + Qwen3 models, env templates, `.gitignore`/`.gitattributes`, README, measurement script, local git repo. |
