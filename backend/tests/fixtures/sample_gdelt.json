@@ -1,0 +1,8 @@
+{
+  "_comment": "SYNTHETIC GDELT DOC 2.0 ArtList fixture for tests; titles and URLs are invented.",
+  "articles": [
+    {"url": "https://business.example.in/ril-upgrade", "title": "RIL , SAIL among top upgrades as Asia - Pacific funds turn overweight", "seendate": "20261120T064500Z", "domain": "business.example.in", "language": "English", "sourcecountry": "India"},
+    {"url": "https://markets.example.in/reliance-industries-capex", "title": "Reliance Industries ' s capex plan explained", "seendate": "20261121T011500Z", "domain": "markets.example.in", "language": "English", "sourcecountry": "India"},
+    {"url": "ftp://bad.example.in/x", "title": "Invalid URL entry", "seendate": "20261121T011500Z", "domain": "bad.example.in"}
+  ]
+}

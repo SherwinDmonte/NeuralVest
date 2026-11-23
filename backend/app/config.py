@@ -54,6 +54,17 @@ class Settings(BaseSettings):
     # ----- Retention -----
     market_data_max_years: int = Field(default=5, ge=1, le=50)
 
+    # ----- Data collection (Phase 3) -----
+    data_cache_dir: Path = PROJECT_ROOT / "data" / "cache"
+    financial_reports_dir: Path = PROJECT_ROOT / "data" / "financial_reports"
+    price_cache_hours: float = Field(default=12, ge=0)
+    news_cache_minutes: float = Field(default=60, ge=0)
+    fundamentals_cache_days: float = Field(default=7, ge=0)
+    http_timeout_seconds: float = Field(default=20, gt=0, le=120)
+    # GDELT asks for at most one request every 5 seconds; responses can take ~25 s.
+    gdelt_min_interval_seconds: float = Field(default=6, ge=5)
+    gdelt_timeout_seconds: float = Field(default=60, gt=0, le=180)
+
     @model_validator(mode="after")
     def _check_thresholds(self) -> "Settings":
         if self.storage_warn_pct >= self.storage_block_pct:
