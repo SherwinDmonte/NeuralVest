@@ -69,7 +69,9 @@ export default function ProfilePicture() {
       discard()
       notify({ tone: 'good', title: 'Profile picture updated' })
     } catch (err) {
-      setError(errorMessage(err))
+      // A 404 without one of our error codes means the running API predates profile pictures.
+      const missingRoute = err?.response?.status === 404 && !err?.response?.data?.error?.code
+      setError(missingRoute ? 'The API server does not support profile pictures yet. Restart the backend and try again.' : errorMessage(err))
     } finally {
       setBusy(false)
     }
