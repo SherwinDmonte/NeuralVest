@@ -320,16 +320,5 @@ export function EmptyState({ icon: Icon = Info, title, children, action }) {
   )
 }
 
-export function Disclaimer({ className = '' }) {
-  return (
-    <p className={`caption-5 text-ink-muted ${className}`}>
-      NeuralVest is an educational project, not a SEBI registered adviser. Results describe the past, are
-      illustrative and are not investment advice or real time data. Prices come from Yahoo Finance via yfinance
-      and can be delayed. AI text comes from a small local model and can be wrong; every number is computed in
-      Python.
-    </p>
-  )
-}
-
 // First letter upper case (readings come from the backend in sentence fragments).
 export const sentence = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)

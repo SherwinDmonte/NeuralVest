@@ -625,8 +625,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 12B.1.4 Shared components restyled (buttons, cards, glass panels, dropdowns, modal, toasts, skeletons, status indicators)
 
 ### 12B.2 App shell
-- [x] 12B.2.1 Collapsible sidebar (tooltips when collapsed), mobile drawer, 9 navigation items, system and model status, settings, help, profile
-- [x] 12B.2.2 Top bar: page title, global stock search, data freshness, notifications (your own events only), theme switcher, profile menu
+- [x] 12B.2.1 Collapsible sidebar (tooltips when collapsed), mobile drawer, 9 navigation items, settings, help, profile (system and model status moved to Settings only, your request 2026-11-24)
+- [x] 12B.2.2 Top bar: page title, global stock search, notifications (your own events only), theme switcher, profile menu (data freshness badge removed at your request; dates stay on each card and chart). App footer with page, support and legal links
 - [x] 12B.2.3 Page transitions with reduced motion support
 
 ### 12B.3 Backend additions (no change to existing behaviour)

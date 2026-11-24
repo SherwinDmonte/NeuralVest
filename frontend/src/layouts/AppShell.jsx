@@ -1,5 +1,5 @@
 // Signed-in app shell (Phase 12B): collapsible sidebar (remembered), mobile drawer, top bar with
-// command palette, data freshness, notifications, theme and profile menus, page transitions.
+// command palette, notifications, theme and profile menus, page transitions, footer.
 import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
@@ -20,15 +20,13 @@ import { useAuth } from '../auth/AuthContext'
 import { useCurrentAnalysis } from '../analysis/AnalysisContext'
 import { useNotifications } from '../feedback/Notifications'
 import { useTheme } from '../theme/ThemeContext'
-import { Disclaimer, IconButton, PageSkeleton } from '../components/ui'
+import { IconButton, PageSkeleton } from '../components/ui'
 import { Dropdown, MenuItem, PageTransition } from '../components/motion'
 import { Logo, Mark } from '../components/Logo'
 import CommandPalette from './CommandPalette'
-import SystemStatus from './SystemStatus'
+import AppFooter from './AppFooter'
 import { NAV, SECONDARY, titleFor } from './nav'
-import { useApi } from '../hooks/useApi'
-import { getMarketIndices } from '../services/api'
-import { fmtDate, fmtDateTime } from '../utils/format'
+import { fmtDateTime } from '../utils/format'
 
 const SIDEBAR_KEY = 'nv.sidebar'
 const readCollapsed = () => {
@@ -74,25 +72,11 @@ function SidebarBody({ collapsed, onNavigate, running }) {
         </ul>
       </nav>
       <div className="space-y-2 pt-4">
-        <SystemStatus collapsed={collapsed} />
         <ul className="space-y-1">
           {SECONDARY.map((item) => <NavItem key={item.to} item={item} collapsed={collapsed} onNavigate={onNavigate} />)}
         </ul>
       </div>
     </>
-  )
-}
-
-function Freshness() {
-  const { data } = useApi(getMarketIndices, [], { key: 'indices', ttl: 10 * 60 * 1000 })
-  const date = data?.items?.[0]?.date
-  if (!date) return null
-  return (
-    <span className="mr-1 hidden items-center gap-2 rounded-xl border border-line bg-surface px-3 py-1 caption-4 text-ink-secondary xl:inline-flex"
-          title="End of day prices from Yahoo Finance. NeuralVest has no live market feed.">
-      <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
-      Data as of {fmtDate(date)} close
-    </span>
   )
 }
 
@@ -256,7 +240,6 @@ export default function AppShell() {
               <kbd className="hidden rounded-md border border-line bg-raised px-1.5 figure caption-5 text-ink-muted md:inline">Ctrl K</kbd>
             </button>
             <div className="flex items-center gap-1">
-              <Freshness />
               <Notifications />
               <ThemeMenu />
               <ProfileMenu user={user} onLogout={doLogout} />
@@ -270,9 +253,7 @@ export default function AppShell() {
             </PageTransition>
           </Suspense>
         </main>
-        <footer className="mx-auto w-full max-w-[1600px] px-4 pb-8 sm:px-6 lg:px-8">
-          <Disclaimer className="max-w-3xl" />
-        </footer>
+        <AppFooter />
       </div>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
