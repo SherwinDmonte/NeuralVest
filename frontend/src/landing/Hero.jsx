@@ -7,7 +7,7 @@ import { Button, Change, Skeleton } from '../components/ui'
 import { useApi } from '../hooks/useApi'
 import { getMarketIndices } from '../services/api'
 import { fmtDate, num, shortSymbol } from '../utils/format'
-import { CTA, FIRST, RUN_DATE, RUN_SECONDS, STORY, TEST_COUNT, TRACES, snapshot, traceById } from './content'
+import { CTA, FIRST, RUN_DATE, RUN_SECONDS, STORY, TRACES, snapshot, traceById } from './content'
 import { useCycle, useMountVisible, usePointerParallax } from './hooks'
 import { LineChart } from './MiniCharts'
 import NeuralBackdrop from './NeuralBackdrop'
@@ -163,7 +163,6 @@ export default function Hero() {
             <Button to="/register" size="lg">{CTA}<ArrowRight size={16} aria-hidden="true" /></Button>
             <a href="#explore" className="body-5 text-ink-secondary underline-offset-4 transition-colors duration-300 ease-nv hover:text-ink hover:underline">Explore a real report</a>
           </div>
-          <p className="mt-8 figure caption-5 text-ink-muted">Open source · {TEST_COUNT} automated tests · runs on an 8 GB laptop · free</p>
         </div>
 
         <div className="lp-enter relative [animation-delay:150ms] lg:h-[680px]">
