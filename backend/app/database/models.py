@@ -36,8 +36,10 @@ AGENT_RESULTS = "agent_results"
 RISK_REPORTS = "risk_reports"
 PORTFOLIOS = "portfolios"
 ANALYSIS_REPORTS = "analysis_reports"
+USER_AVATARS = "user_avatars"  # Phase 12B: profile pictures, one per user
 ALL_COLLECTIONS = (
     USERS, STOCKS, MARKET_DATA, FINANCIAL_NEWS, AGENT_RESULTS, RISK_REPORTS, PORTFOLIOS, ANALYSIS_REPORTS,
+    USER_AVATARS,
 )
 
 # ---------------------------------------------------------------- shared vocabularies
@@ -116,6 +118,8 @@ class UserDocument(MongoDocument):
     # Phase 12 (task 12.4.4, your decision): up to 20 symbols, newest first. Optional, so older
     # user documents stay valid and the database validator needs no change.
     watchlist: list[Symbol] = Field(default_factory=list, max_length=20)
+    # Phase 12B: set when a profile picture is stored in user_avatars (optional, like watchlist).
+    avatar_updated_at: UtcDatetime | None = None
     created_at: UtcDatetime = Field(default_factory=utc_now)
     updated_at: UtcDatetime = Field(default_factory=utc_now)
 

@@ -1,0 +1,487 @@
+{
+ "note": "Copied from a real stored analysis by backend/scripts/make_landing_snapshot.py. Do not edit by hand.",
+ "run": {
+  "symbols": [
+   "RELIANCE.NS",
+   "TCS.NS"
+  ],
+  "requested_at": "2026-11-23T13:12:36.998000+00:00",
+  "completed_at": "2026-11-23T13:13:48.902000+00:00",
+  "status": "partial",
+  "numbers_traced": 125,
+  "traced_ok": true,
+  "agent_seconds": {
+   "market_research": 26.46,
+   "financial_news": 17.36,
+   "stock_analysis": 6.91,
+   "risk_assessment": 6.78,
+   "portfolio_optimization": 6.47,
+   "report": 7.46
+  }
+ },
+ "risk_free_rate": {
+  "value_pct": 5.8602,
+  "as_of": "2026-11-18",
+  "source": "RBI Press Release 2026-2027/1517, 91-day T-bill cut-off yield (YTM)"
+ },
+ "correlation": {
+  "RELIANCE.NS": {
+   "RELIANCE.NS": 1.0,
+   "TCS.NS": 0.124
+  },
+  "TCS.NS": {
+   "RELIANCE.NS": 0.124,
+   "TCS.NS": 1.0
+  }
+ },
+ "diversification": "good",
+ "stocks": {
+  "RELIANCE.NS": {
+   "name": "Reliance Industries Limited",
+   "last_close": 1353.9,
+   "last_close_date": "2026-11-23",
+   "return_1y_pct": -11.44,
+   "nifty_return_pct": -1.98,
+   "window": {
+    "from": "2025-11-24",
+    "to": "2026-11-23",
+    "trading_days": 246
+   },
+   "trend": "sideways",
+   "rsi_14": 65.87,
+   "volatility_pct": 24.37,
+   "beta": 0.965,
+   "beta_observations": 245,
+   "sharpe": -0.632,
+   "max_drawdown": {
+    "pct": -26.94,
+    "peak": "2026-01-02",
+    "trough": "2026-10-28",
+    "recovered": false
+   },
+   "risk_class": "moderate",
+   "risk_window": {
+    "from": "2025-11-24",
+    "to": "2026-11-23",
+    "observations": 246,
+    "period": "1y"
+   },
+   "fundamentals": {
+    "pe": {
+     "value": 22.68,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "latest close price / EPS"
+    },
+    "roe_pct": {
+     "value": 9.25,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "net income / average of opening and closing Stockholders Equity x 100"
+    },
+    "debt_to_equity": {
+     "value": 0.44,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "total debt / shareholders' equity"
+    },
+    "net_margin_pct": {
+     "value": 7.64,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "net income / total revenue x 100"
+    },
+    "revenue_growth_yoy_pct": {
+     "value": 9.59,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "(revenue this year / last year - 1) x 100"
+    }
+   }
+  },
+  "TCS.NS": {
+   "name": "Tata Consultancy Services Limited",
+   "last_close": 2460.0,
+   "last_close_date": "2026-11-23",
+   "return_1y_pct": -18.31,
+   "nifty_return_pct": -1.98,
+   "window": {
+    "from": "2025-11-24",
+    "to": "2026-11-23",
+    "trading_days": 246
+   },
+   "trend": "sideways",
+   "rsi_14": 57.15,
+   "volatility_pct": 30.42,
+   "beta": 0.744,
+   "beta_observations": 245,
+   "sharpe": -0.722,
+   "max_drawdown": {
+    "pct": -38.46,
+    "peak": "2025-12-22",
+    "trough": "2026-07-01",
+    "recovered": false
+   },
+   "risk_class": "moderate",
+   "risk_window": {
+    "from": "2025-11-24",
+    "to": "2026-11-23",
+    "observations": 246,
+    "period": "1y"
+   },
+   "fundamentals": {
+    "pe": {
+     "value": 18.09,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "latest close price / EPS"
+    },
+    "roe_pct": {
+     "value": 48.72,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "net income / average of opening and closing Stockholders Equity x 100"
+    },
+    "debt_to_equity": {
+     "value": 0.11,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "total debt / shareholders' equity"
+    },
+    "net_margin_pct": {
+     "value": 18.43,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "net income / total revenue x 100"
+    },
+    "revenue_growth_yoy_pct": {
+     "value": 4.58,
+     "period": "FY2026 (year ended 2026-03-31)",
+     "formula": "(revenue this year / last year - 1) x 100"
+    }
+   }
+  }
+ },
+ "portfolio": {
+  "amount_inr": 100000.0,
+  "method_label": "minimum volatility (smallest past price swings)",
+  "allocations": [
+   {
+    "symbol": "RELIANCE.NS",
+    "weight_pct": 50.0,
+    "shares": 37,
+    "amount_inr": 50094.3
+   },
+   {
+    "symbol": "TCS.NS",
+    "weight_pct": 50.0,
+    "shares": 20,
+    "amount_inr": 49200.0
+   }
+  ],
+  "expected": {
+   "annual_return_pct": -11.36,
+   "annual_volatility_pct": 19.77
+  },
+  "backtest": {
+   "from": "2025-11-28",
+   "to": "2026-11-23",
+   "cagr_pct": -15.53,
+   "equal_weight_cagr_pct": -15.53,
+   "nifty50_cagr_pct": -2.93,
+   "curve": [
+    {
+     "date": "2025-11-28",
+     "strategy": 99900.0,
+     "nifty50": 100000.0
+    },
+    {
+     "date": "2025-12-04",
+     "strategy": 100343.36,
+     "nifty50": 99354.27
+    },
+    {
+     "date": "2025-12-10",
+     "strategy": 99747.98,
+     "nifty50": 98301.91
+    },
+    {
+     "date": "2025-12-16",
+     "strategy": 100173.19,
+     "nifty50": 98691.56
+    },
+    {
+     "date": "2025-12-22",
+     "strategy": 103135.21,
+     "nifty50": 99883.41
+    },
+    {
+     "date": "2025-12-30",
+     "strategy": 100757.4,
+     "nifty50": 98992.1
+    },
+    {
+     "date": "2026-01-05",
+     "strategy": 101489.02,
+     "nifty50": 100180.71
+    },
+    {
+     "date": "2026-01-09",
+     "strategy": 98049.61,
+     "nifty50": 98016.83
+    },
+    {
+     "date": "2026-01-15",
+     "strategy": 97277.38,
+     "nifty50": 97949.28
+    },
+    {
+     "date": "2026-01-21",
+     "strategy": 95325.92,
+     "nifty50": 96010.18
+    },
+    {
+     "date": "2026-01-28",
+     "strategy": 96315.58,
+     "nifty50": 96717.17
+    },
+    {
+     "date": "2026-02-03",
+     "strategy": 98020.31,
+     "nifty50": 98185.71
+    },
+    {
+     "date": "2026-02-09",
+     "strategy": 94361.22,
+     "nifty50": 98719.04
+    },
+    {
+     "date": "2026-02-13",
+     "strategy": 88900.52,
+     "nifty50": 97207.0
+    },
+    {
+     "date": "2026-02-19",
+     "strategy": 88345.93,
+     "nifty50": 97143.07
+    },
+    {
+     "date": "2026-02-26",
+     "strategy": 87774.31,
+     "nifty50": 97304.13
+    },
+    {
+     "date": "2026-03-05",
+     "strategy": 86108.41,
+     "nifty50": 94515.7
+    },
+    {
+     "date": "2026-03-11",
+     "strategy": 84305.99,
+     "nifty50": 91084.59
+    },
+    {
+     "date": "2026-03-17",
+     "strategy": 83369.25,
+     "nifty50": 89994.26
+    },
+    {
+     "date": "2026-03-23",
+     "strategy": 83570.74,
+     "nifty50": 85916.48
+    },
+    {
+     "date": "2026-03-30",
+     "strategy": 81109.1,
+     "nifty50": 85224.76
+    },
+    {
+     "date": "2026-04-07",
+     "strategy": 83033.21,
+     "nifty50": 88248.27
+    },
+    {
+     "date": "2026-04-13",
+     "strategy": 82194.76,
+     "nifty50": 90992.24
+    },
+    {
+     "date": "2026-04-20",
+     "strategy": 85488.84,
+     "nifty50": 92985.14
+    },
+    {
+     "date": "2026-04-24",
+     "strategy": 81276.56,
+     "nifty50": 91203.28
+    },
+    {
+     "date": "2026-05-04",
+     "strategy": 85950.88,
+     "nifty50": 92048.04
+    },
+    {
+     "date": "2026-05-08",
+     "strategy": 84474.55,
+     "nifty50": 92265.0
+    },
+    {
+     "date": "2026-05-14",
+     "strategy": 79708.27,
+     "nifty50": 90408.14
+    },
+    {
+     "date": "2026-05-20",
+     "strategy": 81044.33,
+     "nifty50": 90291.36
+    },
+    {
+     "date": "2026-05-26",
+     "strategy": 80592.11,
+     "nifty50": 91263.39
+    },
+    {
+     "date": "2026-06-02",
+     "strategy": 82308.23,
+     "nifty50": 89621.78
+    },
+    {
+     "date": "2026-06-08",
+     "strategy": 75787.26,
+     "nifty50": 88245.79
+    },
+    {
+     "date": "2026-06-12",
+     "strategy": 76861.9,
+     "nifty50": 90153.59
+    },
+    {
+     "date": "2026-06-18",
+     "strategy": 78656.12,
+     "nifty50": 92233.89
+    },
+    {
+     "date": "2026-06-24",
+     "strategy": 76573.33,
+     "nifty50": 91675.37
+    },
+    {
+     "date": "2026-07-02",
+     "strategy": 75570.85,
+     "nifty50": 92263.28
+    },
+    {
+     "date": "2026-07-08",
+     "strategy": 74580.29,
+     "nifty50": 91142.61
+    },
+    {
+     "date": "2026-07-14",
+     "strategy": 77701.59,
+     "nifty50": 91791.39
+    },
+    {
+     "date": "2026-07-20",
+     "strategy": 79723.73,
+     "nifty50": 92502.95
+    },
+    {
+     "date": "2026-07-24",
+     "strategy": 78482.32,
+     "nifty50": 90705.24
+    },
+    {
+     "date": "2026-07-30",
+     "strategy": 82189.86,
+     "nifty50": 92803.1
+    },
+    {
+     "date": "2026-08-05",
+     "strategy": 81470.69,
+     "nifty50": 93976.64
+    },
+    {
+     "date": "2026-08-11",
+     "strategy": 83340.46,
+     "nifty50": 93392.92
+    },
+    {
+     "date": "2026-08-17",
+     "strategy": 80665.79,
+     "nifty50": 92690.52
+    },
+    {
+     "date": "2026-08-21",
+     "strategy": 80458.96,
+     "nifty50": 92554.47
+    },
+    {
+     "date": "2026-08-28",
+     "strategy": 80361.4,
+     "nifty50": 92263.09
+    },
+    {
+     "date": "2026-09-03",
+     "strategy": 80403.93,
+     "nifty50": 91109.78
+    },
+    {
+     "date": "2026-09-09",
+     "strategy": 77656.14,
+     "nifty50": 89423.14
+    },
+    {
+     "date": "2026-09-16",
+     "strategy": 76176.98,
+     "nifty50": 88606.82
+    },
+    {
+     "date": "2026-09-22",
+     "strategy": 74640.98,
+     "nifty50": 89031.96
+    },
+    {
+     "date": "2026-09-28",
+     "strategy": 72773.39,
+     "nifty50": 86937.73
+    },
+    {
+     "date": "2026-10-05",
+     "strategy": 73196.19,
+     "nifty50": 86080.96
+    },
+    {
+     "date": "2026-10-09",
+     "strategy": 73438.53,
+     "nifty50": 85946.24
+    },
+    {
+     "date": "2026-10-15",
+     "strategy": 78425.8,
+     "nifty50": 87766.26
+    },
+    {
+     "date": "2026-10-22",
+     "strategy": 80272.31,
+     "nifty50": 86584.34
+    },
+    {
+     "date": "2026-10-29",
+     "strategy": 79242.31,
+     "nifty50": 87534.99
+    },
+    {
+     "date": "2026-11-04",
+     "strategy": 82860.89,
+     "nifty50": 91442.38
+    },
+    {
+     "date": "2026-11-11",
+     "strategy": 84239.82,
+     "nifty50": 96382.47
+    },
+    {
+     "date": "2026-11-17",
+     "strategy": 84041.92,
+     "nifty50": 96887.57
+    },
+    {
+     "date": "2026-11-23",
+     "strategy": 84587.79,
+     "nifty50": 97107.2
+    }
+   ]
+  }
+ }
+}

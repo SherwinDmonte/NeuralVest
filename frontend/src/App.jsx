@@ -3,16 +3,18 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/AuthContext'
-import { AnalysisProvider } from './analysis/AnalysisContext'
-import { WatchlistProvider } from './hooks/useWatchlist'
 import { PageSkeleton } from './components/ui'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import LandingPage from './pages/LandingPage'
 import { NotFoundPage, PrivacyPage, TermsPage } from './pages/SitePages'
 
 // The signed-in app (charts, Recharts) loads only after login, so the landing page stays light.
-const AppShell = lazy(() => import('./layouts/AppShell'))
+const AppRoot = lazy(() => import('./layouts/AppRoot'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const MarketPage = lazy(() => import('./pages/MarketPage'))
+const WatchlistPage = lazy(() => import('./pages/WatchlistPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
 const StockAnalysisPage = lazy(() => import('./pages/StockAnalysisPage'))
 const AgentsPage = lazy(() => import('./pages/AgentsPage'))
 const NewsPage = lazy(() => import('./pages/NewsPage'))
@@ -25,13 +27,9 @@ const ReportComparePage = lazy(() => import('./pages/ReportsPage').then((m) => (
 function Protected() {
   return (
     <RequireAuth>
-      <WatchlistProvider>
-        <AnalysisProvider>
-          <Suspense fallback={<PageSkeleton />}>
-            <AppShell />
-          </Suspense>
-        </AnalysisProvider>
-      </WatchlistProvider>
+      <Suspense fallback={<PageSkeleton />}>
+        <AppRoot />
+      </Suspense>
     </RequireAuth>
   )
 }
@@ -46,6 +44,10 @@ export default function App() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/app" element={<Protected />}>
         <Route index element={<DashboardPage />} />
+        <Route path="market" element={<MarketPage />} />
+        <Route path="watchlist" element={<WatchlistPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="help" element={<HelpPage />} />
         <Route path="analysis" element={<StockAnalysisPage />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="news" element={<NewsPage />} />

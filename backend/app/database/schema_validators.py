@@ -56,6 +56,19 @@ VALIDATORS: dict[str, dict] = {
             "updated_at": _DATE,
         },
     ),
+    # Phase 12B: profile pictures, always re-encoded by the API to a 256 x 256 WebP (at most 256 KB).
+    m.USER_AVATARS: _schema(
+        ["user_id", "content_type", "data", "size_bytes", "width", "height", "updated_at"],
+        {
+            "user_id": _NONEMPTY,
+            "content_type": {"enum": ["image/webp"]},
+            "data": {"bsonType": "binData"},
+            "size_bytes": {"bsonType": ["int", "long"], "minimum": 1, "maximum": 262144},
+            "width": _INT,
+            "height": _INT,
+            "updated_at": _DATE,
+        },
+    ),
     m.STOCKS: _schema(
         ["symbol", "company_name", "exchange", "updated_at"],
         {"symbol": _NONEMPTY, "company_name": _NONEMPTY, "exchange": _enum(m.Exchange), "updated_at": _DATE},

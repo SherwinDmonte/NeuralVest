@@ -9,7 +9,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 
 function Frame({ children }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col ambient">
       <header className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6"><Logo /></header>
       <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 sm:px-6">{children}</main>
       <SiteFooter />

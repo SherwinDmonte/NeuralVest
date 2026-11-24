@@ -11,6 +11,8 @@ import ReportCard, { PdfButton } from '../components/ReportCard'
 import RiskCard from '../components/RiskCard'
 import { Button, Card, CardSkeleton, EmptyState, ErrorState, Meta, PageHeader, Select, Tabs, ToneBadge, table } from '../components/ui'
 import { errorMessage, getReport, listReports } from '../services/api'
+import { useApi } from '../hooks/useApi'
+import { Modal } from '../components/motion'
 import { fmtDate, fmtDateTime, inr, num, pct } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -18,6 +20,58 @@ const PAGE_SIZE = 10
 const STATUSES = ['', 'completed', 'partial', 'failed', 'interrupted', 'running', 'queued']
 
 // ------------------------------------------------------------------ list
+function ReportPreview({ id }) {
+  const { data, error, loading } = useApi(() => getReport(id), [id], { key: `report-${id}`, ttl: 5 * 60 * 1000, enabled: Boolean(id) })
+  if (!id) {
+    return <EmptyState icon={FileText} title="Select a report">Its key observations, checks and agents appear here.</EmptyState>
+  }
+  if (loading && !data) return <CardSkeleton rows={6} />
+  if (error) return <ErrorState message={error} />
+  if (!data) return null
+  const r = data.report
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="title-2 text-ink">{data.symbols.join(', ')}</p>
+          <Meta>{fmtDateTime(data.requested_at)}{data.completed_at ? ` · finished ${fmtDateTime(data.completed_at)}` : ''}</Meta>
+        </div>
+        <ToneBadge value={data.status} />
+      </div>
+      {r ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-lg border border-line bg-raised px-2 py-0.5 caption-4 text-ink-secondary">{r.traceability?.ok ? `${r.traceability.numbers_checked} numbers traced` : 'Some numbers not traced'}</span>
+            <span className="rounded-lg border border-line bg-raised px-2 py-0.5 caption-4 text-ink-secondary">{r.execution?.validation_issue_count ?? 0} validation issues</span>
+            {r.request?.investment_amount && <span className="rounded-lg border border-line bg-raised px-2 py-0.5 caption-4 text-ink-secondary">Portfolio {inr(r.request.investment_amount, 0)}</span>}
+          </div>
+          <div>
+            <p className="mb-2 caption-3 text-ink-muted">Key observations</p>
+            <ul className="space-y-2">
+              {r.key_observations?.items?.map((o) => (
+                <li key={o} className="flex gap-3 body-6 text-ink"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />{o}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-2 caption-3 text-ink-muted">Agents</p>
+            <ul className="grid grid-cols-2 gap-2">
+              {Object.entries(r.execution?.agent_status || {}).filter(([k]) => !['validate_input', 'output_validation'].includes(k)).map(([k, v]) => (
+                <li key={k} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1 caption-5 text-ink-secondary">{k.replaceAll('_', ' ')}<ToneBadge value={v} /></li>
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : <p className="body-6 text-ink-secondary">This analysis is {data.status}; its report appears when it finishes.</p>}
+      <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+        <Button size="sm" to={`/app/reports/${id}`}>Open the report</Button>
+        <Button size="sm" variant="secondary" to={`/app/agents?request=${data.request_id}`}>Agents</Button>
+        {r && <PdfButton reportId={id} />}
+      </div>
+    </div>
+  )
+}
+
 export function ReportsPage() {
   usePageTitle('Reports')
   const navigate = useNavigate()
@@ -25,24 +79,35 @@ export function ReportsPage() {
   const [status, setStatus] = useState('')
   const [state, setState] = useState({ data: null, error: null, loading: true })
   const [picked, setPicked] = useState([])
+  const [previewId, setPreviewId] = useState(null)
+  const [mobilePreview, setMobilePreview] = useState(false)
 
   useEffect(() => {
     let alive = true
     setState((s) => ({ ...s, loading: true }))
     listReports({ page, page_size: PAGE_SIZE, ...(status ? { status } : {}) })
-      .then((data) => alive && setState({ data, error: null, loading: false }))
+      .then((data) => {
+        if (!alive) return
+        setState({ data, error: null, loading: false })
+        setPreviewId((id) => id || data.items[0]?.report_id || null)
+      })
       .catch((err) => alive && setState({ data: null, error: errorMessage(err), loading: false }))
     return () => { alive = false }
   }, [page, status])
 
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p.slice(-1), id]))
   const pages = state.data ? Math.max(1, Math.ceil(state.data.total / PAGE_SIZE)) : 1
+  const select = (id) => {
+    setPreviewId(id)
+    if (window.matchMedia('(max-width: 1279px)').matches) setMobilePreview(true)
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Reports"
-        description="Every analysis you ran while logged in. Open one, compare two, or download a PDF."
+        eyebrow="Reports"
+        title="Your reports"
+        description="Every analysis you ran while logged in. Preview one, open it, compare two, or download a PDF."
         actions={
           <>
             <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} aria-label="Filter by status" className="w-auto">
@@ -56,40 +121,52 @@ export function ReportsPage() {
         }
       />
       {state.error && <ErrorState message={state.error} />}
-      {state.loading && <CardSkeleton rows={6} />}
-      {state.data && !state.loading && (
+      {state.loading && !state.data && <CardSkeleton rows={6} />}
+      {state.data && (
         state.data.items.length ? (
-          <Card bodyClass="-m-2">
-            <ul className="divide-y divide-line">
-              {state.data.items.map((r) => (
-                <li key={r.report_id} className="flex flex-wrap items-center gap-4 px-2 py-4">
-                  <input type="checkbox" className="h-4 w-4 accent-[#3987e5]" checked={picked.includes(r.report_id)}
-                         onChange={() => toggle(r.report_id)} disabled={!r.report_ready}
-                         aria-label={`Select the report for ${r.symbols.join(', ')} to compare`} />
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/app/reports/${r.report_id}`} className="body-5 text-ink transition-colors duration-300 ease-nv hover:text-accent-ink">
-                      {r.symbols.join(', ')}
-                    </Link>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                      <Meta>{fmtDateTime(r.requested_at)}</Meta>
-                      {r.investment_amount && <Meta>portfolio {inr(r.investment_amount, 0)}</Meta>}
-                      {r.retry_of && <Meta>re-run</Meta>}
-                    </div>
-                    {r.key_observations?.[0] && <p className="mt-2 line-clamp-2 caption-2 text-ink-secondary">{r.key_observations[0]}</p>}
-                  </div>
-                  <ToneBadge value={r.status} />
-                  {r.report_ready && <PdfButton reportId={r.report_id} size="xs" variant="ghost" />}
-                </li>
-              ))}
-            </ul>
-            {pages > 1 && (
-              <nav aria-label="Pages" className="mt-2 flex items-center justify-between gap-3 border-t border-line px-2 pt-4">
-                <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><CaretLeft size={16} aria-hidden="true" /> Newer</Button>
-                <Meta>page {page} of {pages} · {state.data.total} reports</Meta>
-                <Button size="sm" variant="secondary" disabled={!state.data.has_next} onClick={() => setPage((p) => p + 1)}>Older <CaretRight size={16} aria-hidden="true" /></Button>
-              </nav>
-            )}
-          </Card>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
+            <Card bodyClass="-m-2">
+              <ul className="divide-y divide-line">
+                {state.data.items.map((r) => (
+                  <li key={r.report_id}
+                      className={`flex flex-wrap items-center gap-4 rounded-xl px-3 py-4 transition-colors duration-300 ease-nv ${previewId === r.report_id ? 'bg-raised' : 'hover:bg-raised/50'}`}>
+                    <input type="checkbox" className="h-4 w-4 accent-[var(--nv-accent)]" checked={picked.includes(r.report_id)}
+                           onChange={() => toggle(r.report_id)} disabled={!r.report_ready}
+                           aria-label={`Select the report for ${r.symbols.join(', ')} to compare`} />
+                    <button type="button" onClick={() => select(r.report_id)} className="min-w-0 flex-1 text-left" aria-pressed={previewId === r.report_id}>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="body-5 text-ink">{r.symbols.join(', ')}</span>
+                        <span className="rounded-md border border-line px-1.5 caption-5 text-ink-muted">{r.request_type === 'portfolio' || r.investment_amount ? 'Portfolio' : 'Analysis'}</span>
+                      </span>
+                      <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                        <Meta>{fmtDateTime(r.requested_at)}</Meta>
+                        {r.investment_amount && <Meta>{inr(r.investment_amount, 0)}</Meta>}
+                        {r.retry_of && <Meta>re-run</Meta>}
+                      </span>
+                      {r.key_observations?.[0] && <span className="mt-2 line-clamp-2 block caption-2 text-ink-secondary">{r.key_observations[0]}</span>}
+                    </button>
+                    <ToneBadge value={r.status} />
+                  </li>
+                ))}
+              </ul>
+              {pages > 1 && (
+                <nav aria-label="Pages" className="mt-2 flex items-center justify-between gap-3 border-t border-line px-3 pt-4">
+                  <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><CaretLeft size={16} aria-hidden="true" /> Newer</Button>
+                  <Meta>page {page} of {pages} · {state.data.total} reports</Meta>
+                  <Button size="sm" variant="secondary" disabled={!state.data.has_next} onClick={() => setPage((p) => p + 1)}>Older <CaretRight size={16} aria-hidden="true" /></Button>
+                </nav>
+              )}
+            </Card>
+            <div className="hidden xl:block">
+              <div className="sticky top-24 rounded-2xl border border-line glass p-6 shadow-float">
+                <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-brand" aria-hidden="true" />
+                <ReportPreview id={previewId} />
+              </div>
+            </div>
+            <Modal open={mobilePreview} onClose={() => setMobilePreview(false)} title="Report preview">
+              <div className="max-h-[70vh] overflow-y-auto p-4"><ReportPreview id={previewId} /></div>
+            </Modal>
+          </div>
         ) : (
           <EmptyState icon={FileText} title={status ? `No ${status} reports` : 'No reports yet'}
                       action={!status && <Button to="/app/analysis" size="sm">Run your first analysis</Button>}>

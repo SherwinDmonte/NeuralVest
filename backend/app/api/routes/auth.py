@@ -1,11 +1,12 @@
-"""Authentication endpoints (Phase 11): register, log in, who am I.
+"""Authentication endpoints (Phase 11): register, log in, who am I; watchlist and profile picture (Phase 12B).
 
 Swagger: log in with POST /api/auth/login, copy `access_token`, click "Authorize" and paste it.
 """
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.api.deps import CurrentUser, get_app_settings, get_db
@@ -14,7 +15,8 @@ from app.api.rate_limit import rate_limit
 from app.config import Settings
 from app.data.errors import InvalidSymbolError
 from app.data.symbols import normalize_symbol
-from app.services import auth_service
+from app.database.database import ensure_storage_available
+from app.services import auth_service, avatar_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -121,3 +123,57 @@ def get_watchlist(user: CurrentUser, db: Db) -> dict:
 def put_watchlist(body: WatchlistRequest, user: CurrentUser, db: Db) -> dict:
     return {"symbols": auth_service.set_watchlist(db, user["user_id"], body.symbols),
             "max": auth_service.MAX_WATCHLIST}
+
+
+# ---------------------------------------------------------------- profile picture (Phase 12B)
+AVATAR_BODY = {"requestBody": {"required": True, "description": "The image file itself as the request body (not a form).",
+                               "content": {t: {"schema": {"type": "string", "format": "binary"}}
+                                           for t in avatar_service.ACCEPTED_TYPES}}}
+
+
+async def _read_upload(request: Request) -> bytes:
+    """The raw body, refused early when it is over the size limit."""
+    limit = avatar_service.MAX_UPLOAD_BYTES
+    too_large = AppError(413, "file_too_large", f"The image is over {limit // (1024 * 1024)} MB.")
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        raise too_large
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > limit:
+            raise too_large
+    return bytes(body)
+
+
+@router.put("/me/avatar", summary="Set your profile picture (JPEG, PNG or WebP, up to 5 MB)",
+            openapi_extra=AVATAR_BODY, dependencies=[Depends(rate_limit("avatar"))])
+async def put_avatar(request: Request, user: CurrentUser, db: Db, settings: AppSettings) -> dict:
+    content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
+    if content_type not in avatar_service.ACCEPTED_TYPES:
+        raise AppError(415, "unsupported_media_type", "Send a JPEG, PNG or WebP image with its Content-Type.")
+    raw = await _read_upload(request)
+    await run_in_threadpool(ensure_storage_available, settings)
+    try:
+        data = await run_in_threadpool(avatar_service.process_image, raw)
+    except avatar_service.AvatarError as exc:
+        status = {"file_too_large": 413, "unsupported_media_type": 415}.get(exc.code, 422)
+        raise AppError(status, exc.code, exc.message) from exc
+    await run_in_threadpool(avatar_service.save_avatar, db, user["user_id"], data)
+    return {"user": await run_in_threadpool(auth_service.get_user, db, user["user_id"])}
+
+
+@router.get("/me/avatar", summary="Your profile picture (256 x 256 WebP)",
+            responses={200: {"content": {avatar_service.CONTENT_TYPE: {}}}, 404: {"description": "No picture set"}})
+def get_avatar(user: CurrentUser, db: Db) -> Response:
+    doc = avatar_service.get_avatar(db, user["user_id"])
+    if not doc:
+        raise AppError(404, "avatar_not_found", "No profile picture is set.")
+    return Response(content=bytes(doc["data"]), media_type=doc["content_type"],
+                    headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
+
+@router.delete("/me/avatar", summary="Remove your profile picture")
+def delete_avatar(user: CurrentUser, db: Db) -> dict:
+    avatar_service.delete_avatar(db, user["user_id"])
+    return {"user": auth_service.get_user(db, user["user_id"])}

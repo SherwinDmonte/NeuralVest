@@ -9,7 +9,11 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, field_validator
 
-from app.agents.risk_assessment import run_risk_assessment
+import numpy as np
+
+from app.agents.market_research import analysis_window
+from app.agents.risk_assessment import frame_from_records, run_risk_assessment
+from app.analysis import risk_metrics as rm
 from app.api.deps import AnalysisUser
 from app.api.errors import AppError
 from app.api.rate_limit import rate_limit
@@ -69,8 +73,29 @@ def analyze_risk(body: RiskRequest, user: AnalysisUser) -> dict:
     return {
         "period": body.period,
         "symbols": {s: o.model_dump(mode="json", exclude={"explanation", "llm"}) for s, o in results.items()},
+        "distribution": {s: return_histogram(records[s], body.period) for s in results},
         "portfolio": portfolio.model_dump(mode="json") if portfolio else None,
         "not_found": missing,
         "risk_free_rate": settings.risk_free_rate,
         "disclaimer": RISK_DISCLAIMER,
+    }
+
+
+HISTOGRAM_BINS = 21
+
+
+def return_histogram(records: list[dict], period: str) -> dict:
+    """Phase 12B: how often each size of daily move happened, from the SAME daily returns and
+    window the Risk Assessment agent uses (simple returns of the adjusted close)."""
+    window = analysis_window(frame_from_records(records), period)
+    returns = rm.daily_returns(window["adjusted_close"]).dropna() * 100
+    if len(returns) < 2:
+        return {"bins": [], "observations": int(len(returns))}
+    edge = float(np.ceil(max(abs(returns.min()), abs(returns.max()))))
+    counts, edges = np.histogram(returns, bins=HISTOGRAM_BINS, range=(-edge, edge))
+    return {
+        "observations": int(len(returns)),
+        "unit": "daily return, %",
+        "bins": [{"from": round(float(a), 2), "to": round(float(b), 2), "count": int(c)}
+                 for a, b, c in zip(edges[:-1], edges[1:], counts)],
     }

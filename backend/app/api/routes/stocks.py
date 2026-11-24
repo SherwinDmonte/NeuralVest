@@ -13,6 +13,7 @@ from app.analysis import technical_indicators as ti
 from app.api.errors import AppError
 from app.config import get_settings
 from app.data.errors import DataError, InvalidSymbolError, NoDataError
+from app.data.financial_data import get_financial_statements
 from app.data.stock_data import get_price_history, store_price_history
 from app.data.symbols import base_ticker, exchange_of, load_seed_symbols, normalize_symbol
 from app.database.database import get_database
@@ -66,6 +67,22 @@ def search_stocks(q: str = Query(min_length=1, max_length=50, description="e.g. 
     return {"query": text, "items": items[:limit], "total": len(items), "normalized": normalized,
             "note": "Company names appear once a stock has been analysed or seeded."
                     + (f" Stored companies could not be searched ({db_error})." if db_error else "")}
+
+
+@router.get("/{symbol}/financials", summary="Annual financial statements (income, balance sheet, cash flow)")
+def stock_financials(symbol: str = SYMBOL) -> dict:
+    """As reported by Yahoo Finance (via yfinance), newest year first, values in the statement
+    currency. Nothing is recalculated; missing line items stay missing."""
+    try:
+        fs = get_financial_statements(symbol)
+    except NoDataError as exc:
+        raise AppError(404, "financials_not_found", str(exc)) from exc
+    except DataError as exc:
+        raise AppError(502, "data_source_unavailable", str(exc)) from exc
+    return {"symbol": fs.symbol, "statements": fs.statements, "latest_period": fs.latest_period,
+            "missing_key_items": fs.missing_key_items, "is_stale": fs.is_stale, "source": fs.source,
+            "fetched_at": fs.fetched_at, "warnings": fs.warnings,
+            "note": "Annual statements as reported. Indian companies usually report in INR."}
 
 
 @router.get("/{symbol}/history", summary="Daily prices (from MongoDB, fetched from Yahoo if missing)")

@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 12 approved and merged into `main`; Phase 12B (UI redesign) proposed and recorded, not started** |
-| Last completed task | Phase 12 approved and merged into `main` (425 backend tests passing) |
-| Next task | Phase 12B (UI redesign) only when you say "start Phase 12B" |
+| Current phase | **Phase 12B (UI redesign) approved and merged into `main`; Phase 13 not started** |
+| Last completed task | Phase 12B approved and merged into `main` (444 backend tests passing) |
+| Next task | Phase 13 (testing, performance and optimization) only when you say "start Phase 13" |
 | Open blockers | None |
 | Last updated | 2026-11-24 |
 
@@ -55,7 +55,7 @@
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[x]` approved 2026-11-24 |
-| 12B | UI Redesign (your master brief) | `[ ]` | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
+| 12B | UI Redesign (your master brief) | `[x]` approved 2026-11-24 | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
@@ -619,40 +619,42 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Decisions (2026-11-24):** your brief wins fully on visual style (navy palette, brand gradients, glassmorphism, ambient lighting, gradient logo and buttons), overriding the unslop and landing-page-design rules that conflict; market breadth (gainers, losers, advancers, decliners) computed across the 30 curated stocks and labelled as such; `motion` (Framer Motion) for animation, loaded only in the signed-in app. Assumptions: Phosphor icons and Geist kept; the brief's welcome heading replaces unslop's no-greeting rule.
 
 ### 12B.1 Design system and brand
-- [ ] 12B.1.1 Navy dark tokens + full light theme (own shadows, borders, gradients, chart colours validated with the dataviz script)
-- [ ] 12B.1.2 Theme switcher: OS preference on first visit, saved in localStorage, applied before first paint, every page/chart/tooltip/table
-- [ ] 12B.1.3 Logo: SVG neural "N" with nodes and a rising line; gradient, transparent, light and dark versions; subtle node/line animation
-- [ ] 12B.1.4 Shared components restyled (buttons, cards, glass panels, dropdowns, modal, toasts, skeletons, status indicators)
+- [x] 12B.1.1 Navy dark tokens + full light theme (own shadows, borders, gradients, chart colours validated with the dataviz script)
+- [x] 12B.1.2 Theme switcher: OS preference on first visit, saved in localStorage, applied before first paint, every page/chart/tooltip/table
+- [x] 12B.1.3 Logo: SVG neural "N" with nodes and a rising line; gradient, transparent, light and dark versions; subtle node/line animation
+- [x] 12B.1.4 Shared components restyled (buttons, cards, glass panels, dropdowns, modal, toasts, skeletons, status indicators)
 
 ### 12B.2 App shell
-- [ ] 12B.2.1 Collapsible sidebar (tooltips when collapsed), mobile drawer, 9 navigation items, system and model status, settings, help, profile
-- [ ] 12B.2.2 Top bar: page title, global stock search, data freshness, notifications (your own events only), theme switcher, profile menu
-- [ ] 12B.2.3 Page transitions with reduced motion support
+- [x] 12B.2.1 Collapsible sidebar (tooltips when collapsed), mobile drawer, 9 navigation items, settings, help, profile (system and model status moved to Settings only, your request 2026-11-24)
+- [x] 12B.2.2 Top bar: page title, global stock search, notifications (your own events only), theme switcher, profile menu (data freshness badge removed at your request; dates stay on each card and chart). App footer: one row with the notice and privacy and terms links
+- [x] 12B.2.3 Page transitions with reduced motion support
 
 ### 12B.3 Backend additions (no change to existing behaviour)
-- [ ] 12B.3.1 `GET /api/health/llm` (Ollama reachable, installed models) for the model status indicator
-- [ ] 12B.3.2 `GET /api/stocks/{symbol}/financials` (annual income statement, balance sheet, cash flow; already fetched and cached)
-- [ ] 12B.3.3 Market breadth across the 30 curated stocks (gainers, losers, advancers, decliners), cached, clearly labelled
-- [ ] 12B.3.4 Confirm SENSEX (`^BSESN`) works with the existing indicators endpoint
-- [ ] 12B.3.5 Tests for every new endpoint
+- [x] 12B.3.1 `GET /api/health/llm` (Ollama reachable, installed models) for the model status indicator
+- [x] 12B.3.2 `GET /api/stocks/{symbol}/financials` (annual income statement, balance sheet, cash flow; already fetched and cached)
+- [x] 12B.3.3 Market breadth across the 30 curated stocks (gainers, losers, advancers, decliners), cached, clearly labelled
+- [x] 12B.3.4 Confirm SENSEX (`^BSESN`) works with the existing indicators endpoint
+- [x] 12B.3.5 Tests for every new endpoint
 
 ### 12B.4 Pages
-- [ ] 12B.4.1 Overview: hero, NIFTY 50 and SENSEX cards with sparklines, large area chart with date ranges, breadth, recently analysed, news, watchlist, agent activity
-- [ ] 12B.4.2 Market Intelligence (new): index charts and market news
-- [ ] 12B.4.3 Stock Analysis with tabs (overview, chart with volume, fundamentals, statements, news, AI analysis)
-- [ ] 12B.4.4 AI Agents: animated supervisor and five agent network driven only by API status
-- [ ] 12B.4.5 Financial News, Risk (distribution, historical VaR), Portfolio (donut, allocation bars, risk-return scatter), Reports (preview)
-- [ ] 12B.4.6 Watchlist page (new), Settings and Help pages
-- [ ] 12B.4.7 Landing page, login and register in the new style
+- [x] 12B.4.1 Overview: hero, NIFTY 50 and SENSEX cards with sparklines, large area chart with date ranges, breadth, recently analysed, news, watchlist, agent activity
+- [x] 12B.4.2 Market Intelligence (new): index charts and market news
+- [x] 12B.4.3 Stock Analysis with tabs (overview, chart with volume, fundamentals, statements, news, AI analysis)
+- [x] 12B.4.4 AI Agents: animated supervisor and five agent network driven only by API status
+- [x] 12B.4.5 Financial News, Risk (distribution, historical VaR), Portfolio (donut, allocation bars, risk-return scatter), Reports (preview)
+- [x] 12B.4.6 Watchlist page (new), Settings and Help pages
+- [x] 12B.4.7 Landing page, login and register in the new style
+- [x] 12B.4.9 Profile picture (your request 2026-11-24): `PUT/GET/DELETE /api/auth/me/avatar`, new `user_avatars` collection (validator, unique index), upload re-encoded by Pillow to a 256 px WebP without metadata, 5 MB and 40 MP limits, `RATE_LIMIT_AVATAR`; Settings: choose or drop an image, square preview, save or remove; picture shown in the top bar and profile menu (initials otherwise); `tests/test_avatar.py`
+- [x] 12B.4.8 Landing page redesign, second pass (your request 2026-11-24): hero with the live NIFTY 50 / SENSEX card (public `/api/market/indices`, falls back to a labelled excerpt of a real run), floating traced number and run progress cards with pointer parallax, sources strip, "trace any number", scroll story of the agents, "explore a real report" tabs (returns, risk, fundamentals, portfolio with backtest), evidence band. Figures come from `src/landing/snapshot.json`, written by `backend/scripts/make_landing_snapshot.py` from a stored run; charts are small SVGs (no chart library on the landing page); no new dependencies
 
 ### 12B.5 Quality
-- [ ] 12B.5.1 Both themes checked in a real browser at 1920, 1440, 1366, 1024, 768, 390 and 360px: no overflow, readable contrast
-- [ ] 12B.5.2 Keyboard navigation, focus, ARIA, reduced motion
-- [ ] 12B.5.3 Backend tests, lint and build pass; bundle size checked
+- [x] 12B.5.1 Both themes checked in Edge (Playwright) at 1920, 1440, 1366, 1024, 768, 390 and 360px on 14 pages: no overflow, theme applied, no console errors (fixed: landing glow, workflow row at 1024px, index cards at 360px)
+- [x] 12B.5.2 Keyboard navigation (skip link, visible focus on every control), Ctrl+K palette with focus inside and Escape, ARIA on tabs/menus/dialogs, reduced motion
+- [x] 12B.5.3 444 backend tests pass (after profile pictures), lint 0 errors, build OK; main bundle 128 KB gzip, `motion` (56 KB gzip) loaded only in the signed-in app
 
 ### 🛑 Phase 12B Approval Gate
-- [ ] Phase 12B completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 12B completion summary posted in chat
+- [x] Developer approval received (2026-11-24, after the landing redesign, footer changes and profile pictures)
 
 ---
 

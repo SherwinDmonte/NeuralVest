@@ -15,6 +15,9 @@ INDEXES: dict[str, list[IndexModel]] = {
         IndexModel([("user_id", ASCENDING)], name="uq_user_id", unique=True),
         IndexModel([("email", ASCENDING)], name="uq_email", unique=True),
     ],
+    m.USER_AVATARS: [
+        IndexModel([("user_id", ASCENDING)], name="uq_user_id", unique=True),
+    ],
     m.STOCKS: [
         IndexModel([("symbol", ASCENDING)], name="uq_symbol", unique=True),
         IndexModel([("company_name", TEXT), ("symbol", TEXT)], name="txt_company_symbol"),

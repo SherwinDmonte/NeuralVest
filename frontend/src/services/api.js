@@ -81,6 +81,10 @@ export const login = (body) => api.post('/auth/login', body).then(data)
 export const getMe = () => api.get('/auth/me').then(data)
 export const getWatchlist = () => api.get('/auth/me/watchlist').then(data)
 export const putWatchlist = (symbols) => api.put('/auth/me/watchlist', { symbols }).then(data)
+// Profile picture: the image is sent as the raw body; the API re-encodes it to a 256 px WebP.
+export const getAvatar = () => api.get('/auth/me/avatar', { responseType: 'blob' }).then(data)
+export const putAvatar = (blob) => api.put('/auth/me/avatar', blob, { headers: { 'Content-Type': blob.type }, timeout: 30000 }).then(data)
+export const deleteAvatar = () => api.delete('/auth/me/avatar').then(data)
 
 // ----- analysis
 // `portfolio` (optional): { investmentAmount, riskPreference } for 2+ stocks -> Portfolio Optimization
@@ -102,6 +106,17 @@ export const getIndicators = (symbol, period = '1y') => api.get(`/stocks/${sym(s
 export const searchStocks = (q, limit = 8) => api.get('/stocks/search', { params: { q, limit } }).then(data)
 export const getNews = (symbol, params = {}) => api.get(`/news/${sym(symbol)}`, { params }).then(data)
 export const getNewsSentiment = (symbol, days = 14) => api.get(`/news/${sym(symbol)}/sentiment`, { params: { days } }).then(data)
+
+// ----- market overview (Phase 12B; end of day, computed in Python)
+export const getMarketIndices = () => api.get('/market/indices').then(data)
+// The first call fetches 30 stocks (up to about a minute), later calls come from the cache.
+export const getMarketBreadth = (top = 5) => api.get('/market/breadth', { params: { top }, timeout: 120000 }).then(data)
+export const getQuotes = (symbols) => api.get('/market/quotes', { params: { symbols: symbols.join(',') }, timeout: 90000 }).then(data)
+export const getStockHistory = (symbol, period = '1y') => api.get(`/stocks/${sym(symbol)}/history`, { params: { period } }).then(data)
+export const getFinancials = (symbol) => api.get(`/stocks/${sym(symbol)}/financials`, { timeout: 60000 }).then(data)
+export const getHealth = () => api.get('/health').then(data)
+export const getDbHealth = () => api.get('/health/db', { validateStatus: () => true }).then(data)
+export const getLlmHealth = () => api.get('/health/llm').then(data)
 
 // ----- portfolio and risk (computed on request; several seconds)
 export const optimizePortfolio = (body) => api.post('/portfolio/optimize', body, { timeout: 120000 }).then(data)

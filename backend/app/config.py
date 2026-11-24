@@ -113,6 +113,7 @@ class Settings(BaseSettings):
     rate_limit_analysis: str = "5/minute"
     rate_limit_portfolio: str = "10/minute"
     rate_limit_pdf: str = "20/minute"
+    rate_limit_avatar: str = "10/minute"  # profile picture uploads
 
     @field_validator("jwt_secret", mode="before")
     @classmethod
@@ -121,7 +122,8 @@ class Settings(BaseSettings):
             return None
         return value
 
-    @field_validator("rate_limit_auth", "rate_limit_analysis", "rate_limit_portfolio", "rate_limit_pdf")
+    @field_validator("rate_limit_auth", "rate_limit_analysis", "rate_limit_portfolio", "rate_limit_pdf",
+                     "rate_limit_avatar")
     @classmethod
     def _check_rate(cls, value: str) -> str:
         from limits import parse  # validated at startup, not on the first request

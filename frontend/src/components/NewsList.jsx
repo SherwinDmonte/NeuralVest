@@ -3,7 +3,7 @@
 import { ArrowSquareOut, Newspaper } from '@phosphor-icons/react'
 import { Card, EmptyState, Meta, ToneBadge } from './ui'
 import { AiNote } from './explain'
-import { fmtDate, safeUrl } from '../utils/format'
+import { fmtDate, safeUrl, shortSymbol } from '../utils/format'
 
 export function ArticleList({ articles }) {
   return (
@@ -26,6 +26,7 @@ export function ArticleList({ articles }) {
               <ToneBadge value={a.sentiment} />
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {a.symbol && <span className="rounded-md bg-accent/10 px-1.5 figure caption-5 text-accent-ink">{shortSymbol(a.symbol)}</span>}
               <Meta>{a.publisher}</Meta>
               <Meta>{fmtDate(a.publication_date)}</Meta>
               <Meta>{a.category?.replaceAll('_', ' ')}</Meta>

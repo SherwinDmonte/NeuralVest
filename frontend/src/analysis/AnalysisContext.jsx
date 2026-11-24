@@ -4,6 +4,7 @@
 // still running) instead of showing an empty page.
 import { createContext, useContext, useEffect, useRef } from 'react'
 import { useAnalysis } from '../hooks/useAnalysis'
+import { useNotifications } from '../feedback/Notifications'
 
 const AnalysisContext = createContext(null)
 const KEY = 'nv.analysis'
@@ -21,6 +22,27 @@ export function AnalysisProvider({ children }) {
   const analysis = useAnalysis()
   const { requestId, open } = analysis
   const restored = useRef(false)
+  const { notify } = useNotifications()
+  const wasRunning = useRef(false)
+  const status = analysis.status
+
+  // Tell the user when a run they watched finishes (not when an old one is reopened).
+  useEffect(() => {
+    const st = status?.status
+    if (st === 'queued' || st === 'running') {
+      wasRunning.current = true
+      return
+    }
+    if (!wasRunning.current || !st) return
+    wasRunning.current = false
+    const ok = st === 'completed' || st === 'partial'
+    notify({
+      tone: ok ? 'good' : 'critical',
+      title: ok ? `Analysis ${st === 'partial' ? 'finished with some data missing' : 'completed'}` : `Analysis ${st}`,
+      body: status.symbols?.join(', '),
+      link: { to: `/app/analysis?request=${status.request_id || requestId}`, label: 'Open the results' },
+    })
+  }, [status, notify, requestId])
 
   useEffect(() => {
     if (restored.current) return

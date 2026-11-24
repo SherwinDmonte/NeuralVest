@@ -3,7 +3,7 @@
 Uses the `limits` library (the engine inside slowapi) directly as a FastAPI dependency: the
 counters live in memory on `app.state`, so every app instance (and every test) starts fresh,
 and no Redis is needed. Limits are per logged-in user, otherwise per client IP, and per
-endpoint group ("auth", "analysis", "portfolio", "pdf"; values in Settings / .env).
+endpoint group ("auth", "analysis", "portfolio", "pdf", "avatar"; values in Settings / .env).
 
 The counters reset when the API restarts. That is acceptable for a single-user local app;
 a shared deployment would use a shared store (limits supports Redis).
@@ -20,7 +20,7 @@ from limits.strategies import MovingWindowRateLimiter
 from app.api.deps import get_app_settings, optional_user
 from app.api.errors import AppError
 
-GROUPS = ("auth", "analysis", "portfolio", "pdf")
+GROUPS = ("auth", "analysis", "portfolio", "pdf", "avatar")
 
 
 class RateLimiter:
