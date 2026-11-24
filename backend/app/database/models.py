@@ -113,6 +113,9 @@ class UserDocument(MongoDocument):
     name: str = Field(min_length=1, max_length=80)
     email: EmailStr
     password_hash: str = Field(pattern=r"^\$argon2")  # never a plaintext password
+    # Phase 12 (task 12.4.4, your decision): up to 20 symbols, newest first. Optional, so older
+    # user documents stay valid and the database validator needs no change.
+    watchlist: list[Symbol] = Field(default_factory=list, max_length=20)
     created_at: UtcDatetime = Field(default_factory=utc_now)
     updated_at: UtcDatetime = Field(default_factory=utc_now)
 

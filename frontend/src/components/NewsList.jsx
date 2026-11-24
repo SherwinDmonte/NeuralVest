@@ -1,10 +1,48 @@
-// News analysed by the Financial News Agent. The ORIGINAL headline (linked to the source)
-// is always shown above the AI summary, so readers can check the model's wording.
-import { Bot, ExternalLink } from 'lucide-react'
-import { Card, Chip, EmptyState, ToneBadge } from './ui'
-import { fmtDate } from '../utils/format'
+// News analysed by the Financial News Agent. The original headline (linked to the source) is
+// always shown above the AI summary, so readers can check the model's wording.
+import { ArrowSquareOut, Newspaper } from '@phosphor-icons/react'
+import { Card, EmptyState, Meta, ToneBadge } from './ui'
+import { AiNote } from './explain'
+import { fmtDate, safeUrl } from '../utils/format'
 
-const safeUrl = (url) => (typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null)
+export function ArticleList({ articles }) {
+  return (
+    <ul className="divide-y divide-line">
+      {articles.map((a) => {
+        const href = safeUrl(a.article_url)
+        return (
+          <li key={a.url_hash} className="py-4 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              {href ? (
+                <a href={href} target="_blank" rel="noopener noreferrer"
+                   className="group inline-flex max-w-full items-start gap-1 rounded body-5 text-ink transition-colors duration-300 ease-nv hover:text-accent-ink">
+                  <span>{a.headline}</span>
+                  <ArrowSquareOut size={14} className="mt-1 shrink-0 text-ink-muted group-hover:text-accent-ink" aria-hidden="true" />
+                  <span className="sr-only">(opens the original article in a new tab)</span>
+                </a>
+              ) : (
+                <span className="body-5 text-ink">{a.headline}</span>
+              )}
+              <ToneBadge value={a.sentiment} />
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Meta>{a.publisher}</Meta>
+              <Meta>{fmtDate(a.publication_date)}</Meta>
+              <Meta>{a.category?.replaceAll('_', ' ')}</Meta>
+              <Meta>{a.relevance} relevance</Meta>
+            </div>
+            {a.summary && a.summary !== a.headline && (
+              <p className="mt-2 body-6 text-ink-secondary">
+                <span className="mr-1 caption-4 text-ink-muted">AI summary</span>
+                {a.summary}
+              </p>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
 
 export default function NewsList({ news }) {
   if (!news) return null
@@ -13,57 +51,20 @@ export default function NewsList({ news }) {
     <Card
       title="Financial news"
       subtitle={`Last ${news.lookback_days} days · ${news.articles_analyzed} analysed of ${news.articles_collected} found`}
-      actions={<ToneBadge value={news.overall_sentiment} />}
+      actions={<ToneBadge value={news.overall_sentiment} label={`${(news.overall_sentiment || '').replaceAll('_', ' ')} sentiment`} />}
     >
-      {news.digest && (
-        <div className="mb-4 rounded-lg border border-line bg-white/[0.02] p-3">
-          <div className="mb-1 flex items-center gap-1.5 text-xs text-ink-muted">
-            <Bot className="h-3.5 w-3.5" aria-hidden="true" />
-            {news.digest_source === 'llm' ? 'AI digest' : 'Automatic digest (AI unavailable)'}
-          </div>
-          <p className="text-sm text-ink-secondary">{news.digest}</p>
-        </div>
-      )}
-      {articles.length === 0 ? (
-        <EmptyState>No recent articles mention this company in the configured news sources.</EmptyState>
-      ) : (
-        <ul className="divide-y divide-line">
-          {articles.map((a) => {
-            const href = safeUrl(a.article_url)
-            return (
-              <li key={a.url_hash} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  {href ? (
-                    <a href={href} target="_blank" rel="noopener noreferrer"
-                       className="group inline-flex max-w-full items-start gap-1 text-sm font-medium text-ink hover:text-accent">
-                      <span>{a.headline}</span>
-                      <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60 group-hover:opacity-100" aria-hidden="true" />
-                      <span className="sr-only">(opens original article in a new tab)</span>
-                    </a>
-                  ) : (
-                    <span className="text-sm font-medium text-ink">{a.headline}</span>
-                  )}
-                  <ToneBadge value={a.sentiment} />
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
-                  <span>{a.publisher}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{fmtDate(a.publication_date)}</span>
-                  <Chip>{a.category?.replaceAll('_', ' ')}</Chip>
-                  <Chip>relevance: {a.relevance}</Chip>
-                </div>
-                {a.summary && a.summary !== a.headline && (
-                  <p className="mt-1.5 text-sm text-ink-secondary">
-                    <span className="mr-1 text-xs text-ink-muted">AI summary:</span>
-                    {a.summary}
-                  </p>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      <p className="mt-4 text-xs text-ink-muted">{news.disclaimer}</p>
+      <div className="space-y-6">
+        <AiNote llm={{ source: news.digest_source === 'llm' ? 'llm' : 'template', model: news.llm?.model || 'Qwen3' }} text={news.digest}
+                note="The digest summarises the headlines below. Read the original articles before relying on it." />
+        {articles.length === 0 ? (
+          <EmptyState icon={Newspaper} title="No recent articles">
+            None of the configured news sources mentioned this company in the last {news.lookback_days} days.
+          </EmptyState>
+        ) : (
+          <ArticleList articles={articles} />
+        )}
+        <p className="caption-5 text-ink-muted">{news.disclaimer}</p>
+      </div>
     </Card>
   )
 }

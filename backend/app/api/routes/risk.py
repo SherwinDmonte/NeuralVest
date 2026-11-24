@@ -6,11 +6,13 @@ explanations and persistence go through POST /api/analysis/start.
 
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, field_validator
 
 from app.agents.risk_assessment import run_risk_assessment
+from app.api.deps import AnalysisUser
 from app.api.errors import AppError
+from app.api.rate_limit import rate_limit
 from app.config import get_settings
 from app.data.errors import DataError, InvalidSymbolError, NoDataError
 from app.data.stock_data import get_benchmark_history, get_price_history
@@ -18,6 +20,7 @@ from app.data.symbols import normalize_symbol
 from app.schemas.agents import RISK_DISCLAIMER
 
 router = APIRouter(prefix="/api/risk", tags=["risk"])
+# Phase 12: login like the other computations; shares the "portfolio" rate limit (RATE_LIMIT_PORTFOLIO).
 
 
 class RiskRequest(BaseModel):
@@ -41,8 +44,9 @@ class RiskRequest(BaseModel):
         return {normalize_symbol(k): v for k, v in weights.items()} if weights else None
 
 
-@router.post("/analyze", summary="Historical risk metrics for one or more stocks")
-def analyze_risk(body: RiskRequest) -> dict:
+@router.post("/analyze", summary="Historical risk metrics for one or more stocks",
+             dependencies=[Depends(rate_limit("portfolio"))])
+def analyze_risk(body: RiskRequest, user: AnalysisUser) -> dict:
     settings = get_settings()
     lookback = "2y" if body.period in ("6mo", "1y") else "5y"
     records, missing = {}, []

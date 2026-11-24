@@ -1,40 +1,95 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
-/* NeuralVest design tokens (dark navy theme). Chart colours follow the validated
-   categorical palette (dark steps), checked against the card surface #0f1b33:
-   all checks pass (lightness band, chroma, CVD separation, normal vision, contrast). */
+/* NeuralVest design system (Phase 12).
+   Direction: exact, unhurried, transparent; a broker's end-of-day ledger.
+   Surfaces are graphite steps from the approved dark list (#181818, #1F1F1F, #272727, #313131),
+   depth comes from surface steps and hairlines, one accent (#3987e5) marks the primary data,
+   the selection and the one figure that matters. Chart colours are the validated categorical
+   palette, re-checked against the #1F1F1F card surface: all checks pass.
+   Design rules: landing-page-design skill + unslop by Damir Sokolovsky (@heydamir, CC BY 4.0). */
 @theme {
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  --color-page: #070e1f;
-  --color-surface: #0f1b33; /* cards + chart surface */
-  --color-surface-raised: #16244199;
-  --color-line: #1f2d4a; /* hairline borders and gridlines */
+  --color-page: #181818;
+  --color-surface: #1f1f1f; /* cards and chart surface */
+  --color-raised: #272727; /* inputs, active rows, secondary buttons */
+  --color-raised-2: #313131; /* hover on raised */
+  --color-line: #ededed14; /* hairline: primary text at 8% */
+  --color-line-strong: #ededed24;
 
-  --color-ink: #f0efec;
-  --color-ink-secondary: #c3c2b7;
-  --color-ink-muted: #898781;
+  --color-ink: #ededed;
+  --color-ink-secondary: #a1a1a6;
+  --color-ink-muted: #8a8a8f;
+  --color-ink-inverse: #181818;
 
-  --color-accent: #22d3ee; /* brand accent (UI only, never a data series) */
+  --color-accent: #3987e5; /* marks, fills, focus */
+  --color-accent-ink: #6da7ec; /* accent used as text on dark surfaces (4.5:1) */
 
-  /* data series (categorical, fixed order) */
+  /* data series: categorical, fixed order, never cycled */
   --color-series-1: #3987e5;
   --color-series-2: #d95926;
   --color-series-3: #199e70;
   --color-series-4: #c98500;
 
-  /* status (always paired with an icon + label) */
+  /* status: always with an icon and a label */
   --color-good: #0ca30c;
   --color-warning: #fab219;
   --color-critical: #d03b3b;
+
+  --ease-nv: cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* ------------------------------------------------------------ named text styles (B1) */
+@utility heading-1 { font-size: var(--text-6xl); line-height: 1; font-weight: 600; letter-spacing: -0.03em; }
+@utility heading-2 { font-size: var(--text-5xl); line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
+@utility heading-3 { font-size: var(--text-4xl); line-height: 2.5rem; font-weight: 600; letter-spacing: -0.02em; }
+@utility heading-4 { font-size: var(--text-3xl); line-height: 2.25rem; font-weight: 600; }
+@utility heading-5 { font-size: var(--text-2xl); line-height: 2rem; font-weight: 600; }
+@utility heading-6 { font-size: var(--text-xl); line-height: 1.75rem; font-weight: 600; }
+@utility title-1 { font-size: var(--text-xl); line-height: 1.75rem; font-weight: 500; }
+@utility title-2 { font-size: var(--text-lg); line-height: 1.75rem; font-weight: 500; }
+@utility title-3 { font-size: var(--text-base); line-height: 1.5rem; font-weight: 500; }
+@utility title-4 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 500; }
+@utility title-5 { font-size: var(--text-xs); line-height: 1rem; font-weight: 500; }
+@utility body-1 { font-size: var(--text-base); line-height: 1.5rem; font-weight: 600; }
+@utility body-2 { font-size: var(--text-base); line-height: 1.5rem; font-weight: 500; }
+@utility body-3 { font-size: var(--text-base); line-height: 1.5rem; font-weight: 400; }
+@utility body-4 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 600; }
+@utility body-5 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 500; }
+@utility body-6 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 400; }
+/* Body 7: added for the hero subheading (scale step lg) */
+@utility body-7 { font-size: var(--text-lg); line-height: 1.75rem; font-weight: 400; }
+@utility button-lg { font-size: var(--text-lg); line-height: 1.75rem; font-weight: 600; }
+@utility button-md { font-size: var(--text-base); line-height: 1.5rem; font-weight: 600; }
+@utility button-sm { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 600; }
+@utility button-xsm { font-size: var(--text-xs); line-height: 1rem; font-weight: 600; }
+@utility caption-1 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 500; }
+@utility caption-2 { font-size: var(--text-sm); line-height: 1.25rem; font-weight: 400; }
+@utility caption-3 { font-size: var(--text-xs); line-height: 1rem; font-weight: 600; }
+@utility caption-4 { font-size: var(--text-xs); line-height: 1rem; font-weight: 500; }
+@utility caption-5 { font-size: var(--text-xs); line-height: 1rem; font-weight: 400; }
+/* figures: Geist Mono, tabular. Figure 1/2 are the added styles for key numbers (scale steps 2xl, lg). */
+@utility figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility figure-1 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); line-height: 2rem; font-weight: 500; }
+@utility figure-2 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-lg); line-height: 1.75rem; font-weight: 500; }
 
 html {
   color-scheme: dark;
 }
 
 body {
-  @apply bg-page text-ink font-sans antialiased;
+  @apply bg-page font-sans text-ink antialiased;
+}
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+}
+
+p, li {
+  text-wrap: pretty;
 }
 
 :focus-visible {
@@ -44,4 +99,52 @@ body {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Scroll reveal (B7): rise 32px and fade in once, on the base curve. */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 700ms var(--ease-nv), transform 700ms var(--ease-nv);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Tagline reveal (B11): words go from muted to full colour one by one. */
+.tagline-word {
+  color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+  transition: color 500ms var(--ease-nv);
+}
+.tagline-word.is-on {
+  color: var(--color-ink);
+}
+
+/* Skeleton loaders: a calm opacity breath, no shimmer sweep. */
+.skeleton {
+  background: var(--color-raised);
+  animation: skeleton-fade 1600ms var(--ease-nv) infinite alternate;
+}
+@keyframes skeleton-fade {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    transform: none;
+    transition: opacity 300ms var(--ease-nv);
+  }
+  .tagline-word {
+    color: var(--color-ink);
+    transition: none;
+  }
+  .skeleton {
+    animation: none;
+  }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+  }
 }

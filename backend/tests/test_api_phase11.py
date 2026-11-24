@@ -304,6 +304,30 @@ def test_stored_unsafe_url_is_not_returned(client, clean_db):
     assert items[0]["article_url"] is None
 
 
+# ---------------------------------------------------------------- 12.4.4 watchlist
+def test_watchlist(client, clean_db):
+    headers = login(client)
+    assert client.get("/api/auth/me/watchlist").status_code == 401
+    assert client.get("/api/auth/me/watchlist", headers=headers).json() == {"symbols": [], "max": 20}
+    r = client.put("/api/auth/me/watchlist", json={"symbols": ["reliance", "TCS.NS", "RELIANCE.NS", "500325"]},
+                   headers=headers)
+    assert r.status_code == 200 and r.json()["symbols"] == ["RELIANCE.NS", "TCS.NS", "500325.BO"]
+    assert client.get("/api/auth/me/watchlist", headers=headers).json()["symbols"][0] == "RELIANCE.NS"
+    other = login(client, email="ravi@example.com")
+    assert client.get("/api/auth/me/watchlist", headers=other).json()["symbols"] == []  # per user
+    assert client.put("/api/auth/me/watchlist", json={"symbols": ["not a symbol!"]}, headers=headers).status_code == 422
+    too_many = [f"{100000 + i}" for i in range(21)]
+    assert client.put("/api/auth/me/watchlist", json={"symbols": too_many}, headers=headers).status_code == 422
+    stored = clean_db[m.USERS].find_one({"email": "asha@example.com"})
+    assert m.UserDocument.model_validate({k: v for k, v in stored.items() if k != "_id"}).watchlist
+
+
+def test_risk_needs_login_when_required(runner):
+    with make_client(runner, auth_required=True) as c:
+        r = c.post("/api/risk/analyze", json={"symbols": ["TCS"]})
+        assert r.status_code == 401
+
+
 # ---------------------------------------------------------------- 11.3.4 secrets
 def test_no_secrets_in_responses_or_openapi(client):
     headers = login(client)

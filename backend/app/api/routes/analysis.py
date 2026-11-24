@@ -150,4 +150,8 @@ def assemble_result(db, job: dict) -> dict:
         "portfolio_optimization": agents.get("portfolio_optimization", {}).get("__request__"),
         "errors": job.get("error_summary", []),
         "retry_of": job.get("retry_of"),
+        # Phase 12 (Agent Monitoring page): per-node timings, status and retries, plus the
+        # output-validation summary (both null until the workflow has finished)
+        "agent_runs": job.get("agent_runs"),
+        "validation_summary": job.get("validation_summary"),
     }

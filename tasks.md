@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 11 approved and merged into `main`; paused before Phase 12** |
-| Last completed task | Phase 11 approved and merged into `main` (422 tests passing) |
-| Next task | Phase 12 (complete frontend) only when you say "start Phase 12" |
+| Current phase | **Phase 12 complete on branch `phase-12-frontend`; waiting for your approval** |
+| Last completed task | 12.4 quality checks in a real browser (425 backend tests passing) |
+| Next task | Your review of Phase 12; Phase 13 only after approval |
 | Open blockers | Manual: generate `JWT_SECRET` in `backend/.env` (task 11.1.5) |
 | Last updated | 2026-11-24 |
 
@@ -54,7 +54,7 @@
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
-| 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
+| 12 | Complete Frontend | `[~]` complete, awaiting approval | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
@@ -578,31 +578,31 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** All pages integrated with the backend.
 
 ### 12.1 Design System
-- [ ] 12.1.1 Tailwind theme tokens (navy background, blue/cyan accents, typography, spacing)
-- [ ] 12.1.2 Reusable components: Card, StatTile, Badge, Button, Input, Table, Tabs, Skeleton, ErrorState, Disclaimer
-- [ ] 12.1.3 Chart wrappers (line, area, bar, pie/donut, heatmap for correlation)
-- [ ] 12.1.4 App layout with responsive sidebar + top bar
+- [x] 12.1.1 Theme tokens in `index.css`: graphite surfaces from the approved dark list, one accent `#3987e5`, Geist + Geist Mono, named text styles (Heading, Title, Body, Button, Caption, Figure), one easing curve. **Changed from "navy background, blue/cyan accents" at your decision (2026-11-24)**
+- [x] 12.1.2 Reusable components (`components/ui.jsx`): Button, Field, Input, Select, Checkbox, Card, PageHeader, StatTile, Traced, ToneBadge, Tabs, table styles, Skeleton, ErrorState, EmptyState, Disclaimer; plus SymbolPicker, WatchButton, Logo
+- [x] 12.1.3 Charts (`components/charts.jsx`): line (price, RSI, equity, mini), composed (MACD), share bars (allocation), stacked sentiment bar, correlation heatmap; each with a table view; palette validated on `#1F1F1F`
+- [x] 12.1.4 App layout (`layouts/AppShell.jsx`): 248px sidebar, full height mobile menu, skip link
 
 ### 12.2 Authentication UI
-- [ ] 12.2.1 Register and login pages
-- [ ] 12.2.2 Token storage strategy + Axios interceptor + logout
-- [ ] 12.2.3 Protected routes
+- [x] 12.2.1 Register and login pages with client side validation
+- [x] 12.2.2 Token in sessionStorage (cleared when the tab closes; no cookies) + Axios interceptor + logout; a 401 returns to the login page
+- [x] 12.2.3 Protected routes (`/app/*`); `AUTH_REQUIRED` now defaults to `true`
 
 ### 12.3 Pages
-- [ ] 12.3.1 Landing page: hero, features, agent architecture overview, tech stack, CTAs, footer
-- [ ] 12.3.2 Dashboard: market overview, search, recently analyzed, watchlist, latest news, agent status, recent reports
-- [ ] 12.3.3 Stock Analysis page: overview, price chart, performance, indicators, fundamentals, news, risk
-- [ ] 12.3.4 AI Agent Monitoring page: 5 agent cards (status, progress, time, output, errors) + LangGraph workflow visualization
-- [ ] 12.3.5 Financial News page: list + sentiment filters + source links
-- [ ] 12.3.6 Portfolio Optimization page: stock picker, capital, risk preference, method, constraints, allocation chart, amounts, metrics, backtest chart
-- [ ] 12.3.7 Risk Analysis page: volatility, beta, drawdown, Sharpe, correlation matrix, classification, concentration
-- [ ] 12.3.8 Reports page: list, view, compare two reports, download PDF, review agent outputs
+- [x] 12.3.1 Landing page (landing-page-design + unslop skills): hero with a coded product preview, problem, benefits, tagline reveal, how it works, agents and tech stack, evidence, FAQ, final CTA, footer; privacy, terms, branded 404, meta and og image
+- [x] 12.3.2 Dashboard: NIFTY 50 overview, search, recently analysed, watchlist, latest news, agent status, recent reports
+- [x] 12.3.3 Stock Analysis page: overview, price chart, performance, indicators, fundamentals, news, risk, portfolio and report
+- [x] 12.3.4 AI Agent Monitoring page: 6 step cards (status, progress, time, output, errors, retries) + LangGraph workflow diagram + status history + output validation
+- [x] 12.3.5 Financial News page: list, sentiment filters, pagination, sentiment breakdown, source links
+- [x] 12.3.6 Portfolio Optimization page: stock picker, amount, risk preference, method, constraints, rebalancing, cost; allocation, amounts, metrics, backtest chart
+- [x] 12.3.7 Risk Analysis page: volatility, beta, drawdown, Sharpe, correlation heatmap, classification, concentration and diversification
+- [x] 12.3.8 Reports page: list (paginated, status filter), view with raw agent outputs, compare two, download PDF
 
 ### 12.4 Quality
-- [ ] 12.4.1 Check responsiveness (mobile, tablet, desktop)
-- [ ] 12.4.2 Loading, empty and error states on every page
-- [ ] 12.4.3 Accessibility basics (contrast, focus states, labels)
-- [ ] 12.4.4 Watchlist persisted per user (needs a `watchlist` field or collection, to be confirmed before implementation)
+- [x] 12.4.1 Responsiveness checked in Edge at 1440px and 390px: no horizontal overflow on any page
+- [x] 12.4.2 Skeleton loading, empty and error states on every page
+- [x] 12.4.3 Accessibility basics: focus rings, labels, skip links, aria on tabs, menus and combobox, colour never alone, reduced motion
+- [x] 12.4.4 Watchlist persisted per user: `watchlist` field on `users` (your decision 2026-11-24), `GET/PUT /api/auth/me/watchlist`, at most 20 symbols
 
 ### 🛑 Phase 12 Approval Gate
 - [ ] Phase 12 completion summary posted in chat
@@ -725,6 +725,9 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | LLM output guard extended: text with prompt markup or under 20 characters is rejected | Live run returned a digest that was just "<article>" |
 | 2026-11-24 | Auth: Argon2id + HS256 JWT bearer tokens (no cookies, so no CSRF); `AUTH_REQUIRED=false` until the Phase 12 login pages; other users' resources answer 404; rate limits with the `limits` library (slowapi's engine) as a dependency, in memory | Keeps the MVP dashboard usable; no Redis; does not reveal which ids exist |
 | 2026-11-24 | PDF generated on request from the stored report (not saved to `data/exports/`); charts with ReportLab graphics; Arial for the rupee sign, "Rs" without it | Always matches the stored report; no extra disk use or dependencies |
+| 2026-11-24 | Phase 12 design: graphite surfaces + one blue accent (not navy), solid hero text (unslop over the landing skill's gradient text), watchlist as a field on `users`, primary CTA "Create a free account" | Your answers; both skills ask for neutral surfaces |
+| 2026-11-24 | Phosphor icons and Geist fonts installed from npm (served locally, not from a CDN); lucide removed | Landing skill icon list; works offline |
+| 2026-11-24 | `AUTH_REQUIRED` default changed to `true` now that login pages exist | Reports are private; login is required for analyses |
 | 2026-11-23 | A Fundamentals card added to the MVP dashboard now (full Stock Analysis page stays in Phase 12) | Lets you check Phase 7 results in the browser |
 | 2026-11-23 | UI review fixes (your screenshots): month-start axis ticks, fitted price axis, "pts" label, split detection by one-day jump (INFY dividends were falsely flagged), Python **key readings** shown above the AI explanation, no LLM digest for a single article | The 0.6B model inverted a reading even when given the correct one; the rule-based readings are the reliable source |
 | 2026-11-23 | GDELT is opt-in in the dashboard (checkbox) | Adds ~35 s per analysis and is often rate-limited; RSS alone sometimes finds nothing |

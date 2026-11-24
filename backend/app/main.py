@@ -84,7 +84,8 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
         allow_credentials=False,  # auth will use a bearer token header, not cookies
         allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type", REQUEST_ID_HEADER],
-        expose_headers=[REQUEST_ID_HEADER],
+        # Content-Disposition: the browser may read the PDF file name (Phase 12 download button)
+        expose_headers=[REQUEST_ID_HEADER, "Content-Disposition", "Retry-After"],
     )
 
     register_exception_handlers(app)
