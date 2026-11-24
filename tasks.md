@@ -644,6 +644,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 12B.4.5 Financial News, Risk (distribution, historical VaR), Portfolio (donut, allocation bars, risk-return scatter), Reports (preview)
 - [x] 12B.4.6 Watchlist page (new), Settings and Help pages
 - [x] 12B.4.7 Landing page, login and register in the new style
+- [x] 12B.4.9 Profile picture (your request 2026-11-24): `PUT/GET/DELETE /api/auth/me/avatar`, new `user_avatars` collection (validator, unique index), upload re-encoded by Pillow to a 256 px WebP without metadata, 5 MB and 40 MP limits, `RATE_LIMIT_AVATAR`; Settings: choose or drop an image, square preview, save or remove; picture shown in the top bar and profile menu (initials otherwise); `tests/test_avatar.py`
 - [x] 12B.4.8 Landing page redesign, second pass (your request 2026-11-24): hero with the live NIFTY 50 / SENSEX card (public `/api/market/indices`, falls back to a labelled excerpt of a real run), floating traced number and run progress cards with pointer parallax, sources strip, "trace any number", scroll story of the agents, "explore a real report" tabs (returns, risk, fundamentals, portfolio with backtest), evidence band. Figures come from `src/landing/snapshot.json`, written by `backend/scripts/make_landing_snapshot.py` from a stored run; charts are small SVGs (no chart library on the landing page); no new dependencies
 
 ### 12B.5 Quality

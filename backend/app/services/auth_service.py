@@ -59,8 +59,10 @@ def verify_password(password: str, password_hash: str | None) -> bool:
 
 def public_user(doc: dict[str, Any]) -> dict[str, Any]:
     """The only user fields that ever leave the API (never the password hash)."""
+    # avatar_version changes whenever the profile picture changes, so clients know when to refetch it.
+    avatar = doc.get("avatar_updated_at")
     return {"user_id": doc["user_id"], "name": doc["name"], "email": doc["email"],
-            "created_at": doc.get("created_at")}
+            "created_at": doc.get("created_at"), "avatar_version": int(avatar.timestamp() * 1000) if avatar else None}
 
 
 def register_user(db: Database, name: str, email: str, password: str) -> dict[str, Any]:

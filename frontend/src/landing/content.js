@@ -6,7 +6,7 @@ import { fmtDate, num, shortSymbol } from '../utils/format'
 export { snapshot }
 export const REPO = 'https://github.com/SherwinDmonte/NeuralVest'
 export const CTA = 'Create a free account'
-export const TEST_COUNT = 435 // backend tests passing at the time of writing (pytest)
+export const TEST_COUNT = 444 // backend tests passing at the time of writing (pytest)
 
 export const LINKS = [
   { href: '#how', label: 'How it works' },

@@ -23,6 +23,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { IconButton, PageSkeleton } from '../components/ui'
 import { Dropdown, MenuItem, PageTransition } from '../components/motion'
 import { Logo, Mark } from '../components/Logo'
+import Avatar from '../components/Avatar'
 import CommandPalette from './CommandPalette'
 import AppFooter from './AppFooter'
 import { NAV, SECONDARY, titleFor } from './nav'
@@ -139,19 +140,21 @@ function ThemeMenu() {
 
 function ProfileMenu({ user, onLogout }) {
   const navigate = useNavigate()
-  const initials = (user?.name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
   return (
     <Dropdown label="Account" width="w-64" trigger={({ toggle, ...aria }) => (
       <button type="button" onClick={toggle} {...aria}
-              className="ml-1 grid h-9 w-9 place-items-center rounded-xl bg-brand-button caption-3 text-white transition-transform duration-300 ease-nv hover:scale-105 active:scale-95">
-        {initials}
+              className="ml-1 rounded-xl transition-transform duration-300 ease-nv hover:scale-105 active:scale-95">
+        <Avatar size={36} />
       </button>
     )}>
       {({ close }) => (
         <>
-          <div className="px-3 py-2">
-            <p className="body-5 text-ink">{user?.name}</p>
-            <p className="truncate caption-5 text-ink-muted">{user?.email}</p>
+          <div className="flex items-center gap-3 px-3 py-2">
+            <Avatar size={40} />
+            <div className="min-w-0">
+              <p className="truncate body-5 text-ink">{user?.name}</p>
+              <p className="truncate caption-5 text-ink-muted">{user?.email}</p>
+            </div>
           </div>
           <div className="my-1 h-px bg-line" />
           <MenuItem icon={User} onClick={() => { close(); navigate('/app/settings') }}>Account and settings</MenuItem>

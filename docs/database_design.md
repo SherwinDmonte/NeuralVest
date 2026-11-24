@@ -80,6 +80,8 @@ erDiagram
 | `name` | string | 1–80 chars |
 | `email` | string | lower-cased, valid email, **unique** |
 | `password_hash` | string | Argon2 hash (pwdlib). **No plaintext password is ever stored.** |
+| `watchlist` | array of symbols | optional (Phase 12), at most 20 |
+| `avatar_updated_at` | datetime | optional (Phase 12B): set while a profile picture exists in `user_avatars` |
 | `created_at` / `updated_at` | datetime | UTC |
 | `schema_version` | int | |
 
@@ -239,6 +241,23 @@ Each document is both the **job record** (status, inputs, history) and, once fin
 **Indexes:** `{report_id: 1}` unique · `{request_id: 1}` unique · `{user_id: 1, requested_at: -1}` (Reports page, paginated) · `{status: 1, requested_at: 1}` (startup recovery and queue order)
 
 **Reading a full report:** `GET /api/reports/{report_id}` loads the report document plus its `agent_results` (one indexed query by `request_id`) and assembles the response.
+
+### 3.9 `user_avatars` (profile pictures, Phase 12B)
+
+Kept apart from `users` so the binary never travels with the user document that every request loads.
+
+| Field | Type | Rules |
+|---|---|---|
+| `user_id` | string | the owner, **unique** (one picture per user) |
+| `content_type` | string | always `image/webp` |
+| `data` | binary | 256 × 256 WebP, at most 256 KB (validator); usually 10–30 KB |
+| `size_bytes`, `width`, `height` | int | |
+| `updated_at` | datetime | UTC |
+| `schema_version` | int | |
+
+**Indexes:** `{user_id: 1}` unique
+
+The API never stores an upload as sent: Pillow decodes it (JPEG, PNG or WebP only, at most 5 MB and 40 million pixels), applies the EXIF rotation, crops a centred square and re-encodes it, which drops all metadata such as GPS positions. `GET /api/auth/me/avatar` returns only the caller's own picture. Storage: about 30 KB per user with a picture, negligible against the 512 MB limit.
 
 ---
 

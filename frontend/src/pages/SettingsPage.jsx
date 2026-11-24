@@ -3,6 +3,7 @@ import { CheckCircle, Database, Desktop, Moon, Robot, Sun, User, WarningCircle }
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../theme/ThemeContext'
 import { Button, Card, Meta, PageHeader, Skeleton } from '../components/ui'
+import ProfilePicture from '../components/ProfilePicture'
 import { useApi } from '../hooks/useApi'
 import { getDbHealth, getHealth, getLlmHealth } from '../services/api'
 import { fmtDate, num } from '../utils/format'
@@ -75,6 +76,7 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Account" icon={User}>
+          <div className="mb-4"><ProfilePicture /></div>
           <Row label="Name">{user?.name}</Row>
           <Row label="Email">{user?.email}</Row>
           <Row label="Member since">{fmtDate(user?.created_at)}</Row>
