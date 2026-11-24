@@ -320,9 +320,43 @@ line per stock (weight, whole shares, rupee amount), the leftover cash, the in-s
 separated by commas; an amount field and a risk preference appear. Without the LLM, quick results:
 `POST /api/portfolio/optimize` and `POST /api/portfolio/backtest` (see http://localhost:8000/docs).
 
+### Accounts, reports and PDF (Phase 11)
+
+1. Generate a JWT secret **locally** (from `backend/`, venv active) and paste it into `backend/.env` as
+   `JWT_SECRET=...` (replace the `<generate-locally>` placeholder). Never share or commit it:
+
+   ```powershell
+   python -c "import secrets; print(secrets.token_urlsafe(48))"
+   ```
+
+   Restart the API. Without it, `/api/auth/*` returns 503 ("Authentication is not configured").
+2. In Swagger (http://localhost:8000/docs): `POST /api/auth/register`, then `POST /api/auth/login`. Copy
+   `access_token`, click **Authorize** (top right), paste it, and try `GET /api/auth/me` and `GET /api/reports`.
+3. Analyses started while logged in belong to you; others cannot open them. Older reports (and analyses
+   started from the dashboard, which has no login yet) have no owner. To list them under your account:
+
+   ```powershell
+   python scripts/assign_reports.py --email you@example.com          # dry run: shows the counts
+   python scripts/assign_reports.py --email you@example.com --apply  # assigns them
+   ```
+
+4. PDF: the dashboard's report card has a **Download PDF** button, or open
+   `http://localhost:8000/api/reports/<report_id>/pdf` (the `report_id` is in `GET /api/analysis/<request_id>`).
+   The PDF is generated from the stored report each time (about 0.5 s) and is not saved on disk.
+
+`AUTH_REQUIRED=false` (default until the Phase 12 login pages) still allows analyses without logging in.
+Rate limits (`RATE_LIMIT_*`) answer 429 with a `Retry-After` header; they reset when the API restarts.
+
 ---
 
 ## 9. Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `auth_not_configured` (503) on login/register | `JWT_SECRET` missing or shorter than 32 characters | Generate one (section 8, Phase 11) and restart the API |
+| `token_expired` (401) | The token is older than `JWT_EXPIRE_MINUTES` | Log in again |
+| `rate_limited` (429) | Too many requests in the window | Wait the `Retry-After` seconds |
+| A report you can see in MongoDB answers 404 | It belongs to another account, or has no owner while `AUTH_REQUIRED=true` | Log in as the owner, or run `scripts/assign_reports.py` |
 
 | Symptom | Cause | Fix |
 |---|---|---|

@@ -12,7 +12,7 @@ Full analyses with AI explanations go through POST /api/analysis/start with an i
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Path, Request
+from fastapi import APIRouter, Depends, Path, Request
 from pydantic import BaseModel, Field, field_validator
 
 from app.agents.portfolio_optimizer import backtest_rule, optimisation_kwargs, portfolio_document, \
@@ -20,7 +20,9 @@ from app.agents.portfolio_optimizer import backtest_rule, optimisation_kwargs, p
 from app.agents.risk_assessment import frame_from_records
 from app.analysis import backtesting as bt
 from app.analysis import optimization as opt
+from app.api.deps import AnalysisUser, get_app_settings, require_access, user_id_of
 from app.api.errors import AppError
+from app.api.rate_limit import rate_limit
 from app.config import get_settings
 from app.data.errors import DataError, InvalidSymbolError, NoDataError
 from app.data.stock_data import get_benchmark_history, get_price_history
@@ -103,8 +105,9 @@ def _benchmark(period: str, settings):
         return None
 
 
-@router.post("/optimize", summary="Illustrative allocation (weights, rupees, whole shares) + backtest")
-def optimize_portfolio(body: OptimizeRequest, request: Request) -> dict:
+@router.post("/optimize", summary="Illustrative allocation (weights, rupees, whole shares) + backtest",
+             dependencies=[Depends(rate_limit("portfolio"))])
+def optimize_portfolio(body: OptimizeRequest, request: Request, user: AnalysisUser) -> dict:
     settings = get_settings()
     records, missing = _records(body.symbols, "2y", settings)
     if len(records) < 2:
@@ -114,7 +117,8 @@ def optimize_portfolio(body: OptimizeRequest, request: Request) -> dict:
     if db is not None:
         ensure_storage_available(settings)
         insert_document(db, AnalysisReportDocument(
-            report_id=uuid.uuid4().hex, request_id=request_id, symbols=body.symbols, status="running",
+            report_id=uuid.uuid4().hex, request_id=request_id, user_id=user_id_of(user), symbols=body.symbols,
+            status="running",
             request_params={"source": "api/portfolio/optimize", "request_type": "portfolio",
                             **body.model_dump(mode="json")},
             status_history=[StatusEvent(status="queued"), StatusEvent(status="running")]))
@@ -132,15 +136,16 @@ def optimize_portfolio(body: OptimizeRequest, request: Request) -> dict:
              "$push": {"status_history": StatusEvent(status=out.status).model_dump()}})
         if out.status != "failed" and out.allocations:
             ids = [d["_id"] for d in db[AGENT_RESULTS].find({"request_id": request_id}, {"_id": 1})]
-            upsert_document(db, portfolio_document(result, request_id, ids), ["request_id"])
+            upsert_document(db, portfolio_document(result, request_id, ids, user_id_of(user)), ["request_id"])
             stored = True
     if out.status == "failed":
         raise AppError(422, "portfolio_infeasible", out.errors[0] if out.errors else "Portfolio could not be optimised.")
     return {**result, "request_id": request_id, "stored": stored, "not_found": missing}
 
 
-@router.post("/backtest", summary="Walk-forward backtest of an allocation rule (nothing stored)")
-def backtest_portfolio(body: BacktestRequest) -> dict:
+@router.post("/backtest", summary="Walk-forward backtest of an allocation rule (nothing stored)",
+             dependencies=[Depends(rate_limit("portfolio"))])
+def backtest_portfolio(body: BacktestRequest, user: AnalysisUser) -> dict:
     settings = get_settings()
     records, missing = _records(body.symbols, body.period, settings)
     if len(records) < 2:
@@ -170,13 +175,12 @@ def _benchmark_close(period: str, settings):
 
 
 @router.get("/{portfolio_id}", summary="A saved allocation with its full result")
-def get_portfolio(request: Request, portfolio_id: str = PORTFOLIO_ID) -> dict:
+def get_portfolio(request: Request, user: AnalysisUser, portfolio_id: str = PORTFOLIO_ID) -> dict:
     db = _db(request)
     if db is None:
         raise AppError(503, "database_not_configured",
                        "Saved portfolios need MongoDB. Configure MONGODB_URI in backend/.env and restart the API.")
-    doc = db[PORTFOLIOS].find_one({"portfolio_id": portfolio_id})
-    if doc is None:
-        raise AppError(404, "portfolio_not_found", "No portfolio with this portfolio_id.")
+    doc = require_access(db[PORTFOLIOS].find_one({"portfolio_id": portfolio_id}), user, get_app_settings(request),
+                         "portfolio_not_found", "No portfolio with this portfolio_id.")
     full = db[AGENT_RESULTS].find_one({"request_id": doc["request_id"], "agent_name": "portfolio_optimization"})
     return {"portfolio": serialize_document(doc), "result": full["output"] if full else None}

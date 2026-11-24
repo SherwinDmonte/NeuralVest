@@ -1,8 +1,9 @@
 // The unified report (Phase 10): key observations first, then how trustworthy the numbers
 // are (traceability, validation), the data limitations, sources and a plain-language glossary.
-import { AlertTriangle, BookOpen, Bot, Calculator, CheckCircle2, Link2 } from 'lucide-react'
+import { AlertTriangle, BookOpen, Bot, Calculator, CheckCircle2, Download, Link2 } from 'lucide-react'
 import { Card, Chip } from './ui'
 import { fmtDate } from '../utils/format'
+import { reportPdfUrl } from '../services/api'
 
 function Section({ icon: Icon, title, count, children }) {
   return (
@@ -19,7 +20,7 @@ function Section({ icon: Icon, title, count, children }) {
   )
 }
 
-export default function ReportCard({ report }) {
+export default function ReportCard({ report, reportId }) {
   if (!report?.key_observations) return null
   const obs = report.key_observations
   const fromLlm = obs.source === 'llm'
@@ -42,6 +43,13 @@ export default function ReportCard({ report }) {
           </Chip>
           <Chip>{issues === 0 ? 'Output validation: no issues' : `Output validation: ${issues} issue(s)`}</Chip>
           {retries > 0 && <Chip>{retries} step(s) retried</Chip>}
+          {reportId && (
+            <a href={reportPdfUrl(reportId)} download
+               className="inline-flex items-center gap-1 rounded-full border border-accent px-2.5 py-0.5 text-xs text-ink hover:bg-white/5">
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              Download PDF
+            </a>
+          )}
         </div>
       }
     >

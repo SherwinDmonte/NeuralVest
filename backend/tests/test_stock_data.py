@@ -19,7 +19,7 @@ NOW = datetime(2025, 12, 17, 4, 30, tzinfo=UTC)
 def fake_download(monkeypatch):
     calls = []
 
-    def _download(symbol, period):
+    def _download(symbol, period, timeout=None):
         calls.append(symbol)
         df = pd.read_csv(FIXTURE, index_col="date", parse_dates=True)
         df.index = df.index.tz_localize("Asia/Kolkata")  # like yfinance
@@ -50,7 +50,7 @@ def test_invalid_period_rejected(tmp_path, fake_download):
 
 
 def test_empty_download_raises(tmp_path, monkeypatch):
-    def _empty(symbol, period):
+    def _empty(symbol, period, timeout=None):
         raise NoDataError("No price data")
     monkeypatch.setattr(sd, "_download", _empty)
     with pytest.raises(NoDataError):
@@ -65,3 +65,22 @@ def test_store_price_history_upserts(tmp_path, fake_download, clean_db):
     assert first["upserted"] == 250 and second["upserted"] == 0
     doc = clean_db[m.MARKET_DATA].find_one({"symbol": "TCS.NS"}, sort=[("date", 1)])
     assert doc["date"] == datetime(2025, 1, 1, tzinfo=UTC) and doc["source"] == "yahoo_finance_via_yfinance"
+
+
+def test_download_passes_timeout(tmp_path, monkeypatch):
+    """Task 11.3.2: the Yahoo request is bounded by HTTP_TIMEOUT_SECONDS."""
+    seen = {}
+
+    class FakeTicker:
+        def __init__(self, symbol):
+            pass
+
+        def history(self, **kwargs):
+            seen.update(kwargs)
+            return pd.DataFrame()  # empty -> NoDataError, after the call was made
+
+    monkeypatch.setattr(sd.yf, "Ticker", FakeTicker)
+    with pytest.raises(NoDataError):
+        sd.get_price_history("RELIANCE.NS", settings=Settings(_env_file=None, data_cache_dir=tmp_path,
+                                                              http_timeout_seconds=7), use_cache=False)
+    assert seen["timeout"] == 7

@@ -40,4 +40,8 @@ export const rerunAnalysis = (requestId) => api.post(`/analysis/${requestId}/rer
 export const getIndicators = (symbol, period = '1y') =>
   api.get(`/stocks/${encodeURIComponent(symbol)}/indicators`, { params: { period } }).then((r) => r.data)
 
+// Direct link to the PDF of a finished report (Phase 11). A plain link sends no token, so it works for
+// analyses started without logging in; Phase 12 downloads with the login token instead.
+export const reportPdfUrl = (reportId) => `${api.defaults.baseURL}/reports/${reportId}/pdf`
+
 export default api

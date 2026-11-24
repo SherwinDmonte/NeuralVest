@@ -3,6 +3,7 @@
 No dummy data is ever returned. Unknown symbols give an honest 404.
 """
 
+import re
 from datetime import timedelta
 
 from fastapi import APIRouter, Path, Query
@@ -11,8 +12,9 @@ from pymongo import ASCENDING
 from app.analysis import technical_indicators as ti
 from app.api.errors import AppError
 from app.config import get_settings
-from app.data.errors import DataError, NoDataError
+from app.data.errors import DataError, InvalidSymbolError, NoDataError
 from app.data.stock_data import get_price_history, store_price_history
+from app.data.symbols import base_ticker, exchange_of, load_seed_symbols, normalize_symbol
 from app.database.database import get_database
 from app.database.models import MARKET_DATA, STOCKS, SYMBOL_PATTERN
 from app.database.repository import find_one
@@ -23,6 +25,47 @@ router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 SYMBOL = Path(description="Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)",
               pattern=SYMBOL_PATTERN, examples=["RELIANCE.NS"])
 PERIOD_DAYS = {"1mo": 31, "3mo": 92, "6mo": 183, "1y": 366, "2y": 731}
+
+
+@router.get("/search", summary="Search stocks by symbol or company name")
+def search_stocks(q: str = Query(min_length=1, max_length=50, description="e.g. 'reli', 'TCS' or '500325'"),
+                  limit: int = Query(10, ge=1, le=50)) -> dict:
+    """Matches stored companies (MongoDB `stocks`, filled when stocks are analysed or seeded) and
+    the curated suggestion list. Any valid NSE/BSE symbol can be analysed even if it is not
+    listed: when `q` itself is a valid symbol it is returned as `normalized`."""
+    text = " ".join(q.split())
+    pattern = re.compile(re.escape(text), re.IGNORECASE)  # user text is escaped: no regex injection
+    results: dict[str, dict] = {}
+    db_error = None
+    settings = get_settings()
+    if settings.mongodb_configured:
+        try:
+            cursor = get_database(settings)[STOCKS].find(
+                {"$or": [{"symbol": pattern}, {"company_name": pattern}]},
+                {"_id": 0, "symbol": 1, "company_name": 1, "exchange": 1, "sector": 1, "industry": 1}).limit(200)
+            for d in cursor:
+                results[d["symbol"]] = {**d, "source": "stored"}
+        except Exception as exc:  # search still works from the curated list
+            db_error = exc.__class__.__name__
+    for sym in load_seed_symbols()["symbols"]:
+        if sym not in results and pattern.search(sym):
+            results[sym] = {"symbol": sym, "company_name": None, "exchange": exchange_of(sym), "sector": None,
+                            "industry": None, "source": "curated_list"}
+    key = text.upper()
+
+    def rank(item: dict) -> tuple:
+        base = base_ticker(item["symbol"])
+        name = (item.get("company_name") or "").upper()
+        return (base != key, not base.startswith(key), not name.startswith(key), item["symbol"])
+
+    items = sorted(results.values(), key=rank)
+    try:
+        normalized = normalize_symbol(text)
+    except InvalidSymbolError:
+        normalized = None
+    return {"query": text, "items": items[:limit], "total": len(items), "normalized": normalized,
+            "note": "Company names appear once a stock has been analysed or seeded."
+                    + (f" Stored companies could not be searched ({db_error})." if db_error else "")}
 
 
 @router.get("/{symbol}/history", summary="Daily prices (from MongoDB, fetched from Yahoo if missing)")

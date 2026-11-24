@@ -57,14 +57,16 @@ class PriceHistory:
                 "data_as_of": self.report.last_date, "from_cache": self.from_cache}
 
 
-def _download(symbol: str, period: str) -> pd.DataFrame:
-    """Raw download with retries. Returns renamed columns; raises NoDataError if empty."""
+def _download(symbol: str, period: str, timeout: float = 20) -> pd.DataFrame:
+    """Raw download with retries. Returns renamed columns; raises NoDataError if empty.
+    `timeout` limits each HTTP request (other yfinance calls use the library's 30 s)."""
     last_exc: Exception | None = None
     for attempt, wait in enumerate((0, *_RETRY_WAITS)):
         if wait:
             time.sleep(wait)
         try:
-            raw = yf.Ticker(symbol).history(period=period, interval="1d", auto_adjust=False, actions=False)
+            raw = yf.Ticker(symbol).history(period=period, interval="1d", auto_adjust=False, actions=False,
+                                            timeout=timeout)
         except yf.exceptions.YFRateLimitError as exc:
             last_exc = exc
             logger.warning("Yahoo rate limit for %s (attempt %d)", symbol, attempt + 1)
@@ -107,7 +109,7 @@ def get_price_history(
         raw, fetched_at = _frame_from_records(cached[0]), cached[1]
         from_cache = True
     else:
-        raw = _download(symbol, period)
+        raw = _download(symbol, period, timeout=settings.http_timeout_seconds)
         records = [{"date": d.strftime("%Y-%m-%d %H:%M:%S%z"), **{c: (None if pd.isna(v) else float(v))
                     for c, v in row.items()}} for d, row in raw.iterrows()]
         fetched_at = cache.write("prices", f"{symbol}_{period}", records)

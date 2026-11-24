@@ -12,10 +12,16 @@ _MONGO_CREDENTIALS = re.compile(r"(mongodb(?:\+srv)?://)([^:@/\s]+):([^@/\s]+)@"
 # key=value pairs whose key looks secret (password=..., secret=..., token=...)
 _SECRET_PAIRS = re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)(\s*[=:]\s*)([^\s,;&]+)")
 
+# Phase 11: "Bearer <token>" and anything shaped like a JWT (three base64url parts, header "eyJ")
+_BEARER = re.compile(r"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=-]+")
+_JWT = re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*")
+
 
 def redact(text: str) -> str:
     """Mask credentials that could otherwise end up in log files."""
     text = _MONGO_CREDENTIALS.sub(r"\1\2:***@", text)
+    text = _BEARER.sub(r"\1***", text)
+    text = _JWT.sub("***jwt***", text)
     return _SECRET_PAIRS.sub(r"\1\2***", text)
 
 
