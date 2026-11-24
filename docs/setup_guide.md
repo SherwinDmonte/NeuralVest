@@ -362,6 +362,14 @@ app at `/app`: Dashboard, Stock analysis, Agent monitoring, Financial news, Port
 Reports. The login lasts until the token expires (`JWT_EXPIRE_MINUTES`) or the browser tab is closed.
 Rate limits (`RATE_LIMIT_*`) answer 429 with a `Retry-After` header; they reset when the API restarts.
 
+### The redesigned app (Phase 12B)
+
+Phase 12B adds the `motion` animation package. After pulling it, run `npm install` once more in `frontend`.
+The app has dark and light themes (top bar → theme menu, or Settings; "System" follows Windows), a
+collapsible sidebar, `Ctrl K` search, and new pages: Market intelligence, Watchlist, Settings and Help.
+The first visit to Overview or Market intelligence downloads 30 curated stocks for the breadth figures
+and can take up to a minute; later visits use the cache.
+
 ---
 
 ## 9. Common Errors

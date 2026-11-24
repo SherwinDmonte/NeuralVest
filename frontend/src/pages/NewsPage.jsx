@@ -6,7 +6,8 @@ import { CaretLeft, CaretRight, Newspaper } from '@phosphor-icons/react'
 import { ArticleList } from '../components/NewsList'
 import { SentimentBar } from '../components/charts'
 import SymbolPicker from '../components/SymbolPicker'
-import { Button, Card, CardSkeleton, EmptyState, ErrorState, Meta, PageHeader, Select, Skeleton, Tabs, ToneBadge } from '../components/ui'
+import { Button, Card, CardSkeleton, EmptyState, ErrorState, Input, Meta, PageHeader, Select, Skeleton, ToneBadge } from '../components/ui'
+import { AnimatedTabs } from '../components/motion'
 import { errorMessage, getNews, getNewsSentiment } from '../services/api'
 import { fmtDateTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -18,7 +19,7 @@ const FILTERS = [
   { value: 'neutral', label: 'Neutral' },
   { value: 'uncertain', label: 'Uncertain' },
 ]
-const PAGE_SIZE = 10
+const PAGE_SIZE = 20
 
 export default function NewsPage() {
   usePageTitle('Financial news')
@@ -27,6 +28,8 @@ export default function NewsPage() {
   const [sentiment, setSentiment] = useState('')
   const [page, setPage] = useState(1)
   const [days, setDays] = useState(14)
+  const [q, setQ] = useState('')
+  const [publisher, setPublisher] = useState('')
   const [news, setNews] = useState({ data: null, error: null, loading: false })
   const [summary, setSummary] = useState(null)
 
@@ -52,7 +55,7 @@ export default function NewsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Financial news" description="Articles collected by the Financial News agent, newest first, with the sentiment a local AI model gave each one." />
+      <PageHeader eyebrow="News intelligence" title="Financial news" description="Articles collected by the Financial News agent, newest first, with the sentiment a local AI model gave each one." />
       <Card>
         <SymbolPicker value={symbol ? [symbol] : []} single label="Stock" placeholder="Search a symbol or company name"
                       onChange={(v) => { setParams(v[0] ? { symbol: v[0] } : {}); setPage(1) }} />
@@ -68,15 +71,28 @@ export default function NewsPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <Tabs label="Filter by sentiment" tabs={FILTERS} value={sentiment} onChange={(v) => { setSentiment(v); setPage(1) }} />
+              <AnimatedTabs size="sm" label="Filter by sentiment" tabs={FILTERS} value={sentiment} onChange={(v) => { setSentiment(v); setPage(1) }} />
               {news.data && <Meta>{news.data.total} articles</Meta>}
             </div>
+            {news.data && news.data.items.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+                <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search headlines on this page" aria-label="Search headlines on this page" />
+                <Select value={publisher} onChange={(e) => setPublisher(e.target.value)} aria-label="Publisher">
+                  <option value="">All publishers</option>
+                  {[...new Set(news.data.items.map((a) => a.publisher))].sort().map((pb) => <option key={pb} value={pb}>{pb}</option>)}
+                </Select>
+              </div>
+            )}
             {news.loading && <CardSkeleton rows={6} />}
             {news.error && <ErrorState message={news.error} />}
             {news.data && !news.loading && (
               news.data.items.length ? (
                 <Card>
-                  <ArticleList articles={news.data.items} />
+                  {(() => {
+                    const t = q.trim().toLowerCase()
+                    const shown = news.data.items.filter((a) => (!publisher || a.publisher === publisher) && (!t || `${a.headline} ${a.summary || ''} ${a.publisher}`.toLowerCase().includes(t)))
+                    return shown.length ? <ArticleList articles={shown} /> : <p className="body-6 text-ink-muted">No article on this page matches. Clear the search or the publisher.</p>
+                  })()}
                   {pages > 1 && (
                     <nav aria-label="Pages" className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-4">
                       <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>

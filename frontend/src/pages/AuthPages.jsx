@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Button, ErrorState, Field, Input } from '../components/ui'
-import { Logo } from '../components/Logo'
+import { Logo, Mark } from '../components/Logo'
+import { Cpu, FileText, ShieldCheck } from '@phosphor-icons/react'
 import { errorMessage } from '../services/api'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -27,18 +28,46 @@ function validate(form, mode) {
   return e
 }
 
+const POINTS = [
+  [ShieldCheck, 'Every number traced', 'Each figure in a report is matched to the agent that computed it.'],
+  [Cpu, 'Runs on your computer', 'A local Qwen3 model through Ollama. No paid API.'],
+  [FileText, 'Reports you keep', 'Private to your account, comparable, and downloadable as PDF.'],
+]
+
 function AuthFrame({ title, subtitle, children, footer }) {
   return (
-    <div className="flex min-h-screen flex-col px-4 py-8">
-      <Logo />
-      <main id="main" className="flex flex-1 items-center justify-center py-12">
-        <div className="w-full max-w-sm">
-          <h1 className="heading-5 text-ink">{title}</h1>
-          <p className="mt-2 body-6 text-ink-secondary">{subtitle}</p>
-          <div className="mt-8">{children}</div>
-          <p className="mt-6 caption-2 text-ink-secondary">{footer}</p>
+    <div className="grid min-h-screen ambient lg:grid-cols-[1.1fr_1fr]">
+      <aside className="relative hidden overflow-hidden border-r border-line p-12 lg:flex lg:flex-col">
+        <div className="pointer-events-none absolute inset-0 grid-lines opacity-70 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_75%)]" aria-hidden="true" />
+        <div className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-accent/25 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-violet/20 blur-3xl" aria-hidden="true" />
+        <div className="relative"><Logo /></div>
+        <div className="relative mt-auto max-w-lg">
+          <Mark size={64} animated />
+          <h2 className="mt-8 heading-4 text-ink">Research Indian stocks <span className="text-brand">with the working shown</span></h2>
+          <ul className="mt-8 space-y-4">
+            {POINTS.map(([Icon, t, d]) => (
+              <li key={t} className="flex gap-4 rounded-2xl border border-line glass p-4">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-button text-white"><Icon size={20} aria-hidden="true" /></span>
+                <span><span className="block body-5 text-ink">{t}</span><span className="caption-2 text-ink-secondary">{d}</span></span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 caption-5 text-ink-muted">Educational project. Not investment advice.</p>
         </div>
-      </main>
+      </aside>
+      <div className="flex min-h-screen flex-col px-4 py-8 sm:px-8">
+        <div className="lg:hidden"><Logo /></div>
+        <main id="main" className="flex flex-1 items-center justify-center py-12">
+          <div className="relative w-full max-w-md rounded-3xl border border-line glass p-6 shadow-float sm:p-8">
+            <span className="pointer-events-none absolute inset-x-8 top-0 h-px bg-brand" aria-hidden="true" />
+            <h1 className="heading-5 text-ink">{title}</h1>
+            <p className="mt-2 body-6 text-ink-secondary">{subtitle}</p>
+            <div className="mt-8">{children}</div>
+            <p className="mt-6 caption-2 text-ink-secondary">{footer}</p>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
@@ -95,7 +124,7 @@ function AuthForm({ mode }) {
                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'} maxLength={128} />
         )}
       </Field>
-      <Button type="submit" className="w-full" disabled={busy}>
+      <Button type="submit" size="lg" className="w-full" disabled={busy}>
         {busy ? (mode === 'register' ? 'Creating your account' : 'Logging in') : mode === 'register' ? 'Create a free account' : 'Log in'}
       </Button>
     </form>

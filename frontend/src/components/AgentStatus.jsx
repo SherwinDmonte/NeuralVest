@@ -40,7 +40,7 @@ export const JOB_TEXT = {
   interrupted: 'Interrupted: the server stopped during this analysis',
 }
 
-function StateIcon({ state, size = 16 }) {
+export function StateIcon({ state, size = 16 }) {
   const s = STATE[state] || STATE.pending
   return <s.Icon size={size} weight={state === 'completed' ? 'fill' : 'regular'} className={`shrink-0 ${s.cls}`} aria-hidden="true" />
 }
@@ -117,10 +117,10 @@ function nodeState(key, status, runs) {
 export function WorkflowGraph({ status, runs }) {
   return (
     <Card title="Workflow" subtitle="LangGraph supervisor: each step runs when the one before it finishes; failed data steps are retried once">
-      <ol className="flex flex-col gap-2 lg:flex-row lg:items-stretch lg:gap-0">
+      <ol className="flex flex-col gap-2 xl:flex-row xl:items-stretch xl:gap-0">
         {FLOW.map((column, i) => (
-          <li key={column[0].key} className="flex flex-col items-stretch lg:flex-1 lg:flex-row lg:items-center">
-            <div className="flex flex-col gap-2 lg:flex-1">
+          <li key={column[0].key} className="flex min-w-0 flex-col items-stretch xl:flex-1 xl:flex-row xl:items-center">
+            <div className="flex min-w-0 flex-col gap-2 xl:flex-1">
               {column.map((n) => {
                 const state = nodeState(n.key, status, runs)
                 const secs = runs?.[n.key]?.duration_s
@@ -137,7 +137,7 @@ export function WorkflowGraph({ status, runs }) {
               })}
             </div>
             {i < FLOW.length - 1 && (
-              <span className="mx-auto h-3 w-px bg-line-strong lg:mx-0 lg:h-px lg:w-4" aria-hidden="true" />
+              <span className="mx-auto h-3 w-px bg-line-strong xl:mx-0 xl:h-px xl:w-3 xl:shrink-0" aria-hidden="true" />
             )}
           </li>
         ))}
@@ -147,7 +147,7 @@ export function WorkflowGraph({ status, runs }) {
 }
 
 // ------------------------------------------------------------------ per agent cards
-function outputSummary(key, result) {
+export function outputSummary(key, result) {
   if (!result) return null
   const first = (obj) => Object.entries(obj || {}).filter(([k]) => k !== '__request__')
   switch (key) {
@@ -172,7 +172,7 @@ function outputSummary(key, result) {
   }
 }
 
-function agentErrors(key, result) {
+export function agentErrors(key, result) {
   return (result?.errors || []).filter((e) => e.agent === key || (key === 'report' && e.agent === 'validate_input'))
 }
 

@@ -15,7 +15,7 @@ from pymongo.errors import PyMongoError
 
 from app.api.errors import register_exception_handlers
 from app.api.rate_limit import RateLimiter
-from app.api.routes import analysis, auth, health, news, portfolio, reports, risk, stocks
+from app.api.routes import analysis, auth, health, market, news, portfolio, reports, risk, stocks
 from app.config import APP_NAME, APP_VERSION, Settings, get_settings
 from app.database.database import close_client, get_database, initialize_database, ping
 from app.llm.ollama_client import get_llm_client
@@ -92,6 +92,7 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(stocks.router)
+    app.include_router(market.router)
     app.include_router(analysis.router)
     app.include_router(news.router)
     app.include_router(risk.router)

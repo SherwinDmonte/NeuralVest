@@ -68,7 +68,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Portfolio" description="An illustrative split of an amount across 2 to 10 stocks, in whole shares, with a walk forward backtest. It describes the past and is not advice." />
+      <PageHeader eyebrow="Portfolio optimization" title="Build an illustrative portfolio" description="An illustrative split of an amount across 2 to 10 stocks, in whole shares, with a walk forward backtest. It describes the past and is not advice." />
 
       <Card>
         <form onSubmit={submit} noValidate className="space-y-6">

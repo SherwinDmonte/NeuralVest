@@ -4,7 +4,7 @@
 import { Warning } from '@phosphor-icons/react'
 import { Card, Meta, StatTile, Traced, table } from './ui'
 import { AiNote, Readings } from './explain'
-import { EquityChart, ShareBars } from './charts'
+import { ComparisonBars, DonutChart, EquityChart, RiskReturnScatter } from './charts'
 import { fmtDate, inr, num, pct } from '../utils/format'
 
 export default function PortfolioCard({ portfolio }) {
@@ -36,8 +36,8 @@ export default function PortfolioCard({ portfolio }) {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+          <div className="grid gap-6 2xl:grid-cols-[1.3fr_1fr]">
+            <div>
               <div className={table.wrap}>
                 <table className={table.table}>
                   <caption className="sr-only">Allocation by stock</caption>
@@ -75,7 +75,7 @@ export default function PortfolioCard({ portfolio }) {
             </div>
             <div>
               <div className="mb-3 caption-4 text-ink-muted">Target weights</div>
-              <ShareBars rows={portfolio.allocations} />
+              <DonutChart rows={portfolio.allocations} />
             </div>
           </div>
 
@@ -86,6 +86,21 @@ export default function PortfolioCard({ portfolio }) {
                       sub={bk ? `Equal weights ${pct(eq?.cagr_pct)} · NIFTY 50 ${pct(nifty?.cagr_pct)}` : portfolio.backtest_reason} traced="portfolio" />
             <StatTile label="Backtest max drawdown" value={bk?.max_drawdown_pct == null ? 'n/a' : `${num(bk.max_drawdown_pct)}%`}
                       sub={bk ? `Sharpe ${bk.sharpe == null ? 'n/a' : num(bk.sharpe, 2)} · costs ${inr(bk.total_costs_inr, 0)}` : null} traced="portfolio" />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-line bg-raised/40 p-4">
+              <p className="title-4 text-ink">Risk and return, estimation window</p>
+              <p className="caption-5 text-ink-muted">Historical estimates from the last {portfolio.assumptions?.lookback_days ?? 252} trading days; the diamond is this mix. Not a forecast.</p>
+              <RiskReturnScatter
+                points={portfolio.allocations.filter((a) => a.volatility_pct != null && a.expected_return_pct != null).map((a) => ({ label: a.symbol, vol: a.volatility_pct, ret: a.expected_return_pct }))}
+                portfolio={em.annual_volatility_pct != null && em.annual_return_pct != null ? { label: 'This mix', vol: em.annual_volatility_pct, ret: em.annual_return_pct } : null} />
+            </div>
+            <div className="rounded-2xl border border-line bg-raised/40 p-4">
+              <p className="title-4 text-ink">Backtest CAGR comparison</p>
+              <p className="mb-4 caption-5 text-ink-muted">{bk ? `Historical, out of sample, ${fmtDate(bk.period.from)} to ${fmtDate(bk.period.to)}, after costs` : portfolio.backtest_reason || 'No backtest'}</p>
+              {bk && <ComparisonBars rows={[{ label: 'This allocation rule', value: bk.cagr_pct }, { label: 'Equal weights', value: eq?.cagr_pct }, { label: 'NIFTY 50', value: nifty?.cagr_pct }]} />}
+            </div>
           </div>
 
           <Readings items={Object.values(portfolio.readings || {})} />

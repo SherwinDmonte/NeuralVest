@@ -2,44 +2,171 @@
 @import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
-/* NeuralVest design system (Phase 12).
-   Direction: exact, unhurried, transparent; a broker's end-of-day ledger.
-   Surfaces are graphite steps from the approved dark list (#181818, #1F1F1F, #272727, #313131),
-   depth comes from surface steps and hairlines, one accent (#3987e5) marks the primary data,
-   the selection and the one figure that matters. Chart colours are the validated categorical
-   palette, re-checked against the #1F1F1F card surface: all checks pass.
-   Design rules: landing-page-design skill + unslop by Damir Sokolovsky (@heydamir, CC BY 4.0). */
-@theme {
+/* NeuralVest design system (Phase 12B redesign, from the master brief).
+   Two complete themes on CSS variables (data-theme="dark" | "light" on <html>), so every
+   component switches theme through the same token names. Brand: teal, electric blue, violet,
+   cyan gradients on the moments that carry the brand (logo, hero, primary buttons, chart fills,
+   the agent network) and glass on floating panels.
+   Chart colours: the validated categorical palette, dark steps checked on #111C30 and light
+   steps on #FFFFFF (both pass; light aqua/yellow are below 3:1, so charts keep legends with
+   values and a table view). */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@custom-variant light (&:where([data-theme=light], [data-theme=light] *));
+
+@theme inline {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  --color-page: #181818;
-  --color-surface: #1f1f1f; /* cards and chart surface */
-  --color-raised: #272727; /* inputs, active rows, secondary buttons */
-  --color-raised-2: #313131; /* hover on raised */
-  --color-line: #ededed14; /* hairline: primary text at 8% */
-  --color-line-strong: #ededed24;
+  --color-page: var(--nv-page);
+  --color-page-2: var(--nv-page-2);
+  --color-sidebar: var(--nv-sidebar);
+  --color-surface: var(--nv-surface);
+  --color-raised: var(--nv-raised);
+  --color-raised-2: var(--nv-raised-2);
+  --color-line: var(--nv-line);
+  --color-line-strong: var(--nv-line-strong);
 
-  --color-ink: #ededed;
-  --color-ink-secondary: #a1a1a6;
-  --color-ink-muted: #8a8a8f;
-  --color-ink-inverse: #181818;
+  --color-ink: var(--nv-ink);
+  --color-ink-secondary: var(--nv-ink-secondary);
+  --color-ink-muted: var(--nv-ink-muted);
+  --color-ink-inverse: var(--nv-ink-inverse);
 
-  --color-accent: #3987e5; /* marks, fills, focus */
-  --color-accent-ink: #6da7ec; /* accent used as text on dark surfaces (4.5:1) */
+  --color-accent: var(--nv-accent);
+  --color-accent-ink: var(--nv-accent-ink);
+  --color-teal: var(--nv-teal);
+  --color-violet: var(--nv-violet);
+  --color-cyan: var(--nv-cyan);
 
-  /* data series: categorical, fixed order, never cycled */
-  --color-series-1: #3987e5;
-  --color-series-2: #d95926;
-  --color-series-3: #199e70;
-  --color-series-4: #c98500;
+  --color-series-1: var(--nv-series-1);
+  --color-series-2: var(--nv-series-2);
+  --color-series-3: var(--nv-series-3);
+  --color-series-4: var(--nv-series-4);
 
-  /* status: always with an icon and a label */
-  --color-good: #0ca30c;
-  --color-warning: #fab219;
-  --color-critical: #d03b3b;
+  --color-good: var(--nv-good);
+  --color-warning: var(--nv-warning);
+  --color-critical: var(--nv-critical);
+  --color-neutral: var(--nv-neutral);
 
   --ease-nv: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --nv-page: #080d18;
+  --nv-page-2: #0d1525;
+  --nv-sidebar: #0b1220;
+  --nv-surface: #111c30;
+  --nv-raised: #17243a;
+  --nv-raised-2: #1e2e49;
+  --nv-line: rgba(148, 163, 184, 0.14);
+  --nv-line-strong: rgba(148, 163, 184, 0.26);
+  --nv-ink: #f3f6fc;
+  --nv-ink-secondary: #93a4bd;
+  --nv-ink-muted: #7d8ca3; /* the brief's #64748B is below 4.5:1 on cards; lightened one step */
+  --nv-ink-inverse: #080d18;
+  --nv-accent: #438bff;
+  --nv-accent-ink: #7fb0ff;
+  --nv-teal: #16c7b7;
+  --nv-violet: #9b6bff;
+  --nv-cyan: #42d9f4;
+  --nv-series-1: #3987e5;
+  --nv-series-2: #d95926;
+  --nv-series-3: #199e70;
+  --nv-series-4: #c98500;
+  --nv-good: #22c55e;
+  --nv-warning: #f5b942;
+  --nv-critical: #f0526e;
+  --nv-neutral: #60a5fa;
+  --nv-glass: rgba(17, 28, 48, 0.62);
+  --nv-glass-strong: rgba(11, 18, 32, 0.82);
+  --nv-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --nv-shadow-lg: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 32px 80px -24px rgba(0, 0, 0, 0.7);
+  --nv-ambient-1: rgba(22, 199, 183, 0.16);
+  --nv-ambient-2: rgba(67, 139, 255, 0.18);
+  --nv-ambient-3: rgba(155, 107, 255, 0.16);
+  --nv-grid: rgba(148, 163, 184, 0.06);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --nv-page: #f4f7fc;
+  --nv-page-2: #eef2f9;
+  --nv-sidebar: #ffffff;
+  --nv-surface: #ffffff;
+  --nv-raised: #f5f8fe;
+  --nv-raised-2: #e9eef8;
+  --nv-line: #e2e8f0;
+  --nv-line-strong: #cbd5e1;
+  --nv-ink: #14213d;
+  --nv-ink-secondary: #475569;
+  --nv-ink-muted: #64748b;
+  --nv-ink-inverse: #ffffff;
+  --nv-accent: #2563eb;
+  --nv-accent-ink: #1d4ed8;
+  --nv-teal: #0d9488;
+  --nv-violet: #7c3aed;
+  --nv-cyan: #0891b2;
+  --nv-series-1: #2a78d6;
+  --nv-series-2: #eb6834;
+  --nv-series-3: #1baf7a;
+  --nv-series-4: #eda100;
+  --nv-good: #15803d;
+  --nv-warning: #b45309;
+  --nv-critical: #be123c;
+  --nv-neutral: #2563eb;
+  --nv-glass: rgba(255, 255, 255, 0.72);
+  --nv-glass-strong: rgba(255, 255, 255, 0.88);
+  --nv-shadow: 0 1px 2px rgba(20, 33, 61, 0.06), 0 8px 24px -12px rgba(20, 33, 61, 0.12);
+  --nv-shadow-lg: 0 2px 4px rgba(20, 33, 61, 0.06), 0 32px 64px -24px rgba(20, 33, 61, 0.22);
+  --nv-ambient-1: rgba(13, 148, 136, 0.12);
+  --nv-ambient-2: rgba(37, 99, 235, 0.12);
+  --nv-ambient-3: rgba(124, 58, 237, 0.1);
+  --nv-grid: rgba(20, 33, 61, 0.05);
+}
+
+/* ------------------------------------------------------------ brand effects */
+@utility bg-brand { background-image: linear-gradient(135deg, var(--nv-teal), var(--nv-accent) 55%, var(--nv-violet)); }
+/* Primary buttons: darker stops so white text keeps at least 4.5:1 across the whole gradient */
+@utility bg-brand-button { background-image: linear-gradient(135deg, #0a8077, #2563eb 55%, #6d3fe6); }
+@utility text-brand {
+  background-image: linear-gradient(100deg, var(--nv-teal), var(--nv-accent) 45%, var(--nv-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility glass {
+  background-color: var(--nv-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+@utility glass-strong {
+  background-color: var(--nv-glass-strong);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+@utility shadow-card { box-shadow: var(--nv-shadow); }
+@utility shadow-float { box-shadow: var(--nv-shadow-lg); }
+/* A 1px gradient border on any rounded box (padding-box / border-box technique). */
+@utility border-brand {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--nv-surface), var(--nv-surface)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--nv-teal) 70%, transparent), color-mix(in srgb, var(--nv-accent) 50%, transparent), color-mix(in srgb, var(--nv-violet) 70%, transparent)) border-box;
+}
+/* Ambient lighting behind the app: three soft radial lights and a faint grid. */
+@utility ambient {
+  background-color: var(--nv-page);
+  background-image:
+    radial-gradient(60rem 40rem at 10% -10%, var(--nv-ambient-1), transparent 60%),
+    radial-gradient(50rem 36rem at 95% 0%, var(--nv-ambient-2), transparent 60%),
+    radial-gradient(60rem 40rem at 50% 120%, var(--nv-ambient-3), transparent 60%);
+}
+@utility grid-lines {
+  background-image:
+    linear-gradient(var(--nv-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--nv-grid) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 /* ------------------------------------------------------------ named text styles (B1) */
@@ -76,8 +203,11 @@
 @utility figure-1 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); line-height: 2rem; font-weight: 500; }
 @utility figure-2 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-lg); line-height: 1.75rem; font-weight: 500; }
 
-html {
-  color-scheme: dark;
+/* Smooth theme change: only while switching (class set for 400 ms by the theme provider). */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: background-color 400ms var(--ease-nv), border-color 400ms var(--ease-nv), color 300ms var(--ease-nv), fill 300ms var(--ease-nv), stroke 300ms var(--ease-nv) !important;
 }
 
 body {
@@ -121,15 +251,25 @@ p, li {
   color: var(--color-ink);
 }
 
-/* Skeleton loaders: a calm opacity breath, no shimmer sweep. */
+/* Skeleton loaders: a soft shimmer across the raised surface. */
 .skeleton {
-  background: var(--color-raised);
-  animation: skeleton-fade 1600ms var(--ease-nv) infinite alternate;
+  background: linear-gradient(90deg, var(--nv-raised) 0%, var(--nv-raised-2) 50%, var(--nv-raised) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1600ms var(--ease-nv) infinite;
 }
-@keyframes skeleton-fade {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
 }
+
+/* Brand motion: logo nodes and lines, the agent network, gradient drift. */
+@keyframes nv-pulse { 0%, 100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes nv-dash { to { stroke-dashoffset: -24; } }
+@keyframes nv-drift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes nv-spin { to { transform: rotate(360deg); } }
+.nv-pulse { transform-box: fill-box; transform-origin: center; animation: nv-pulse 2.4s var(--ease-nv) infinite; }
+.nv-flow { stroke-dasharray: 4 8; animation: nv-dash 1.2s linear infinite; }
+.nv-drift { background-size: 200% 200%; animation: nv-drift 8s var(--ease-nv) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,
@@ -141,7 +281,10 @@ p, li {
     color: var(--color-ink);
     transition: none;
   }
-  .skeleton {
+  .skeleton,
+  .nv-pulse,
+  .nv-flow,
+  .nv-drift {
     animation: none;
   }
   *, *::before, *::after {
