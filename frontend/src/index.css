@@ -291,3 +291,47 @@ p, li {
     scroll-behavior: auto !important;
   }
 }
+
+/* ------------------------------------------------------------ landing page (Phase 12B redesign) */
+/* Entrances: charts and bars start hidden inside a scope (a section, tab panel or hero chart)
+   that is not yet visible, then animate when the scope gets .is-visible. */
+.lp-draw { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1600ms var(--ease-nv); }
+.lp-fade { opacity: 1; transition: opacity 900ms var(--ease-nv) 600ms; }
+.lp-bar { transform: scaleX(1); transform-origin: left; transition: transform 900ms var(--ease-nv); }
+.lp-spin { transform: rotate(-90deg); opacity: 1; transition: transform 1000ms var(--ease-nv), opacity 600ms var(--ease-nv); }
+.lp-scope:not(.is-visible) .lp-draw { stroke-dashoffset: 1; transition: none; }
+.lp-scope:not(.is-visible) .lp-fade { opacity: 0; transition: none; }
+.lp-scope:not(.is-visible) .lp-bar { transform: scaleX(0); transition: none; }
+.lp-scope:not(.is-visible) .lp-spin { transform: rotate(-150deg); opacity: 0; transition: none; }
+
+/* Hero entrance and swapped content (tab panels, the traced number details). */
+@keyframes lp-enter { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+@keyframes lp-swap { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.lp-enter { animation: lp-enter 800ms var(--ease-nv) both; }
+.lp-swap { animation: lp-swap 500ms var(--ease-nv) both; }
+
+/* Floating cards bob slowly; pointer parallax moves layers through --px/--py (set per frame). */
+@keyframes lp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.lp-float { animation: lp-float 7s var(--ease-nv) infinite; }
+.lp-parallax {
+  transform: translate3d(calc(var(--px, 0) * var(--depth, 8px)), calc(var(--py, 0) * var(--depth, 8px)), 0);
+  transition: transform 700ms var(--ease-nv);
+  will-change: transform;
+}
+
+/* Background network: nodes breathe, the whole network drifts a little. */
+@keyframes lp-node { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
+@keyframes lp-drift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-24px, 12px, 0); } }
+.lp-node { animation: lp-node 6s var(--ease-nv) infinite; }
+.lp-drift { animation: lp-drift 24s var(--ease-nv) infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-draw, .lp-scope:not(.is-visible) .lp-draw { stroke-dashoffset: 0; transition: none; }
+  .lp-fade, .lp-scope:not(.is-visible) .lp-fade { opacity: 1; transition: none; }
+  .lp-bar, .lp-scope:not(.is-visible) .lp-bar { transform: none; transition: none; }
+  .lp-spin, .lp-scope:not(.is-visible) .lp-spin { transform: rotate(-90deg); opacity: 1; transition: none; }
+  .lp-enter, .lp-swap { animation: lp-fade-only 300ms var(--ease-nv) both; }
+  .lp-float, .lp-node, .lp-drift { animation: none; }
+  .lp-parallax { transform: none; transition: none; }
+}
+@keyframes lp-fade-only { from { opacity: 0; } to { opacity: 1; } }

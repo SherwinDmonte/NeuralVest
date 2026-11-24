@@ -370,6 +370,10 @@ collapsible sidebar, `Ctrl K` search, and new pages: Market intelligence, Watchl
 The first visit to Overview or Market intelligence downloads 30 curated stocks for the breadth figures
 and can take up to a minute; later visits use the cache.
 
+The landing page quotes one real analysis. To refresh it from your latest finished run with two or more
+stocks, run `python scripts/make_landing_snapshot.py` in `backend` (venv active; it only reads the database)
+and commit the updated `frontend/src/landing/snapshot.json`.
+
 ---
 
 ## 9. Common Errors
