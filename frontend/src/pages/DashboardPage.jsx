@@ -160,7 +160,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {result?.report && <ReportCard report={result.report} />}
+      {result?.report && <ReportCard report={result.report} reportId={result.report_id} />}
 
       {mr && series.length > 0 && (
         <div className="space-y-5">

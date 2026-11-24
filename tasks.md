@@ -30,11 +30,11 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 10 approved and merged into `main`; paused before Phase 11** |
-| Last completed task | Phase 10 approved and merged into `main` |
-| Next task | Phase 11 (authentication, complete API, PDF reports) only when you say "start Phase 11" |
-| Open blockers | None |
-| Last updated | 2026-11-23 |
+| Current phase | **Phase 11 approved and merged into `main`; paused before Phase 12** |
+| Last completed task | Phase 11 approved and merged into `main` (422 tests passing) |
+| Next task | Phase 12 (complete frontend) only when you say "start Phase 12" |
+| Open blockers | Manual: generate `JWT_SECRET` in `backend/.env` (task 11.1.5) |
+| Last updated | 2026-11-24 |
 
 ---
 
@@ -53,7 +53,7 @@
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
-| 11 | Authentication, Complete API & PDF Reports | `[ ]` | Secured REST API, reports and PDF export |
+| 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
@@ -540,35 +540,35 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Full REST API documented in Swagger.
 
 ### 11.1 Authentication
-- [ ] 11.1.1 `POST /api/auth/register`: validation + password hashing (bcrypt/argon2)
-- [ ] 11.1.2 `POST /api/auth/login`: JWT access token (expiry configured)
-- [ ] 11.1.3 `GET /api/auth/me`
-- [ ] 11.1.4 Auth dependency protecting user-specific routes; reports and portfolios scoped by `user_id`
+- [x] 11.1.1 `POST /api/auth/register`: validation + password hashing (Argon2id via pwdlib; 8-128 characters, common passwords and the e-mail itself rejected; duplicate e-mail 409)
+- [x] 11.1.2 `POST /api/auth/login`: JWT access token (HS256, `JWT_EXPIRE_MINUTES`, default 60); one generic error for wrong e-mail or password
+- [x] 11.1.3 `GET /api/auth/me`
+- [x] 11.1.4 Auth dependency (`api/deps.py`) protecting user-specific routes; reports and portfolios scoped by `user_id` (other users' ids answer 404). `AUTH_REQUIRED=false` by default until the login pages exist (Phase 12); `scripts/assign_reports.py` gives older unowned reports to an account
 - [ ] 11.1.5 JWT secret in `.env` (generated locally) `[!] manual`
 
 ### 11.2 Remaining Endpoints
-- [ ] 11.2.1 `GET /api/stocks/search`
-- [ ] 11.2.2 `GET /api/news/{symbol}/sentiment`
-- [ ] 11.2.3 `GET /api/analysis/{request_id}/report`
-- [ ] 11.2.4 `GET /api/reports` (paginated), `GET /api/reports/{report_id}`
-- [ ] 11.2.5 `GET /api/reports/{report_id}/pdf`
+- [x] 11.2.1 `GET /api/stocks/search` (stored companies + curated list; works without MongoDB)
+- [x] 11.2.2 `GET /api/news/{symbol}/sentiment` (stored articles, same rule as the News Agent)
+- [x] 11.2.3 `GET /api/analysis/{request_id}/report` (Phase 10; now user-scoped, returns `report_id` and `pdf_url`)
+- [x] 11.2.4 `GET /api/reports` (paginated, filters `status` and `symbol`), `GET /api/reports/{report_id}`
+- [x] 11.2.5 `GET /api/reports/{report_id}/pdf`
 
 ### 11.3 Reliability & Security
-- [ ] 11.3.1 Rate limiting on expensive endpoints (analysis start, auth)
-- [ ] 11.3.2 Request timeouts on external calls
-- [ ] 11.3.3 Validate external URLs before storing or rendering them
-- [ ] 11.3.4 Review: no secrets in logs, responses or the repository
+- [x] 11.3.1 Rate limiting on expensive endpoints (auth per IP; analysis start/re-run, portfolio and PDF per user or IP); 429 with `Retry-After`
+- [x] 11.3.2 Request timeouts on external calls (audit: Ollama, RSS, GDELT already bounded; yfinance price download now uses `HTTP_TIMEOUT_SECONDS`; other yfinance calls use the library's 30 s)
+- [x] 11.3.3 Validate external URLs before storing (Phase 3) and again before returning them or writing them into a PDF (`utils/urls.py`)
+- [x] 11.3.4 Review: no secrets in logs (bearer tokens/JWTs now masked too), responses or the repository
 
 ### 11.4 PDF Export
-- [ ] 11.4.1 PDF report template (sections from 10.3.1, tables, disclaimer)
-- [ ] 11.4.2 Embed charts as images in the PDF (optional; generated server-side)
+- [x] 11.4.1 PDF report template (sections from 10.3.1, tables, disclaimer on page 1 and in every footer)
+- [x] 11.4.2 Embed charts in the PDF (ReportLab graphics: price, allocation, backtest equity curve)
 
 ### 11.5 Tests
-- [ ] 11.5.1 API tests with FastAPI TestClient (auth flow, protected routes, pagination, error codes)
+- [x] 11.5.1 API tests with FastAPI TestClient (auth flow, protected routes, pagination, error codes) + unit tests (tokens, hashing, URLs, rate limiter, PDF)
 
 ### 🛑 Phase 11 Approval Gate
-- [ ] Phase 11 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 11 completion summary posted in chat
+- [x] Developer approval received (2026-11-24)
 
 ---
 
@@ -723,6 +723,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 | 2026-11-23 | Risk: simple daily returns of adjusted close, 252-day annualisation, sample std, beta on common dates, Sharpe on arithmetic annualised return, equal weights until Phase 9; documented thresholds | Standard, reproducible conventions |
 | 2026-11-23 | Fundamentals: trailing-annual ratios from Yahoo annual statements; ROE/ROA on average equity/assets; simple documented thresholds; banks: current ratio/operating margin not applicable, debt-to-equity not assessed | Free data source; transparent rules a beginner can follow |
 | 2026-11-23 | LLM output guard extended: text with prompt markup or under 20 characters is rejected | Live run returned a digest that was just "<article>" |
+| 2026-11-24 | Auth: Argon2id + HS256 JWT bearer tokens (no cookies, so no CSRF); `AUTH_REQUIRED=false` until the Phase 12 login pages; other users' resources answer 404; rate limits with the `limits` library (slowapi's engine) as a dependency, in memory | Keeps the MVP dashboard usable; no Redis; does not reveal which ids exist |
+| 2026-11-24 | PDF generated on request from the stored report (not saved to `data/exports/`); charts with ReportLab graphics; Arial for the rupee sign, "Rs" without it | Always matches the stored report; no extra disk use or dependencies |
 | 2026-11-23 | A Fundamentals card added to the MVP dashboard now (full Stock Analysis page stays in Phase 12) | Lets you check Phase 7 results in the browser |
 | 2026-11-23 | UI review fixes (your screenshots): month-start axis ticks, fitted price axis, "pts" label, split detection by one-day jump (INFY dividends were falsely flagged), Python **key readings** shown above the AI explanation, no LLM digest for a single article | The 0.6B model inverted a reading even when given the correct one; the rule-based readings are the reliable source |
 | 2026-11-23 | GDELT is opt-in in the dashboard (checkbox) | Adds ~35 s per analysis and is often rate-limited; RSS alone sometimes finds nothing |

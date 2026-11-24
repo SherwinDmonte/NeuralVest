@@ -15,3 +15,9 @@ def test_redacts_secret_key_value_pairs():
 
 def test_leaves_normal_text_alone():
     assert redact("GET /api/health -> 200") == "GET /api/health -> 200"
+
+
+def test_redacts_bearer_tokens_and_jwts():
+    jwt_like = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.c2lnbmF0dXJl"
+    out = redact(f"Authorization: Bearer {jwt_like} and raw {jwt_like}")
+    assert "eyJ" not in out and "c2lnbmF0dXJl" not in out

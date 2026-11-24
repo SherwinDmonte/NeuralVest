@@ -63,3 +63,15 @@ def test_cors_allows_frontend_origin_only(client):
     bad = client.options("/api/health", headers={"Origin": "http://evil.example",
                                                  "Access-Control-Request-Method": "GET"})
     assert "access-control-allow-origin" not in bad.headers
+
+
+def test_stock_search_works_without_database(client):
+    """Phase 11: without MongoDB the curated list still answers."""
+    body = client.get("/api/stocks/search?q=INFY").json()
+    assert body["items"][0] == {"symbol": "INFY.NS", "company_name": None, "exchange": "NSE", "sector": None,
+                                "industry": None, "source": "curated_list"}
+
+
+def test_auth_without_database_returns_503(client):
+    r = client.post("/api/auth/login", json={"email": "a@example.com", "password": "whatever1"})
+    assert r.status_code == 503

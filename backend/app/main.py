@@ -14,7 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo.errors import PyMongoError
 
 from app.api.errors import register_exception_handlers
-from app.api.routes import analysis, health, news, portfolio, risk, stocks
+from app.api.rate_limit import RateLimiter
+from app.api.routes import analysis, auth, health, news, portfolio, reports, risk, stocks
 from app.config import APP_NAME, APP_VERSION, Settings, get_settings
 from app.database.database import close_client, get_database, initialize_database, ping
 from app.llm.ollama_client import get_llm_client
@@ -70,6 +71,10 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
     )
     app.state.db_init = None
     app.state.runner = runner
+    app.state.settings = settings
+    app.state.rate_limiter = RateLimiter()
+    if not settings.auth_configured:
+        logger.warning("JWT_SECRET not set (or shorter than 32 characters): login and registration return 503.")
 
     # Middleware order: CORS is outermost so even error responses carry CORS headers.
     app.add_middleware(RequestIdMiddleware)
@@ -84,11 +89,13 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
 
     register_exception_handlers(app)
     app.include_router(health.router)
+    app.include_router(auth.router)
     app.include_router(stocks.router)
     app.include_router(analysis.router)
     app.include_router(news.router)
     app.include_router(risk.router)
     app.include_router(portfolio.router)
+    app.include_router(reports.router)
     return app
 
 

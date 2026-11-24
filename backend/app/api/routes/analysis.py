@@ -2,15 +2,18 @@
 
 from typing import Literal
 
-from fastapi import APIRouter, Path, Request
+from fastapi import APIRouter, Depends, Path, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.api.deps import AnalysisUser, get_app_settings, require_access, user_id_of
 from app.api.errors import AppError
+from app.api.rate_limit import rate_limit
 from app.data.errors import InvalidSymbolError
 from app.data.symbols import normalize_symbol
 from app.database.database import ensure_storage_available
 from app.database.models import AGENT_RESULTS, ANALYSIS_REPORTS, FINANCIAL_NEWS
 from app.database.repository import serialize_document
+from app.utils.urls import safe_http_url
 from app.schemas.agents import MAX_INVESTMENT_INR, PortfolioConstraints, PortfolioMethod, RiskPreferenceLiteral
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
@@ -61,11 +64,22 @@ def _runner(request: Request):
     return runner
 
 
-@router.post("/start", status_code=202, summary="Start an analysis in the background")
-def start_analysis(body: StartAnalysisRequest, request: Request) -> dict:
+NOT_FOUND = "No analysis with this request_id."
+
+
+def _job(request: Request, request_id: str, user: dict | None, projection: dict | None = None) -> dict:
+    """The job record if this user may see it (404 otherwise, also for other users' jobs)."""
+    job = _runner(request).db[ANALYSIS_REPORTS].find_one({"request_id": request_id}, projection)
+    return require_access(job, user, get_app_settings(request), "analysis_not_found", NOT_FOUND)
+
+
+@router.post("/start", status_code=202, summary="Start an analysis in the background",
+             dependencies=[Depends(rate_limit("analysis"))])
+def start_analysis(body: StartAnalysisRequest, request: Request, user: AnalysisUser) -> dict:
     runner = _runner(request)
     ensure_storage_available(runner.settings)  # 507 if the free-tier quota is nearly full
-    job = runner.submit(body.symbols, include_gdelt=body.include_gdelt, investment_amount=body.investment_amount,
+    job = runner.submit(body.symbols, include_gdelt=body.include_gdelt, user_id=user_id_of(user),
+                        investment_amount=body.investment_amount,
                         risk_preference=body.risk_preference,
                         portfolio_options=body.portfolio.model_dump(mode="json", exclude_none=True)
                         if body.portfolio else None)
@@ -73,37 +87,42 @@ def start_analysis(body: StartAnalysisRequest, request: Request) -> dict:
 
 
 @router.get("/{request_id}/status", summary="Progress of an analysis (poll every 2-3 s)")
-def analysis_status(request: Request, request_id: str = REQUEST_ID) -> dict:
+def analysis_status(request: Request, user: AnalysisUser, request_id: str = REQUEST_ID) -> dict:
+    _job(request, request_id, user, {"user_id": 1})  # access check; the job record is written on submit
     status = _runner(request).status(request_id)
     if status is None:
-        raise AppError(404, "analysis_not_found", "No analysis with this request_id.")
+        raise AppError(404, "analysis_not_found", NOT_FOUND)
     return status
 
 
-@router.post("/{request_id}/rerun", status_code=202, summary="Re-run an interrupted or failed analysis")
-def rerun_analysis(request: Request, request_id: str = REQUEST_ID) -> dict:
+@router.post("/{request_id}/rerun", status_code=202, summary="Re-run an interrupted or failed analysis",
+             dependencies=[Depends(rate_limit("analysis"))])
+def rerun_analysis(request: Request, user: AnalysisUser, request_id: str = REQUEST_ID) -> dict:
+    _job(request, request_id, user, {"user_id": 1})
     return _runner(request).rerun(request_id)
 
 
 @router.get("/{request_id}/report", summary="The unified report of a finished analysis")
-def analysis_report(request: Request, request_id: str = REQUEST_ID) -> dict:
-    job = _runner(request).db[ANALYSIS_REPORTS].find_one(
-        {"request_id": request_id}, {"status": 1, "final_summary": 1, "agent_runs": 1, "completed_at": 1})
-    if job is None:
-        raise AppError(404, "analysis_not_found", "No analysis with this request_id.")
+def analysis_report(request: Request, user: AnalysisUser, request_id: str = REQUEST_ID) -> dict:
+    job = _job(request, request_id, user, {"status": 1, "final_summary": 1, "agent_runs": 1, "completed_at": 1,
+                                           "user_id": 1, "report_id": 1})
     if not job.get("final_summary"):
         raise AppError(409, "report_not_ready", f"The analysis is {job['status']}; the report is not available yet.")
-    return {"request_id": request_id, "status": job["status"], "completed_at": job.get("completed_at"),
+    return {"request_id": request_id, "report_id": job.get("report_id"), "status": job["status"],
+            "completed_at": job.get("completed_at"), "pdf_url": f"/api/reports/{job.get('report_id')}/pdf",
             "agent_runs": job.get("agent_runs"), "report": job["final_summary"]}
 
 
 @router.get("/{request_id}", summary="Full results of an analysis")
-def analysis_result(request: Request, request_id: str = REQUEST_ID) -> dict:
-    runner = _runner(request)
-    db = runner.db
-    job = db[ANALYSIS_REPORTS].find_one({"request_id": request_id})
-    if job is None:
-        raise AppError(404, "analysis_not_found", "No analysis with this request_id.")
+def analysis_result(request: Request, user: AnalysisUser, request_id: str = REQUEST_ID) -> dict:
+    db = _runner(request).db
+    job = _job(request, request_id, user)
+    return assemble_result(db, job)
+
+
+def assemble_result(db, job: dict) -> dict:
+    """The job record plus every agent result of the request (also used by GET /api/reports/{id})."""
+    request_id = job["request_id"]
     agents: dict[str, dict] = {}
     for doc in db[AGENT_RESULTS].find({"request_id": request_id}):
         output = doc["output"]
@@ -112,10 +131,13 @@ def analysis_result(request: Request, request_id: str = REQUEST_ID) -> dict:
             hashes = output.get("article_url_hashes", [])
             articles = {a["url_hash"]: serialize_document(a) for a in db[FINANCIAL_NEWS].find(
                 {"symbol": doc["symbol"], "url_hash": {"$in": hashes}})}
-            output = {**output, "articles": [articles[h] for h in hashes if h in articles]}
+            # URLs are validated again before they are returned (task 11.3.3)
+            output = {**output, "articles": [{**articles[h], "article_url": safe_http_url(articles[h].get("article_url"))}
+                                             for h in hashes if h in articles]}
         agents.setdefault(doc["agent_name"], {})[doc["scope_key"]] = output
     return {
         "request_id": request_id,
+        "report_id": job.get("report_id"),
         "status": job["status"],
         "symbols": job["symbols"],
         "requested_at": job.get("requested_at"),

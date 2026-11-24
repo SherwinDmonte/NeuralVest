@@ -16,7 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 
 APP_NAME = "NeuralVest API"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 
 # Atlas free-tier (M0) storage quota covers documents + indexes.
 ATLAS_FREE_TIER_LIMIT_MB = 512
@@ -97,6 +97,45 @@ class Settings(BaseSettings):
     risk_free_rate_pct: float | None = Field(default=None, ge=-5, le=50)
     risk_free_rate_date: date | None = None
     risk_free_rate_source: str | None = None
+
+    # ----- Authentication (Phase 11) -----
+    # Generate locally: python -c "import secrets; print(secrets.token_urlsafe(48))"
+    jwt_secret: SecretStr | None = None
+    jwt_expire_minutes: int = Field(default=60, ge=5, le=1440)
+    # false (Phase 11 default): analyses can still be started without logging in, so the MVP
+    # dashboard keeps working until the login pages exist (Phase 12). A logged-in user's
+    # reports are ALWAYS private to them. true: every analysis/portfolio endpoint needs a token.
+    auth_required: bool = False
+
+    # ----- Rate limits (Phase 11): "<count>/<second|minute|hour|day>", per user or IP -----
+    rate_limit_enabled: bool = True
+    rate_limit_auth: str = "10/minute"
+    rate_limit_analysis: str = "5/minute"
+    rate_limit_portfolio: str = "10/minute"
+    rate_limit_pdf: str = "20/minute"
+
+    @field_validator("jwt_secret", mode="before")
+    @classmethod
+    def _secret_placeholder(cls, value):
+        if isinstance(value, str) and (not value.strip() or value.strip().startswith("<")):
+            return None
+        return value
+
+    @field_validator("rate_limit_auth", "rate_limit_analysis", "rate_limit_portfolio", "rate_limit_pdf")
+    @classmethod
+    def _check_rate(cls, value: str) -> str:
+        from limits import parse  # validated at startup, not on the first request
+
+        try:
+            parse(value)
+        except ValueError as exc:
+            raise ValueError(f"invalid rate limit '{value}' (use e.g. 5/minute)") from exc
+        return value
+
+    @property
+    def auth_configured(self) -> bool:
+        """A JWT secret of at least 32 characters is present."""
+        return self.jwt_secret is not None and len(self.jwt_secret.get_secret_value().strip()) >= 32
 
     @field_validator("llm_fallback_model", mode="before")
     @classmethod
