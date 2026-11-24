@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 11 complete on branch `phase-11-auth-api-pdf`; waiting for your approval** |
-| Last completed task | 11.5.1 API tests (421 tests passing) |
-| Next task | Your review of Phase 11; Phase 12 only after approval |
+| Current phase | **Phase 11 approved and merged into `main`; paused before Phase 12** |
+| Last completed task | Phase 11 approved and merged into `main` (422 tests passing) |
+| Next task | Phase 12 (complete frontend) only when you say "start Phase 12" |
 | Open blockers | Manual: generate `JWT_SECRET` in `backend/.env` (task 11.1.5) |
 | Last updated | 2026-11-24 |
 
@@ -53,7 +53,7 @@
 | 8 | Agent 4: Risk Assessment | `[x]` approved 2026-11-23 | Risk metrics agent |
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
-| 11 | Authentication, Complete API & PDF Reports | `[~]` complete, awaiting approval | Secured REST API, reports and PDF export |
+| 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[ ]` | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
@@ -567,8 +567,8 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 11.5.1 API tests with FastAPI TestClient (auth flow, protected routes, pagination, error codes) + unit tests (tokens, hashing, URLs, rate limiter, PDF)
 
 ### 🛑 Phase 11 Approval Gate
-- [ ] Phase 11 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Phase 11 completion summary posted in chat
+- [x] Developer approval received (2026-11-24)
 
 ---
 
