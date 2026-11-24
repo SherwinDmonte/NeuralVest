@@ -148,9 +148,6 @@ export default function Hero() {
       </div>
       <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-16 pt-32 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pb-24 lg:pt-40">
         <div className="lp-enter">
-          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 caption-4 text-ink-secondary">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" /> Five local AI agents for NSE and BSE stocks
-          </p>
           <h1 className="max-w-[680px] heading-3 text-ink sm:heading-2 2xl:heading-1">
             <span className="block">Understand an Indian stock</span>
             <span className="block text-brand">with every number traced</span>
