@@ -92,7 +92,34 @@ export function useAnalysis() {
   }, [])
   const rerun = useCallback(() => requestId && begin(() => rerunAnalysis(requestId)), [begin, requestId])
 
+  // Open an existing analysis (from Reports or Agent Monitoring): poll it if it is still
+  // running, otherwise load its results straight away.
+  const open = useCallback(
+    (id) => {
+      if (!id || id === requestId) return
+      stopPolling()
+      setError(null)
+      setResult(null)
+      setIndicators(null)
+      setStatus(null)
+      setBusy(true)
+      setRequestId(id)
+      poll(id)
+    },
+    [poll, requestId],
+  )
+
+  const clear = useCallback(() => {
+    stopPolling()
+    setRequestId(null)
+    setStatus(null)
+    setResult(null)
+    setIndicators(null)
+    setError(null)
+    setBusy(false)
+  }, [])
+
   useEffect(() => stopPolling, [])
 
-  return { requestId, status, result, indicators, error, busy, run, rerun, showIndicators }
+  return { requestId, status, result, indicators, error, busy, run, rerun, open, clear, showIndicators }
 }

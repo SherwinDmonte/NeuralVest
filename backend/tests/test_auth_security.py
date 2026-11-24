@@ -85,7 +85,8 @@ def test_jwt_secret_settings():
     assert not Settings(_env_file=None, jwt_secret="short").auth_configured  # under 32 characters
     assert settings().auth_configured
     assert SECRET not in repr(settings())  # SecretStr: never printed
-    assert Settings(_env_file=None).auth_required is False
+    assert Settings(_env_file=None, auth_required=True).auth_required is True
+    assert "auth_required" in Settings.model_fields and Settings.model_fields["auth_required"].default is True
 
 
 def test_invalid_rate_limit_fails_at_startup():

@@ -8,6 +8,9 @@ import os
 
 # Must be set before the app is imported: forces the test database everywhere.
 os.environ["APP_ENV"] = "test"
+# Most API tests exercise anonymous flows; the auth tests (test_api_phase11.py) set
+# AUTH_REQUIRED explicitly on their own settings. Overrides the Phase 12 default (true).
+os.environ["AUTH_REQUIRED"] = "false"
 
 import pytest  # noqa: E402
 

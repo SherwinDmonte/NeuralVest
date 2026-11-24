@@ -102,10 +102,10 @@ class Settings(BaseSettings):
     # Generate locally: python -c "import secrets; print(secrets.token_urlsafe(48))"
     jwt_secret: SecretStr | None = None
     jwt_expire_minutes: int = Field(default=60, ge=5, le=1440)
-    # false (Phase 11 default): analyses can still be started without logging in, so the MVP
-    # dashboard keeps working until the login pages exist (Phase 12). A logged-in user's
-    # reports are ALWAYS private to them. true: every analysis/portfolio endpoint needs a token.
-    auth_required: bool = False
+    # true (Phase 12 default, the app has login pages): every analysis, portfolio, risk and report
+    # endpoint needs a token. false: they also work without logging in (reports started that way
+    # have no owner). A logged-in user's reports are always private to them.
+    auth_required: bool = True
 
     # ----- Rate limits (Phase 11): "<count>/<second|minute|hour|day>", per user or IP -----
     rate_limit_enabled: bool = True

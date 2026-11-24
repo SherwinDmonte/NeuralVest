@@ -115,7 +115,8 @@ class RiskPortfolioOutput(AgentEnvelope):
     symbols: list[str] = Field(default_factory=list)
     correlation: dict[str, Any] = Field(default_factory=dict)
     concentration: dict[str, Any] = Field(default_factory=dict)
-    weights_assumption: str = "equal weights (portfolio weights are added in Phase 9)"
+    # Equal weights unless the caller passes weights (the optimised weights live in the Portfolio result).
+    weights_assumption: str = "equal weights across the stocks"
     diversification: dict[str, Any] = Field(default_factory=dict)
     risk_free_rate: dict[str, Any] | None = None
     disclaimer: str = RISK_DISCLAIMER

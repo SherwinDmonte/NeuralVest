@@ -7,6 +7,8 @@ when it was fetched, so freshness can be checked and shown to the user.
 import json
 import os
 import re
+import time
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -42,7 +44,20 @@ class FileCache:
         fetched_at = fetched_at or utc_now()
         path = self._path(namespace, key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(".tmp")
+        # A unique temporary file per write: two requests may fetch the same data at once (found
+        # in Phase 12: the dashboard and the Market Research agent both fetched NIFTY 50).
+        tmp = path.with_name(f"{path.stem}.{uuid.uuid4().hex[:8]}.tmp")
         tmp.write_text(json.dumps({"fetched_at": fetched_at.isoformat(), "data": data}), encoding="utf-8")
-        os.replace(tmp, path)  # atomic: readers never see a half-written file
+        for attempt in range(5):
+            try:
+                os.replace(tmp, path)  # atomic: readers never see a half-written file
+                break
+            except PermissionError:
+                # Windows refuses to replace a file another thread is reading or replacing at
+                # that moment. Wait briefly; if it stays locked, the other writer's identical
+                # data stands and this copy is dropped.
+                if attempt == 4:
+                    tmp.unlink(missing_ok=True)
+                    break
+                time.sleep(0.05 * (attempt + 1))
         return fetched_at

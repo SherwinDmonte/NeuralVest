@@ -344,7 +344,22 @@ separated by commas; an amount field and a risk preference appear. Without the L
    `http://localhost:8000/api/reports/<report_id>/pdf` (the `report_id` is in `GET /api/analysis/<request_id>`).
    The PDF is generated from the stored report each time (about 0.5 s) and is not saved on disk.
 
-`AUTH_REQUIRED=false` (default until the Phase 12 login pages) still allows analyses without logging in.
+Since Phase 12, `AUTH_REQUIRED` defaults to `true`: the web app asks you to log in, and the API refuses
+analyses without a token. Set `AUTH_REQUIRED=false` only to call the API anonymously while testing.
+
+### The web app (Phase 12)
+
+After pulling Phase 12, install the new frontend packages once (Geist fonts and Phosphor icons):
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. The landing page is public; **Create a free account** (or **Log in**) opens the
+app at `/app`: Dashboard, Stock analysis, Agent monitoring, Financial news, Portfolio, Risk analysis and
+Reports. The login lasts until the token expires (`JWT_EXPIRE_MINUTES`) or the browser tab is closed.
 Rate limits (`RATE_LIMIT_*`) answer 429 with a `Retry-After` header; they reset when the API restarts.
 
 ---

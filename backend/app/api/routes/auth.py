@@ -12,6 +12,8 @@ from app.api.deps import CurrentUser, get_app_settings, get_db
 from app.api.errors import AppError
 from app.api.rate_limit import rate_limit
 from app.config import Settings
+from app.data.errors import InvalidSymbolError
+from app.data.symbols import normalize_symbol
 from app.services import auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -96,3 +98,26 @@ def login(body: LoginRequest, db: Db, settings: AppSettings) -> dict:
 @router.get("/me", summary="The logged-in user")
 def me(user: CurrentUser) -> dict:
     return {"user": user}
+
+
+class WatchlistRequest(BaseModel):
+    symbols: list[str] = Field(max_length=auth_service.MAX_WATCHLIST, examples=[["RELIANCE.NS", "TCS.NS"]])
+
+    @field_validator("symbols")
+    @classmethod
+    def _normalize(cls, values: list[str]) -> list[str]:
+        try:
+            return list(dict.fromkeys(normalize_symbol(v) for v in values))
+        except InvalidSymbolError as exc:
+            raise ValueError(str(exc)) from exc
+
+
+@router.get("/me/watchlist", summary="Your watchlist")
+def get_watchlist(user: CurrentUser, db: Db) -> dict:
+    return {"symbols": auth_service.get_watchlist(db, user["user_id"]), "max": auth_service.MAX_WATCHLIST}
+
+
+@router.put("/me/watchlist", summary="Replace your watchlist (up to 20 symbols)")
+def put_watchlist(body: WatchlistRequest, user: CurrentUser, db: Db) -> dict:
+    return {"symbols": auth_service.set_watchlist(db, user["user_id"], body.symbols),
+            "max": auth_service.MAX_WATCHLIST}

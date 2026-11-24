@@ -117,6 +117,21 @@ def decode_access_token(token: str, settings: Settings) -> str:
     return claims["sub"]
 
 
+MAX_WATCHLIST = 20
+
+
+def get_watchlist(db: Database, user_id: str) -> list[str]:
+    doc = db[USERS].find_one({"user_id": user_id}, {"watchlist": 1})
+    return list((doc or {}).get("watchlist") or [])
+
+
+def set_watchlist(db: Database, user_id: str, symbols: list[str]) -> list[str]:
+    """Replace the watchlist (symbols already normalized and de-duplicated by the caller)."""
+    symbols = list(dict.fromkeys(symbols))[:MAX_WATCHLIST]
+    db[USERS].update_one({"user_id": user_id}, {"$set": {"watchlist": symbols, "updated_at": utc_now()}})
+    return symbols
+
+
 def get_user(db: Database, user_id: str) -> dict[str, Any] | None:
     doc = db[USERS].find_one({"user_id": user_id}, {"password_hash": 0})
     return public_user(doc) if doc else None
