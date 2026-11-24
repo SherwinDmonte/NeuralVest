@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 12B (UI redesign) complete on branch `phase-12b-redesign`, waiting for your approval** |
-| Last completed task | 12B.5.3 quality checks (435 backend tests passing, lint 0 errors, build OK) |
-| Next task | Phase 12B approval; then Phase 13 only when you say so |
+| Current phase | **Phase 12B (UI redesign) approved and merged into `main`; Phase 13 not started** |
+| Last completed task | Phase 12B approved and merged into `main` (444 backend tests passing) |
+| Next task | Phase 13 (testing, performance and optimization) only when you say "start Phase 13" |
 | Open blockers | None |
 | Last updated | 2026-11-24 |
 
@@ -55,7 +55,7 @@
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[x]` approved 2026-11-24 |
-| 12B | UI Redesign (your master brief) | `[~]` awaiting approval | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
+| 12B | UI Redesign (your master brief) | `[x]` approved 2026-11-24 | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
@@ -650,11 +650,11 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 ### 12B.5 Quality
 - [x] 12B.5.1 Both themes checked in Edge (Playwright) at 1920, 1440, 1366, 1024, 768, 390 and 360px on 14 pages: no overflow, theme applied, no console errors (fixed: landing glow, workflow row at 1024px, index cards at 360px)
 - [x] 12B.5.2 Keyboard navigation (skip link, visible focus on every control), Ctrl+K palette with focus inside and Escape, ARIA on tabs/menus/dialogs, reduced motion
-- [x] 12B.5.3 435 backend tests pass, lint 0 errors, build OK; landing bundle 132 KB gzip, `motion` (56 KB gzip) loaded only in the signed-in app
+- [x] 12B.5.3 444 backend tests pass (after profile pictures), lint 0 errors, build OK; main bundle 128 KB gzip, `motion` (56 KB gzip) loaded only in the signed-in app
 
 ### 🛑 Phase 12B Approval Gate
 - [x] Phase 12B completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-24, after the landing redesign, footer changes and profile pictures)
 
 ---
 
