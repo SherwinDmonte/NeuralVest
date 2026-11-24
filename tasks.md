@@ -30,10 +30,10 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 12 complete on branch `phase-12-frontend`; waiting for your approval** |
-| Last completed task | 12.4 quality checks in a real browser (425 backend tests passing) |
-| Next task | Your review of Phase 12; Phase 13 only after approval |
-| Open blockers | Manual: generate `JWT_SECRET` in `backend/.env` (task 11.1.5) |
+| Current phase | **Phase 12 approved and merged into `main`; Phase 12B (UI redesign) proposed and recorded, not started** |
+| Last completed task | Phase 12 approved and merged into `main` (425 backend tests passing) |
+| Next task | Phase 12B (UI redesign) only when you say "start Phase 12B" |
+| Open blockers | None |
 | Last updated | 2026-11-24 |
 
 ---
@@ -54,7 +54,8 @@
 | 9 | Agent 5: Portfolio Optimization & Backtesting | `[x]` approved 2026-11-23 | Optimizer + backtester agent |
 | 10 | Full LangGraph Orchestration & Report Generation | `[x]` approved 2026-11-23 | Supervisor-driven 5-agent workflow + unified report |
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
-| 12 | Complete Frontend | `[~]` complete, awaiting approval | All 9 pages, responsive, integrated |
+| 12 | Complete Frontend | `[x]` approved 2026-11-24 |
+| 12B | UI Redesign (your master brief) | `[ ]` | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
 | 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
@@ -544,7 +545,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 11.1.2 `POST /api/auth/login`: JWT access token (HS256, `JWT_EXPIRE_MINUTES`, default 60); one generic error for wrong e-mail or password
 - [x] 11.1.3 `GET /api/auth/me`
 - [x] 11.1.4 Auth dependency (`api/deps.py`) protecting user-specific routes; reports and portfolios scoped by `user_id` (other users' ids answer 404). `AUTH_REQUIRED=false` by default until the login pages exist (Phase 12); `scripts/assign_reports.py` gives older unowned reports to an account
-- [ ] 11.1.5 JWT secret in `.env` (generated locally) `[!] manual`
+- [x] 11.1.5 JWT secret in `.env` (generated locally) `[!] manual` (done: login works, 2026-11-24)
 
 ### 11.2 Remaining Endpoints
 - [x] 11.2.1 `GET /api/stocks/search` (stored companies + curated list; works without MongoDB)
@@ -605,7 +606,52 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [x] 12.4.4 Watchlist persisted per user: `watchlist` field on `users` (your decision 2026-11-24), `GET/PUT /api/auth/me/watchlist`, at most 20 symbols
 
 ### 🛑 Phase 12 Approval Gate
-- [ ] Phase 12 completion summary posted in chat
+- [x] Phase 12 completion summary posted in chat
+- [x] Developer approval received (2026-11-24, together with the Phase 12B redesign decisions)
+
+---
+
+## Phase 12B — UI Redesign (from your master redesign brief, 2026-11-24)
+
+**Objective:** Turn the working Phase 12 frontend into a premium fintech interface with a distinct brand, dark and light themes and richer interaction, without losing any working feature or showing invented data.
+**Deliverable:** Redesigned app and landing page in both themes, checked at 1920/1440/1366/1024/768/390/360px.
+
+**Decisions (2026-11-24):** your brief wins fully on visual style (navy palette, brand gradients, glassmorphism, ambient lighting, gradient logo and buttons), overriding the unslop and landing-page-design rules that conflict; market breadth (gainers, losers, advancers, decliners) computed across the 30 curated stocks and labelled as such; `motion` (Framer Motion) for animation, loaded only in the signed-in app. Assumptions: Phosphor icons and Geist kept; the brief's welcome heading replaces unslop's no-greeting rule.
+
+### 12B.1 Design system and brand
+- [ ] 12B.1.1 Navy dark tokens + full light theme (own shadows, borders, gradients, chart colours validated with the dataviz script)
+- [ ] 12B.1.2 Theme switcher: OS preference on first visit, saved in localStorage, applied before first paint, every page/chart/tooltip/table
+- [ ] 12B.1.3 Logo: SVG neural "N" with nodes and a rising line; gradient, transparent, light and dark versions; subtle node/line animation
+- [ ] 12B.1.4 Shared components restyled (buttons, cards, glass panels, dropdowns, modal, toasts, skeletons, status indicators)
+
+### 12B.2 App shell
+- [ ] 12B.2.1 Collapsible sidebar (tooltips when collapsed), mobile drawer, 9 navigation items, system and model status, settings, help, profile
+- [ ] 12B.2.2 Top bar: page title, global stock search, data freshness, notifications (your own events only), theme switcher, profile menu
+- [ ] 12B.2.3 Page transitions with reduced motion support
+
+### 12B.3 Backend additions (no change to existing behaviour)
+- [ ] 12B.3.1 `GET /api/health/llm` (Ollama reachable, installed models) for the model status indicator
+- [ ] 12B.3.2 `GET /api/stocks/{symbol}/financials` (annual income statement, balance sheet, cash flow; already fetched and cached)
+- [ ] 12B.3.3 Market breadth across the 30 curated stocks (gainers, losers, advancers, decliners), cached, clearly labelled
+- [ ] 12B.3.4 Confirm SENSEX (`^BSESN`) works with the existing indicators endpoint
+- [ ] 12B.3.5 Tests for every new endpoint
+
+### 12B.4 Pages
+- [ ] 12B.4.1 Overview: hero, NIFTY 50 and SENSEX cards with sparklines, large area chart with date ranges, breadth, recently analysed, news, watchlist, agent activity
+- [ ] 12B.4.2 Market Intelligence (new): index charts and market news
+- [ ] 12B.4.3 Stock Analysis with tabs (overview, chart with volume, fundamentals, statements, news, AI analysis)
+- [ ] 12B.4.4 AI Agents: animated supervisor and five agent network driven only by API status
+- [ ] 12B.4.5 Financial News, Risk (distribution, historical VaR), Portfolio (donut, allocation bars, risk-return scatter), Reports (preview)
+- [ ] 12B.4.6 Watchlist page (new), Settings and Help pages
+- [ ] 12B.4.7 Landing page, login and register in the new style
+
+### 12B.5 Quality
+- [ ] 12B.5.1 Both themes checked in a real browser at 1920, 1440, 1366, 1024, 768, 390 and 360px: no overflow, readable contrast
+- [ ] 12B.5.2 Keyboard navigation, focus, ARIA, reduced motion
+- [ ] 12B.5.3 Backend tests, lint and build pass; bundle size checked
+
+### 🛑 Phase 12B Approval Gate
+- [ ] Phase 12B completion summary posted in chat
 - [ ] Developer approval received
 
 ---
