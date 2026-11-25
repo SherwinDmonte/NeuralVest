@@ -262,6 +262,9 @@ qualifies. Two options:
   VS Code closed); or
 * make `qwen3:0.6b` the primary model in `.env`.
 
+**Decision (25 November 2026): option 1.** `LLM_MIN_FREE_RAM_MB=3000` is set in `backend/.env` and
+`.env.example`; with 480 MB free the client then chose `qwen3:0.6b`, as intended.
+
 Either keeps the analysis working; the difference is answer quality against speed (architecture §10.3:
 1.7B judges news relevance better; section 4.1 here for the speed).
 

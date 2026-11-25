@@ -30,9 +30,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 13 (testing, performance and optimization) complete on `phase-13-testing`; waiting for approval** |
+| Current phase | **Phase 13 (testing, performance and optimization) approved and merged into `main`; Phase 14 not started** |
 | Last completed task | 13.3.3 testing report (`docs/testing_report.md`); 544 backend tests passing, 94% coverage |
-| Next task | Your Phase 13 review, the model-choice decision (testing report §7.1), then Phase 14 when you approve |
+| Next task | Phase 14 (final documentation and GitHub finalization) only when you say "start Phase 14" |
 | Open blockers | None |
 | Last updated | 2026-11-25 |
 
@@ -56,7 +56,7 @@
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[x]` approved 2026-11-24 |
 | 12B | UI Redesign (your master brief) | `[x]` approved 2026-11-24 | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
-| 13 | Testing, Performance & Optimization | `[~]` awaiting approval | Test suite, performance report, 8 GB RAM check |
+| 13 | Testing, Performance & Optimization | `[x]` approved 2026-11-25 | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
 ### Why the phase order differs from the original roadmap
@@ -686,7 +686,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 
 ### 🛑 Phase 13 Approval Gate
 - [x] Phase 13 completion summary posted in chat
-- [ ] Developer approval received
+- [x] Developer approval received (2026-11-25; model choice: option 1, `LLM_MIN_FREE_RAM_MB=3000` in `backend/.env` and `.env.example`)
 
 ---
 
@@ -709,7 +709,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [ ] 14.1.7 Application screenshots `[!] manual review`
 - [ ] 14.1.8 Project presentation outline/deck
 - [ ] 14.1.9 Final project report
-- [ ] 14.1.10 add tasks.md to gitignore
+- [ ] 14.1.10 add tasks.md to gitignore and remove comments from env.example and only keep necessary comments
 
 ### 14.2 GitHub Finalization
 - [ ] 14.2.1 Choose a license for the repository `[!] your decision` (no AGPL constraint, since pypdf replaced PyMuPDF; check the licenses of the remaining dependencies)
