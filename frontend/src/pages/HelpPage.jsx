@@ -33,7 +33,7 @@ export default function HelpPage() {
   usePageTitle('Help')
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Help" title="How NeuralVest works" description="A short guide to the pages, the data and the terms used in reports." />
+      <PageHeader title="How NeuralVest works" description="A short guide to the pages, the data and the terms used in reports." />
       <Card title="Getting started" icon={Lightning} accent>
         <ol className="grid gap-4 md:grid-cols-3">
           {STEPS.map(([t, d], i) => (

@@ -77,7 +77,7 @@ export default function RiskPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Risk analytics" title="Risk analysis" description="How much each stock has moved, how it moved with the NIFTY 50 and with each other. Historical measurements, not forecasts." />
+      <PageHeader title="How risky were they?" description="How much each stock has moved, how it moved with the NIFTY 50 and with each other. Historical measurements, not forecasts." />
       <Card>
         <form onSubmit={submit} noValidate className="grid gap-4 lg:grid-cols-[1fr_200px_auto] lg:items-end">
           <SymbolPicker value={symbols} onChange={setSymbols} label="Stocks" placeholder="Search and add up to 10 stocks" />

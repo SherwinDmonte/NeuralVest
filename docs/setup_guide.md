@@ -1,46 +1,51 @@
-# NeuralVest — Windows Setup Guide
+# NeuralVest Windows Setup Guide
 
-> **Status:** Phase 0 draft. This guide is **executed and verified in Phase 1**. The steps marked *(Phase 2)* or later are run in those phases.
-> **Target:** Windows 10/11, 8 GB RAM, no dedicated GPU, Visual Studio Code.
-> **Last updated:** 2026-11-23
+How to install and run NeuralVest on a Windows 10 or 11 laptop with 8 GB of RAM and no graphics card. Every
+tool is free. Commands are for **PowerShell** (the default terminal in VS Code; open it with ``Ctrl + ` ``).
 
-All commands are for **PowerShell** (VS Code's default terminal on Windows). Open it with ``Ctrl + ` ``.
-
----
-
-## 1. Prerequisites Overview
-
-| Tool | Version target | Purpose | Cost |
-|---|---|---|---|
-| Python | 3.12.x (64-bit) | Backend, agents, analysis | Free |
-| Node.js | 26.x LTS (24.x also fine) | Frontend tooling (Vite) | Free |
-| Git | latest | Version control | Free |
-| VS Code | latest | IDE | Free |
-| Ollama | latest | Runs the local Qwen3 models | Free (MIT) |
-| MongoDB Atlas account | Free cluster | Cloud database | Free tier (limits in architecture §11) |
-| GitHub account | Free | Remote repository | Free |
-
-About **6 GB of free disk space** is needed (models about 2 GB, Python packages about 1.5 GB, node_modules about 0.5 GB, plus caches).
+**Time needed:** about an hour, most of it downloads. **Disk space:** about 6 GB (models about 2 GB, Python
+packages about 1.5 GB, `node_modules` about 0.5 GB, plus caches).
 
 ---
 
-## 2. Install the Tools
+## Contents
 
-### 2.1 Check what is already installed
+1. [Install the tools](#1-install-the-tools)
+2. [Ollama and the Qwen3 models](#2-ollama-and-the-qwen3-models)
+3. [Get the code](#3-get-the-code)
+4. [Backend](#4-backend)
+5. [Frontend](#5-frontend)
+6. [MongoDB Atlas](#6-mongodb-atlas)
+7. [Configuration](#7-configuration)
+8. [Run the app](#8-run-the-app)
+9. [Optional settings and scripts](#9-optional-settings-and-scripts)
+10. [Tests and measurements](#10-tests-and-measurements)
+11. [Common errors](#11-common-errors)
+
+---
+
+## 1. Install the tools
+
+| Tool | Version | Purpose |
+|---|---|---|
+| Python | 3.12.x, 64-bit | Backend, agents and calculations |
+| Node.js | 22 LTS or newer | Frontend (Vite) |
+| Git | latest | Getting and updating the code |
+| Ollama | latest | Runs the local Qwen3 models |
+| VS Code | latest (optional) | Editor |
+| MongoDB Atlas account | free M0 cluster | Database (section 6) |
+
+Check what is already installed:
 
 ```powershell
-python --version
 py --list
 node --version
-npm --version
 git --version
 ollama --version
-winget --version
 ```
 
-If a command says *"not recognized"*, install that tool below.
-
-### 2.2 Install with winget (built into Windows 11)
+Install anything missing with winget (built into Windows 11), then **close and reopen the terminal** so the new
+`PATH` is used:
 
 ```powershell
 winget install --id Python.Python.3.12 -e
@@ -49,42 +54,23 @@ winget install --id Git.Git -e
 winget install --id Ollama.Ollama -e
 ```
 
-**Close and reopen VS Code** afterwards so the updated `PATH` is picked up.
+No winget? Use the installers from python.org, nodejs.org, git-scm.com and ollama.com.
 
-> No winget? Download the installers from python.org, nodejs.org, git-scm.com and ollama.com. In the Python installer, tick **"Add python.exe to PATH"**.
-
-### 2.3 Configure Git
-
-```powershell
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
-git config --global init.defaultBranch main
-git config --global core.autocrlf true
-```
-
-### 2.4 VS Code extensions
-
-```powershell
-code --install-extension ms-python.python
-code --install-extension ms-python.vscode-pylance
-code --install-extension dbaeumer.vscode-eslint
-code --install-extension bradlc.vscode-tailwindcss
-```
+Python 3.12 is required: some packages (cvxpy among them) have no ready-made wheels for other versions on Windows.
+If `python` opens the Microsoft Store, see [Common errors](#11-common-errors).
 
 ---
 
-## 3. Ollama and the Qwen3 Models
+## 2. Ollama and the Qwen3 models
 
-### 3.1 Memory-saving Ollama settings (run once, then restart Ollama)
+Keep one model in memory at a time (run once, then quit Ollama from the system tray and start it again):
 
 ```powershell
 setx OLLAMA_MAX_LOADED_MODELS 1
 setx OLLAMA_NUM_PARALLEL 1
 ```
 
-Then quit Ollama from the system tray and start it again (or sign out and back in) so the settings take effect.
-
-### 3.2 Download the models
+Download both models:
 
 ```powershell
 ollama pull qwen3:1.7b
@@ -92,341 +78,230 @@ ollama pull qwen3:0.6b
 ollama list
 ```
 
-### 3.3 Quick test (thinking mode off)
+Quick test, with thinking mode off as the app uses it:
 
 ```powershell
-ollama run qwen3:1.7b --think=false "In one sentence, what is a moving average?"
+ollama run qwen3:0.6b --think=false "In one sentence, what is a moving average?"
 ```
 
-REST API test (this is how the backend talks to Ollama):
-
-```powershell
-$body = @{
-  model    = "qwen3:1.7b"
-  messages = @(@{ role = "user"; content = "Reply with the word OK." })
-  stream   = $false
-  think    = $false
-  options  = @{ num_ctx = 2048 }
-} | ConvertTo-Json -Depth 5
-Invoke-RestMethod -Uri http://localhost:11434/api/chat -Method Post -Body $body -ContentType "application/json"
-```
-
-**Expected:** a JSON object whose `message.content` contains `OK`.
-
-### 3.4 Measure memory use (recorded in Phase 1)
-
-Memory use and how much is released after unloading depend on the model, the Ollama version and Windows, so they are **measured, not assumed**. Record each value in `tasks.md`:
-
-1. **Idle baseline:** reboot, open only VS Code, wait 2 minutes. Task Manager → *Performance → Memory* → note **In use**.
-2. **Model loaded:** run the REST test from §3.3 for `qwen3:1.7b`, then note **In use** again, and the memory of the `ollama` processes under *Details*.
-3. **After unload:**
-
-   ```powershell
-   ollama stop qwen3:1.7b
-   ollama ps        # should list no loaded model
-   ```
-
-   Wait 30 seconds and note **In use** again.
-4. Repeat steps 2–3 for `qwen3:0.6b`.
-
-The same readings from PowerShell:
-
-```powershell
-# The model runs in llama-server.exe (Ollama's runner), not in ollama.exe
-Get-Process ollama*, llama-server -ErrorAction SilentlyContinue | Select-Object Name, @{n="RAM_MB";e={[math]::Round($_.WorkingSet64/1MB)}}
-$os = Get-CimInstance Win32_OperatingSystem
-"In use (GB): {0:N2}" -f (($os.TotalVisibleMemorySize - $os.FreePhysicalMemory)/1MB)
-```
-
-These numbers decide the default model under the **≤ 6.5 GB peak target** (architecture.md §10).
+The app uses the 1.7B model when enough RAM is free and the 0.6B model otherwise (`LLM_MIN_FREE_RAM_MB`,
+section 7). Measured on the development laptop: 1.7B needs 1.5 to 1.7 GB and writes 15 to 16 tokens per second;
+0.6B needs about 0.9 GB and writes 31 to 35 tokens per second ([testing report](testing_report.md) §4).
 
 ---
 
-## 4. Project Setup (Phase 1)
-
-### 4.1 Backend virtual environment
+## 3. Get the code
 
 ```powershell
-cd C:\Users\<you>\Desktop\NEURALVEST
-mkdir backend
+cd $HOME\Desktop
+git clone https://github.com/SherwinDmonte/NeuralVest.git NEURALVEST
+cd NEURALVEST
+```
+
+---
+
+## 4. Backend
+
+```powershell
 cd backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-If activation fails with *"running scripts is disabled on this system"*:
+If activation fails with *"running scripts is disabled on this system"*, allow local scripts once and try again:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-When the venv is active, the prompt starts with `(.venv)`. In VS Code: `Ctrl+Shift+P` → *Python: Select Interpreter* → choose `backend\.venv\Scripts\python.exe`.
-
-Dependencies are installed from `requirements.txt`, which is created in Phase 1:
-
-```powershell
-pip install -r requirements.txt
-```
-
-### 4.2 Frontend
-
-```powershell
-cd C:\Users\<you>\Desktop\NEURALVEST
-npm create vite@latest frontend -- --template react
-cd frontend
-npm install
-npm install react-router-dom axios recharts lucide-react
-npm install -D tailwindcss @tailwindcss/vite
-npm run dev
-```
-
-**Expected:** Vite prints `Local: http://localhost:5173/`. Open it in a browser.
-
-Tailwind v4 is set up through the Vite plugin and `@import "tailwindcss";` in the main CSS file. The exact steps are done and verified in Phase 1.
+While the virtual environment is active the prompt starts with `(.venv)`. In VS Code choose it with
+`Ctrl+Shift+P` → *Python: Select Interpreter* → `backend\.venv\Scripts\python.exe`.
 
 ---
 
-## 5. Environment Variables
+## 5. Frontend
 
-Real secrets go only in `backend/.env`, which is git-ignored. `backend/.env.example` is committed with placeholders.
+In a second terminal:
+
+```powershell
+cd $HOME\Desktop\NEURALVEST\frontend
+npm install
+Copy-Item .env.example .env
+```
+
+`frontend/.env` holds only the API address (`VITE_API_BASE_URL=http://localhost:8000/api`). Only variables
+starting with `VITE_` reach the browser, so never put secrets there.
+
+---
+
+## 6. MongoDB Atlas
+
+1. Sign up at <https://www.mongodb.com/cloud/atlas/register> and create a **Free (M0)** cluster. Choose a region
+   near India (for example AWS Mumbai, `ap-south-1`) if the free tier offers one.
+2. **Database Access** → add a database user with a generated password. Least privilege: *Specific Privileges* →
+   `readWrite` on `neuralvest_db` and `readWrite` on `neuralvest_db_test`. (Without the `dbAdmin` role the app
+   cannot update an existing collection's validator later; it reports this in `/api/health/db` and keeps working.)
+3. **Network Access** → *Add Current IP Address*. Add the new address if your home IP changes; avoid
+   `0.0.0.0/0`.
+4. **Connect → Drivers → Python**: copy the `mongodb+srv://...` address for the next section. Replace `<password>`
+   and URL-encode special characters in it (for example `@` becomes `%40`).
+
+Never paste the address with its password into chat, code, commits or screenshots.
+
+---
+
+## 7. Configuration
+
+```powershell
+cd $HOME\Desktop\NEURALVEST\backend
+Copy-Item .env.example .env
+notepad .env
+```
+
+`backend/.env` is ignored by git; only `.env.example` (placeholders) is in the repository. Fill in these values:
+
+| Setting | What to enter |
+|---|---|
+| `MONGODB_URI` | The Atlas address from section 6, with the real password |
+| `JWT_SECRET` | A random secret of at least 32 characters: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `RISK_FREE_RATE_PCT`, `RISK_FREE_RATE_DATE`, `RISK_FREE_RATE_SOURCE` | The RBI 91-day Treasury bill yield (below). Without all three, Sharpe ratios show as unavailable |
+| `STORAGE_RESERVED_MB` | Only if other projects share the Atlas cluster: the megabytes they use, from the Atlas UI |
+
+Everything else can stay as it is. The defaults suit an 8 GB laptop.
+
+**Risk-free rate.** On rbi.org.in → *Press Releases*, search for **"Treasury Bills: Full Auction Result"**, open the
+latest release and take the **91-day** bill's cut-off yield. For example:
 
 ```dotenv
-# ----- App -----
-APP_ENV=development
-LOG_LEVEL=INFO
-CORS_ORIGINS=http://localhost:5173
-
-# ----- MongoDB Atlas (Phase 2) -----
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/?retryWrites=true&w=majority
-MONGODB_DB_NAME=neuralvest_db
-MONGODB_TEST_DB_NAME=neuralvest_db_test
-STORAGE_WARN_PCT=60
-STORAGE_BLOCK_PCT=85
-
-# ----- Ollama (Phase 4) -----
-OLLAMA_BASE_URL=http://localhost:11434
-LLM_PRIMARY_MODEL=qwen3:1.7b
-LLM_FALLBACK_MODEL=qwen3:0.6b
-LLM_NUM_CTX=2048
-LLM_TIMEOUT_SECONDS=90
-MAX_NEWS_ARTICLES_LLM=8
-LLM_MIN_FREE_RAM_MB=1500            # below this, the 0.6B model is used for the call
-
-# ----- Analysis -----
-AGENT_EXECUTION_MODE=sequential
-RISK_FREE_RATE_PCT=<value>          # Phase 8, entered manually
-RISK_FREE_RATE_DATE=<YYYY-MM-DD>    # date the rate applies to
-RISK_FREE_RATE_SOURCE=<description> # e.g. "RBI 91-day T-bill yield"
-MARKET_DATA_MAX_YEARS=5             # configurable retention for market_data
-
-# ----- Auth (Phase 11) -----
-JWT_SECRET=<generate-locally>
-JWT_EXPIRE_MINUTES=60
+RISK_FREE_RATE_PCT=5.8602
+RISK_FREE_RATE_DATE=2026-11-18
+RISK_FREE_RATE_SOURCE=RBI 91-day T-bill auction cut-off yield
 ```
 
-### Risk-free rate (Phase 8, decision D4)
+The value, date and source are saved with every risk report. Update them now and then (monthly is enough) and
+restart the API.
 
-The Sharpe ratio needs a risk-free rate. NeuralVest does not fetch it automatically; you enter it so its value, date and source are always known (they are saved with every risk report).
-
-1. Open the RBI website press releases (rbi.org.in → Press Releases) and search for **"Treasury Bills: Full Auction Result"**.
-2. Open the most recent release and find the **91-day** bill's **cut-off yield** (an annual % yield, e.g. `5.5747`).
-3. In `backend/.env` set all three lines (example values; use the ones you find):
-   ```dotenv
-   RISK_FREE_RATE_PCT=5.5747
-   RISK_FREE_RATE_DATE=2026-10-07
-   RISK_FREE_RATE_SOURCE=RBI 91-day T-bill auction cut-off yield
-   ```
-4. Restart the backend. Until all three are set, Sharpe ratios show "unavailable" and `risk_reports` documents are not written. Update the rate occasionally (e.g. monthly).
-
-Generate a JWT secret locally in Phase 11:
-
-```powershell
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-The frontend uses `frontend/.env` with `VITE_API_BASE_URL=http://localhost:8000/api` (not secret, but still kept out of git for consistency).
+**Memory.** `LLM_MIN_FREE_RAM_MB=3000` means the 1.7B model is used only when 3 GB is free (counting what an
+already loaded 1.7B model holds); otherwise the 0.6B model answers. Set `LLM_PRIMARY_MODEL=qwen3:0.6b` to always
+use the smaller model.
 
 ---
 
-## 6. MongoDB Atlas (Phase 2, manual)
+## 8. Run the app
 
-1. Sign up at <https://www.mongodb.com/cloud/atlas/register>.
-2. Create a **Free** cluster (M0). Pick a region close to India (for example AWS Mumbai `ap-south-1`) if one is offered on the free tier.
-3. **Database Access** → add a database user with a strong, generated password. Under *Database User Privileges* choose **Specific Privileges** → `readWrite` on database `neuralvest_db`, and a second `readWrite` on `neuralvest_db_test`. Avoid the broad *Read and write to any database* role (least privilege; see database_design.md §5.2).
-4. **Network Access** → *Add Current IP Address*. If your home IP changes, add the new one. Avoid `0.0.0.0/0`.
-5. **Connect → Drivers → Python**: copy the `mongodb+srv://...` URI into `backend/.env` as `MONGODB_URI` and replace `<password>`. URL-encode special characters in the password (for example `@` → `%40`).
-6. Never paste the URI into chat, code, commits or screenshots.
-
----
-
-## 7. GitHub (Phase 1, manual)
-
-1. Create an empty repository on github.com (no README, no .gitignore, because we create those locally). You choose public or private.
-2. Authenticate. Git for Windows includes **Git Credential Manager**, which opens a browser login on the first push.
+Ollama runs in the background as a tray app. Then use two terminals:
 
 ```powershell
-cd C:\Users\<you>\Desktop\NEURALVEST
-git init
-git add .
-git status            # check: no .env, no .venv, no node_modules
-git commit -m "chore: initial project scaffold"
-git remote add origin https://github.com/<your-username>/<repo-name>.git
-git push -u origin main
-```
-
----
-
-## 8. Running the App (from Phase 2 / Phase 6 onward)
-
-Use two terminals:
-
-```powershell
-# Terminal 1 — backend
-cd backend
+# Terminal 1: API
+cd $HOME\Desktop\NEURALVEST\backend
 .\.venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload --port 8000
-# Swagger UI: http://localhost:8000/docs
 ```
 
 ```powershell
-# Terminal 2 — frontend
-cd frontend
-npm run dev
-# App: http://localhost:5173
-```
-
-Ollama runs in the background as a tray app on `http://localhost:11434`.
-
-### Orchestration settings (Phase 10, optional)
-
-The defaults in `.env.example` suit 8 GB RAM. `AGENT_EXECUTION_MODE=parallel` runs News, Stock Analysis and
-Risk at the same time (only network waits overlap; AI calls stay one at a time). `WORKFLOW_CHECKPOINTS=true`
-also needs `pip install langgraph-checkpoint-sqlite`. `REPORT_LLM_SUMMARY=false` skips the AI key observations
-(about 10 s faster; the rule-based readings are used). The full report of an analysis:
-`GET http://localhost:8000/api/analysis/<request_id>/report`.
-
-### Portfolio analysis (Phase 9)
-
-From `backend/` with the venv active and Ollama running:
-
-```powershell
-python scripts/run_analysis.py RELIANCE TCS INFY --amount 100000 --risk moderate --no-gdelt
-```
-
-Expected (numbers depend on the day): every agent `completed`/`partial`, then a `PORTFOLIO` block with one
-line per stock (weight, whole shares, rupee amount), the leftover cash, the in-sample figures and a
-`backtest ... CAGR ... | equal weight ... | NIFTY 50 ...` line. In the dashboard, type several symbols
-separated by commas; an amount field and a risk preference appear. Without the LLM, quick results:
-`POST /api/portfolio/optimize` and `POST /api/portfolio/backtest` (see http://localhost:8000/docs).
-
-### Accounts, reports and PDF (Phase 11)
-
-1. Generate a JWT secret **locally** (from `backend/`, venv active) and paste it into `backend/.env` as
-   `JWT_SECRET=...` (replace the `<generate-locally>` placeholder). Never share or commit it:
-
-   ```powershell
-   python -c "import secrets; print(secrets.token_urlsafe(48))"
-   ```
-
-   Restart the API. Without it, `/api/auth/*` returns 503 ("Authentication is not configured").
-2. In Swagger (http://localhost:8000/docs): `POST /api/auth/register`, then `POST /api/auth/login`. Copy
-   `access_token`, click **Authorize** (top right), paste it, and try `GET /api/auth/me` and `GET /api/reports`.
-3. Analyses started while logged in belong to you; others cannot open them. Older reports (and analyses
-   started from the dashboard, which has no login yet) have no owner. To list them under your account:
-
-   ```powershell
-   python scripts/assign_reports.py --email you@example.com          # dry run: shows the counts
-   python scripts/assign_reports.py --email you@example.com --apply  # assigns them
-   ```
-
-4. PDF: the dashboard's report card has a **Download PDF** button, or open
-   `http://localhost:8000/api/reports/<report_id>/pdf` (the `report_id` is in `GET /api/analysis/<request_id>`).
-   The PDF is generated from the stored report each time (about 0.5 s) and is not saved on disk.
-
-Since Phase 12, `AUTH_REQUIRED` defaults to `true`: the web app asks you to log in, and the API refuses
-analyses without a token. Set `AUTH_REQUIRED=false` only to call the API anonymously while testing.
-
-### The web app (Phase 12)
-
-After pulling Phase 12, install the new frontend packages once (Geist fonts and Phosphor icons):
-
-```powershell
-cd frontend
-npm install
+# Terminal 2: web app
+cd $HOME\Desktop\NEURALVEST\frontend
 npm run dev
 ```
 
-Open http://localhost:5173. The landing page is public; **Create a free account** (or **Log in**) opens the
-app at `/app`: Dashboard, Stock analysis, Agent monitoring, Financial news, Portfolio, Risk analysis and
-Reports. The login lasts until the token expires (`JWT_EXPIRE_MINUTES`) or the browser tab is closed.
-Rate limits (`RATE_LIMIT_*`) answer 429 with a `Retry-After` header; they reset when the API restarts.
+| Address | What |
+|---|---|
+| http://localhost:5173 | The web app |
+| http://localhost:8000/docs | API documentation (Swagger UI) |
+| http://localhost:8000/api/health/db | Database connection check (expect `"connected": true`) |
+| http://localhost:8000/api/health/llm | Ollama check: installed models and which one would answer |
 
-### The redesigned app (Phase 12B)
+**First use.** Open http://localhost:5173, choose **Create a free account**, then **Stock analysis** and enter one or
+more symbols (`RELIANCE`, `TCS`, or a BSE code such as `500325`). Add an amount and a risk preference for two or
+more stocks to get an illustrative portfolio. One stock takes about a minute and five stocks with a portfolio about
+four minutes on an 8 GB laptop. The first visit to the Overview or Market pages downloads 30 curated stocks and can
+take up to a minute; later visits use the cache.
 
-Phase 12B adds the `motion` animation package. After pulling it, run `npm install` once more in `frontend`.
-The app has dark and light themes (top bar → theme menu, or Settings; "System" follows Windows), a
-collapsible sidebar, `Ctrl K` search, and new pages: Market intelligence, Watchlist, Settings and Help.
-The first visit to Overview or Market intelligence downloads 30 curated stocks for the breadth figures
-and can take up to a minute; later visits use the cache.
+Close heavy programs (many browser tabs, games) before an analysis. The app keeps working with little memory, but
+then it uses the smaller model.
 
-The landing page quotes one real analysis. To refresh it from your latest finished run with two or more
-stocks, run `python scripts/make_landing_snapshot.py` in `backend` (venv active; it only reads the database)
-and commit the updated `frontend/src/landing/snapshot.json`.
+---
 
-### Tests and measurements (Phase 13)
+## 9. Optional settings and scripts
 
-All commands run in `backend` with the virtual environment active.
+| Setting in `backend/.env` | Effect |
+|---|---|
+| `AGENT_EXECUTION_MODE=parallel` | News, stock analysis and risk run at the same time after market research (only network waits overlap; AI calls stay one at a time) |
+| `REPORT_LLM_SUMMARY=false` | Skips the AI-written key observations (about 10 s faster; the rule based readings are used) |
+| `WORKFLOW_CHECKPOINTS=true` | LangGraph checkpoints; also needs `pip install langgraph-checkpoint-sqlite` |
+| `AUTH_REQUIRED=false` | Lets the API run analyses without a login (for testing only) |
+| `RATE_LIMIT_*` | Requests per user per window, as `<count>/<second\|minute\|hour\|day>` |
+
+GDELT news is off by default and can be switched on per analysis in the app. It adds about 25 to 35 seconds and is
+often rate limited.
+
+Scripts, run from `backend` with the virtual environment active:
+
+| Command | What it does |
+|---|---|
+| `python scripts/run_analysis.py RELIANCE TCS --amount 100000 --risk moderate --no-gdelt` | Runs a full analysis in the terminal and prints every agent's result |
+| `python scripts/assign_reports.py --email you@example.com` | Lists reports without an owner (add `--apply` to give them to that account) |
+| `python scripts/make_landing_snapshot.py` | Copies the figures quoted on the landing page from your latest finished multi-stock run (read only) into `frontend/src/landing/snapshot.json` |
+| `python scripts/export_openapi.py` | Writes `docs/openapi.json` from the API's routes |
+| `python scripts/check_integrity.py` | Checks that stored documents still match the database rules (`--test-db` for the test database) |
+| `python scripts/cleanup_market_data.py` | Shows market data older than `MARKET_DATA_MAX_YEARS` (add `--apply` to delete it) |
+
+---
+
+## 10. Tests and measurements
 
 ```powershell
-python -m pip install pytest-cov                 # once: coverage report (development only)
-python -m pytest                                 # every test (about 3 minutes; the integration tests use the test database)
+cd $HOME\Desktop\NEURALVEST\backend
+python -m pytest                                  # all tests, about 3 minutes
+python -m pip install pytest-cov                  # once, for the coverage report
 python -m pytest --cov=app --cov-report=term-missing:skip-covered
 ```
 
-**Financial validation on real data.** `tests/test_financial_validation.py` checks every metric against
-independent reference calculations on a fixed dataset of real prices and statements. The dataset is not in
-the repository (Yahoo Finance data is not redistributed), so create it once; until then those tests are
-skipped:
+The integration tests use only the test database (`MONGODB_TEST_DB_NAME`) and are skipped when MongoDB is not
+configured.
+
+**Financial validation on real data.** The tests in `test_financial_validation.py` check every metric against
+independent reference calculations on a fixed set of real prices and statements. The set is not in the
+repository (Yahoo Finance data is not redistributed), so create it once; until then those tests are skipped:
 
 ```powershell
-python scripts/freeze_validation_dataset.py      # 2 years of prices for 4 stocks + NIFTY 50, cut at 2026-11-20
+python scripts/freeze_validation_dataset.py       # 2 years of prices for 4 stocks and the NIFTY 50
 ```
 
-It writes `data/historical/validation/` with a manifest of SHA-256 hashes; the tests confirm the files have not
-changed. `--force` replaces the dataset, and `--end YYYY-MM-DD` chooses another cut-off date.
+It is saved in `data/historical/validation/` with a manifest of SHA-256 hashes, so the tests notice if the files
+change. `--force` replaces it and `--end YYYY-MM-DD` chooses another cut-off date.
 
-**Performance.** Start Ollama first. The script uses only the test database and writes its results to
-`data/exports/performance_<time>.json`:
+**Performance.** With Ollama running (uses the test database only; results go to `data/exports/`):
 
 ```powershell
-python scripts/measure_performance.py            # all parts, about 10 to 15 minutes
-python scripts/measure_performance.py llm        # only the 1.7B vs 0.6B comparison
+python scripts/measure_performance.py             # everything, about 10 to 15 minutes
+python scripts/measure_performance.py llm         # only the 1.7B and 0.6B comparison
 ```
 
-The results for this laptop are in `docs/testing_report.md`. Close other heavy programs before measuring;
-the numbers depend on how much memory is free.
+The frontend has a linter: `npm run lint` in `frontend`.
 
 ---
 
-## 9. Common Errors
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `auth_not_configured` (503) on login/register | `JWT_SECRET` missing or shorter than 32 characters | Generate one (section 8, Phase 11) and restart the API |
-| `token_expired` (401) | The token is older than `JWT_EXPIRE_MINUTES` | Log in again |
-| `rate_limited` (429) | Too many requests in the window | Wait the `Retry-After` seconds |
-| A report you can see in MongoDB answers 404 | It belongs to another account, or has no owner while `AUTH_REQUIRED=true` | Log in as the owner, or run `scripts/assign_reports.py` |
+## 11. Common errors
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `python` opens the Microsoft Store | App-execution alias | Settings → Apps → Advanced app settings → App execution aliases → turn off `python.exe` / `python3.exe`; use `py -3.12` |
+| `python` opens the Microsoft Store | App execution alias | Settings → Apps → Advanced app settings → App execution aliases → turn off `python.exe`; use `py -3.12` |
 | `Activate.ps1 cannot be loaded` | Execution policy | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
-| `pip install` builds from source and fails | No wheel for your Python version | Make sure the venv uses Python 3.12 64-bit (`python -c "import sys; print(sys.version)"`) |
-| `ServerSelectionTimeoutError` (Mongo) | IP not allow-listed, wrong password, or network blocks port 27017 | Re-add the current IP in Atlas; check the URI encoding; try another network |
-| `ollama: connection refused` | Ollama not running | Start Ollama from the Start menu |
-| Ollama response very slow / PC freezes | RAM pressure | Close apps, use `qwen3:0.6b`, keep `num_ctx` at 2048, run `ollama stop <model>` after use |
-| Qwen3 output contains `<think>` text | Thinking mode active | Send `"think": false` on `/api/chat`; the backend also strips `<think>` blocks |
-| yfinance returns an empty DataFrame | Wrong suffix, Yahoo rate limit, or Yahoo change | Use `.NS`/`.BO`; wait and retry; upgrade yfinance |
-| Frontend `CORS error` | Backend CORS origin mismatch | `CORS_ORIGINS=http://localhost:5173` in `.env` |
-| `npm` not recognized | Node not on PATH | Reopen VS Code after installing; reinstall Node LTS |
+| `pip install` builds from source and fails | The virtual environment is not Python 3.12, 64-bit | Recreate it with `py -3.12 -m venv .venv` |
+| `/api/health/db` shows `connected: false`, or `ServerSelectionTimeoutError` | IP not allow-listed, wrong password, or port 27017 blocked | Add your current IP in Atlas, check the password encoding, try another network |
+| `database_not_configured` (503) | `MONGODB_URI` missing or still contains `<password>` | Fill it in `backend/.env` and restart the API |
+| `auth_not_configured` (503) on login | `JWT_SECRET` missing or shorter than 32 characters | Generate one (section 7) and restart the API |
+| `token_expired` (401) | The login is older than `JWT_EXPIRE_MINUTES` | Log in again |
+| `rate_limited` (429) | Too many requests in the window | Wait the `Retry-After` seconds |
+| `storage_limit_reached` (507) | The Atlas free tier is nearly full | Remove old market data: `python scripts/cleanup_market_data.py` (dry run), then `--apply` |
+| A report you can see in MongoDB answers 404 | It belongs to another account, or has no owner | Log in as the owner, or run `scripts/assign_reports.py` |
+| "Not Found" for a feature that should exist | The running API is older than the frontend | Restart the API (`--reload` only picks up changes while it runs) |
+| `ollama: connection refused`; explanations say "generated without the AI model" | Ollama is not running | Start Ollama from the Start menu; the app works without it, using templates |
+| Analyses are very slow, the laptop freezes | Not enough free RAM, Windows is paging | Close programs, or set `LLM_PRIMARY_MODEL=qwen3:0.6b` |
+| Qwen3 output contains `<think>` text | Thinking mode is on | The app sends `"think": false` and removes such blocks; update Ollama if it persists |
+| A stock shows no data | Wrong suffix, or Yahoo Finance rate limit | Use `.NS` (NSE) or `.BO` (BSE); wait a minute and retry |
+| `CORS error` in the browser | The web app's address is not allowed | `CORS_ORIGINS=http://localhost:5173` in `backend/.env` |
+| `npm` is not recognised | Node.js not on `PATH` | Reopen the terminal after installing Node.js |

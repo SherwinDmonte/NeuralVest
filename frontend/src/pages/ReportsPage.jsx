@@ -105,7 +105,6 @@ export function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Reports"
         title="Your reports"
         description="Every analysis you ran while logged in. Preview one, open it, compare two, or download a PDF."
         actions={
@@ -292,7 +291,7 @@ export function ReportComparePage() {
       <Link to="/app/reports" className="inline-flex items-center gap-2 caption-2 text-ink-secondary transition-colors duration-300 ease-nv hover:text-ink">
         <ArrowLeft size={16} aria-hidden="true" /> All reports
       </Link>
-      <PageHeader title="Compare reports" description="Two reports side by side: the same measures, as each report stored them on its own date." />
+      <PageHeader title="Two reports side by side" description="The same measures, as each report stored them on its own date." />
       {(a.loading || b.loading) && <CardSkeleton rows={8} />}
       {a.error && <ErrorState message={`First report: ${a.error}`} />}
       {b.error && <ErrorState message={`Second report: ${b.error}`} />}

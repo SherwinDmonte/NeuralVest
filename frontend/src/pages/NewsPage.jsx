@@ -55,7 +55,7 @@ export default function NewsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="News intelligence" title="Financial news" description="Articles collected by the Financial News agent, newest first, with the sentiment a local AI model gave each one." />
+      <PageHeader title="What the news says" description="Articles collected by the Financial News agent, newest first, with the sentiment a local AI model gave each one." />
       <Card>
         <SymbolPicker value={symbol ? [symbol] : []} single label="Stock" placeholder="Search a symbol or company name"
                       onChange={(v) => { setParams(v[0] ? { symbol: v[0] } : {}); setPage(1) }} />

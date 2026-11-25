@@ -54,7 +54,7 @@ export default function AgentsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Multi agent intelligence" title="AI agents"
+      <PageHeader title="Watch the agents work"
                   description={status ? `${status.symbols?.join(', ')} · ${JOB_TEXT[status.status] || status.status}` : 'A LangGraph supervisor coordinates five specialist agents and a report step. Start or open an analysis to watch them work.'}
                   actions={
                     <>

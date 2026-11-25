@@ -59,7 +59,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Settings" title="Settings and system status" description="Appearance is saved in this browser. Account details come from your NeuralVest account." />
+      <PageHeader title="Appearance, account and system status" description="Appearance is saved in this browser. Account details come from your NeuralVest account." />
 
       <Card title="Appearance" subtitle="Choose a theme. It changes every page, chart and menu." icon={Sun}>
         <div className="grid gap-4 sm:grid-cols-3" role="radiogroup" aria-label="Theme">

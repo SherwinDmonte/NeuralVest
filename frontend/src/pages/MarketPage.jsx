@@ -121,7 +121,7 @@ export default function MarketPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Market intelligence" title="Indian market at the last close"
+      <PageHeader title="Indian market at the last close"
                   description="NIFTY 50 and SENSEX with their history, NIFTY 50 technicals and the breadth of NeuralVest's 30 curated stocks. End of day data, never real time." />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

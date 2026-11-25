@@ -38,3 +38,6 @@ data/exports/*
 .DS_Store
 Thumbs.db
 *.log
+
+# ===== Progress tracker (kept locally, Phase 14) =====
+tasks.md
