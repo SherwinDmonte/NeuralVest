@@ -16,9 +16,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = "2026-11-23.2"
+from app.llm.guards import StockFacts, benchmark_gap_problem, observations_problem
+
+PROMPT_VERSION = "2026-11-25.1"
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,9 @@ class PromptSpec:
     guarded_fields: tuple[str, ...] = ()
     # Rule-based readings the text must not contradict (Phase 10 guard).
     readings: tuple[str, ...] = ()
+    # Extra checks on the parsed answer (Phase 13): each returns why it is wrong, or None.
+    # A failed check is handled like an invented number (retry -> fallback model -> template).
+    checks: tuple[Callable[[Any], str | None], ...] = ()
     version: str = PROMPT_VERSION
 
     def guarded_text(self, value: BaseModel) -> list[str]:
@@ -61,6 +66,14 @@ FACT_RULES = (
 )
 
 
+class LLMOutput(BaseModel):
+    """Base of every LLM answer schema. `extra="forbid"` puts additionalProperties: false in the
+    JSON schema that Ollama turns into a grammar, so the model cannot add keys of its own. Found in
+    the Phase 13 benchmark: qwen3:1.7b put a second stock's observations in extra keys next to the
+    `observations` list, which then silently lost that stock."""
+    model_config = ConfigDict(extra="forbid")
+
+
 def _untrusted(text: str | None, max_chars: int) -> str:
     """Neutralize retrieved text: no angle brackets (cannot close our tags), no control chars."""
     text = re.sub(r"[<>]", " ", text or "")
@@ -76,7 +89,7 @@ NewsCategoryOut = Literal[
 ]
 
 
-class NewsAnalysisOutput(BaseModel):
+class NewsAnalysisOutput(LLMOutput):
     summary: str = Field(min_length=1, max_length=300)
     sentiment: NewsSentiment
     category: NewsCategoryOut
@@ -117,7 +130,7 @@ def news_analysis_fallback(headline: str, matched_company: bool) -> Callable[[],
 
 
 # ================================================================ news digest (Phase 5)
-class NewsDigestOutput(BaseModel):
+class NewsDigestOutput(LLMOutput):
     digest: str = Field(min_length=1, max_length=600)
 
 
@@ -148,12 +161,15 @@ def news_digest_fallback(company_name: str, lookback_days: int, breakdown: dict[
 
 
 # ================================================================ 4.3.2 market research explanation
-class MarketExplanationOutput(BaseModel):
+class MarketExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
 def market_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
-    """`facts` are computed by Python (indicators, trend, benchmark comparison)."""
+    """`facts` are computed by Python (indicators, trend, benchmark comparison). A stated gap to
+    the NIFTY 50 must equal `gap_vs_nifty_pct_points` (Phase 13: the 0.6B model once gave the
+    stock's own return as the gap)."""
+    gap = facts.get("gap_vs_nifty_pct_points")
     system = (
         "You explain technical indicators of an Indian stock to a beginner investor. "
         "Write 3 to 5 short sentences in plain English, using ONLY the values in the JSON facts. "
@@ -163,7 +179,8 @@ def market_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
     )
     user = "Facts (computed by NeuralVest, JSON):\n" + json.dumps(facts, default=str, separators=(",", ":"), ensure_ascii=False)
     return PromptSpec(name="market_explanation", system=system, user=user, readings=readings_of(facts), max_tokens=260,
-                      guarded_fields=("explanation",))
+                      guarded_fields=("explanation",),
+                      checks=(lambda value: benchmark_gap_problem(value.explanation, gap),))
 
 
 def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExplanationOutput]:
@@ -184,7 +201,7 @@ def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExp
 
 
 # ================================================================ 4.3.4 later phases (PLACEHOLDERS)
-class FundamentalExplanationOutput(BaseModel):
+class FundamentalExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
@@ -218,7 +235,7 @@ def stock_analysis_fallback(facts: dict[str, Any]) -> Callable[[], FundamentalEx
     return build
 
 
-class RiskExplanationOutput(BaseModel):
+class RiskExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
@@ -246,7 +263,7 @@ def risk_explanation_fallback(facts: dict[str, Any]) -> Callable[[], RiskExplana
     return build
 
 
-class PortfolioExplanationOutput(BaseModel):
+class PortfolioExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=1000)
 
 
@@ -276,20 +293,30 @@ def portfolio_explanation_fallback(facts: dict[str, Any]) -> Callable[[], Portfo
     return build
 
 
-def report_summary_prompt(facts: dict[str, Any]) -> PromptSpec:
+def report_summary_prompt(facts: dict[str, Any], stocks: list[StockFacts] | tuple = (),
+                          shared: list[str] | tuple = ()) -> PromptSpec:
     """Phase 10: "key observations" of the final report. `facts` are ONLY rule-based readings
-    (each figure inside its sentence), so the model rewrites; it does not interpret numbers."""
+    (each figure inside its sentence), so the model rewrites; it does not interpret numbers.
+
+    Phase 13: with `stocks` (each stock's own readings) every sentence about a stock is checked
+    against THAT stock's readings, and with 2-5 stocks each one must be mentioned. With several
+    stocks the readings disagree with each other (one outperformed, one did not), so only the
+    `shared` (portfolio) readings are checked against the whole text."""
     system = (
         "You write the KEY OBSERVATIONS of a stock analysis report for a beginner investor in India. "
         "Write 3 to 5 short, separate observations in plain English, using ONLY the JSON facts. Every fact "
         "is already correct: restate it, never contradict it, and keep each stock name with its own facts. "
+        "Name the stock in every observation about it, and mention every stock at least once. "
         "Prefer the most important facts (performance against the NIFTY 50, risk, financial health). "
         "Never tell the reader to buy, sell or hold. Copy numbers exactly as given or leave them out. "
         "Return JSON with one field: observations (a list of strings). " + FACT_RULES
     )
     user = "Facts (computed by NeuralVest, JSON):\n" + json.dumps(facts, default=str, separators=(",", ":"), ensure_ascii=False)
+    stocks = tuple(stocks)
+    readings = tuple(str(v) for v in facts.values()) if len(stocks) <= 1 else tuple(str(v) for v in shared)
+    checks = (lambda value: observations_problem(list(value.observations), list(stocks), list(shared)),) if stocks else ()
     return PromptSpec(name="report_summary", system=system, user=user, max_tokens=320,
-                      guarded_fields=("observations",), readings=tuple(str(v) for v in facts.values()))
+                      guarded_fields=("observations",), readings=readings, checks=checks)
 
 
 def readings_of(facts: dict[str, Any]) -> tuple[str, ...]:

@@ -96,17 +96,21 @@ def simulate(prices: pd.DataFrame, targets: dict[int, pd.Series], start: int, co
     return pd.Series(values, index=prices.index[start:]), trades
 
 
-def metrics(equity: pd.Series, risk_free_rate_pct: float | None) -> dict[str, Any]:
+def metrics(equity: pd.Series, risk_free_rate_pct: float | None, initial: float | None = None) -> dict[str, Any]:
+    """`initial` is the amount invested. The curve's first value is already after the first
+    purchase cost, so returns measured from it would leave that cost out (found by the Phase 13
+    financial validation: -17.34% reported for an actual -17.42%)."""
+    base = float(initial) if initial is not None else float(equity.iloc[0])
     daily = equity.pct_change().dropna()
     years = (equity.index[-1] - equity.index[0]).days / 365.25
-    growth = equity.iloc[-1] / equity.iloc[0]
+    growth = equity.iloc[-1] / base
     vol = daily.std(ddof=1) * math.sqrt(TRADING_DAYS) if len(daily) > 1 else None
     sharpe = None
     if risk_free_rate_pct is not None and vol:
         sharpe = (daily.mean() * TRADING_DAYS - risk_free_rate_pct / 100) / vol
     mdd = rm.max_drawdown(equity)
     return {
-        "start_value": _r(equity.iloc[0]), "end_value": _r(equity.iloc[-1]),
+        "start_value": _r(base), "end_value": _r(equity.iloc[-1]),
         "total_return_pct": _r((growth - 1) * 100),
         "cagr_pct": _r((growth ** (1 / years) - 1) * 100) if years > 0 else None,
         "volatility_pct": _r(vol * 100) if vol is not None else None,
@@ -154,9 +158,9 @@ def run_backtest(prices: pd.DataFrame, weight_fn: WeightFunction, *, lookback: i
 
     curve = [{"date": d.strftime("%Y-%m-%d"), "strategy": _r(strategy[d]), "equal_weight": _r(equal_curve[d]),
               "nifty50": _r(bench_curve[d]) if bench_curve is not None else None} for d in strategy.index]
-    result = metrics(strategy, risk_free_rate_pct)
-    eq_metrics = metrics(equal_curve, risk_free_rate_pct)
-    bench_metrics = metrics(bench_curve, risk_free_rate_pct) if bench_curve is not None else None
+    result = metrics(strategy, risk_free_rate_pct, capital)
+    eq_metrics = metrics(equal_curve, risk_free_rate_pct, capital)
+    bench_metrics = metrics(bench_curve, risk_free_rate_pct, capital) if bench_curve is not None else None
     return {
         "period": {"from": strategy.index[0].strftime("%Y-%m-%d"), "to": strategy.index[-1].strftime("%Y-%m-%d"),
                    "trading_days": len(strategy) - 1,

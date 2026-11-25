@@ -100,3 +100,38 @@ def test_graph_persists_agent_results(tmp_path, monkeypatch, clean_db):
     final = graph(tmp_path, db=clean_db).invoke(initial_state(["RELIANCE"]))
     agents = {d["agent_name"] for d in clean_db[m.AGENT_RESULTS].find({"request_id": final["request_id"]})}
     assert agents == {"market_research", "financial_news", "stock_analysis", "risk_assessment"}
+
+
+@pytest.mark.parametrize("failure", ["connection_refused", "timeout", "server_error"])
+def test_ollama_failing_mid_run_still_gives_a_full_report(tmp_path, monkeypatch, failure):
+    """Phase 13 (13.1.2, LLM failures): the REAL Ollama client with a transport that fails every
+    call. Every agent still finishes with its rule-based template, says so, and the report is built."""
+    import httpx
+
+    from app.llm.ollama_client import OllamaClient
+
+    def broken(request):
+        if failure == "connection_refused":
+            raise httpx.ConnectError("refused", request=request)
+        if failure == "timeout":
+            raise httpx.ReadTimeout("slow", request=request)
+        return httpx.Response(500, json={"error": "model runner crashed"})
+
+    patch_market_data(monkeypatch, mr)
+    settings = Settings(_env_file=None, data_cache_dir=tmp_path, llm_min_free_ram_mb=0)
+    with OllamaClient(settings, transport=httpx.MockTransport(broken), ram_probe=lambda: 4000) as llm:
+        final = build_graph(llm=llm, db=None, settings=settings, include_gdelt=False,
+                            news_transport=news_transport()).invoke(initial_state(["RELIANCE", "TCS"], investment_amount=100_000))
+    assert final["final_report"]["status"] in ("completed", "partial") and not final["errors"]
+    for key in ("market_analysis", "stock_analysis"):
+        for sym, out in final[key].items():
+            assert out["llm"]["source"] == "template" and out["explanation"], (key, sym)
+            assert "without the AI model" in out["explanation"]
+    for out in final["news_analysis"].values():
+        assert out["articles"] and all(a["sentiment"] == "uncertain" for a in out["articles"])  # nothing guessed
+        assert out["digest_source"] == "template" and not out["llm"]["models"]
+    portfolio = final["portfolio_analysis"]
+    assert portfolio["llm"]["source"] == "template" and portfolio["allocations"]
+    obs = final["final_report"]["key_observations"]
+    assert obs["source"] == "template" and "could not produce" in obs["reason"]
+    assert final["final_report"]["traceability"]["ok"]

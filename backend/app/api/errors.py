@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure, PyMongoError, ServerSelectionTimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 logger = logging.getLogger("neuralvest.errors")
 
@@ -36,6 +37,41 @@ def _error(request: Request, status_code: int, code: str, message: str, details:
     request_id = getattr(request.state, "request_id", None)
     body = {"error": {"code": code, "message": message, "details": details, "request_id": request_id}}
     return JSONResponse(status_code=status_code, content=jsonable_encoder(body), headers=headers)
+
+
+INTERNAL_ERROR_MESSAGE = "An unexpected error occurred."
+
+
+class UnhandledErrorMiddleware:
+    """Turns an unexpected exception into the standard 500 envelope INSIDE the request-ID and CORS
+    middleware. FastAPI runs an `Exception` handler outside every middleware, so before Phase 13
+    such a response had no X-Request-ID header and no CORS headers (a browser then reported a CORS
+    failure instead of the error). The app-level handler below remains as a last resort."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        started = False
+
+        async def tracking_send(message: Message) -> None:
+            nonlocal started
+            started = started or message["type"] == "http.response.start"
+            await send(message)
+
+        try:
+            await self.app(scope, receive, tracking_send)
+        except Exception:
+            if started:  # part of the response is already sent: nothing sensible to replace it with
+                raise
+            logger.exception("Unhandled error")
+            request_id = (scope.get("state") or {}).get("request_id")
+            body = {"error": {"code": "internal_error", "message": INTERNAL_ERROR_MESSAGE, "details": None,
+                              "request_id": request_id}}
+            await JSONResponse(status_code=500, content=body)(scope, receive, send)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -68,4 +104,4 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def _unexpected_error(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled error")
-        return _error(request, 500, "internal_error", "An unexpected error occurred.")
+        return _error(request, 500, "internal_error", INTERNAL_ERROR_MESSAGE)

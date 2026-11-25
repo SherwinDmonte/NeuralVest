@@ -196,3 +196,26 @@ def test_contradicting_text_is_repaired_then_accepted():
     assert result.source == "llm" and result.value.explanation == good["explanation"]
     assert "benchmark out/underperformed" in result.attempts[0]["reason"]
     assert "rejected" in mock.requests[1]["messages"][-1]["content"]  # repair hint sent
+
+
+def ps_aware(loaded: dict[str, int]):
+    """Mock Ollama that answers /api/ps with `loaded` ({model: bytes}) and /api/chat with GOOD_NEWS."""
+    chats = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/ps":
+            return httpx.Response(200, json={"models": [{"name": n, "model": n, "size": b} for n, b in loaded.items()]})
+        chats.append(json.loads(request.content)["model"])
+        return chat_response(json.dumps(GOOD_NEWS))
+    return handler, chats
+
+
+def test_a_loaded_primary_model_keeps_its_ram():
+    """Phase 13: 800 MB free + 1.4 GB held by the loaded 1.7B model = enough; no swap to 0.6B."""
+    handler, chats = ps_aware({"qwen3:1.7b": 1_400 * 1024**2})
+    assert run_news(handler, ram_mb=800).model == "qwen3:1.7b" and chats == ["qwen3:1.7b"]
+
+
+def test_low_ram_and_primary_not_loaded_uses_the_fallback():
+    handler, chats = ps_aware({"qwen3:0.6b": 900 * 1024**2})
+    assert run_news(handler, ram_mb=800).model == "qwen3:0.6b" and chats == ["qwen3:0.6b"]

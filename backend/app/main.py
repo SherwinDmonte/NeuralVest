@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.errors import PyMongoError
 
-from app.api.errors import register_exception_handlers
+from app.api.errors import UnhandledErrorMiddleware, register_exception_handlers
 from app.api.rate_limit import RateLimiter
 from app.api.routes import analysis, auth, health, market, news, portfolio, reports, risk, stocks
 from app.config import APP_NAME, APP_VERSION, Settings, get_settings
@@ -76,7 +76,9 @@ def create_app(settings: Settings | None = None, runner: AnalysisRunner | None =
     if not settings.auth_configured:
         logger.warning("JWT_SECRET not set (or shorter than 32 characters): login and registration return 503.")
 
-    # Middleware order: CORS is outermost so even error responses carry CORS headers.
+    # Middleware order (last added = outermost): CORS, then the request ID, then the catch-all for
+    # unexpected errors, so even a 500 response carries CORS headers and X-Request-ID (Phase 13).
+    app.add_middleware(UnhandledErrorMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
