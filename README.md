@@ -98,14 +98,6 @@ free tier.
 </details>
 
 <details>
-<summary><b>Financial news</b>: stored articles with AI sentiment</summary>
-
-| Dark | Light |
-|---|---|
-| <img alt="Financial news, dark theme" src="docs/screenshots/news-dark.png"> | <img alt="Financial news, light theme" src="docs/screenshots/news-light.png"> |
-</details>
-
-<details>
 <summary><b>Risk analysis</b>: volatility, drawdown, beta, Sharpe and correlation</summary>
 
 | Dark | Light |
