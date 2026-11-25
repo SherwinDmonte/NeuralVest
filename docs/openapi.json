@@ -1,0 +1,2206 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NeuralVest API",
+    "description": "Multi-agent financial intelligence API for Indian equities (educational project).",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "API liveness",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/db": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "MongoDB connectivity, initialization and storage use",
+        "description": "Returns 200 when the database is reachable, 503 otherwise (same body shape).",
+        "operationId": "health_db_api_health_db_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/llm": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Local AI model status (Ollama): reachable, installed models, which one would answer",
+        "description": "Read-only. The model actually used is chosen per call from the free RAM (Phase 4 rule).",
+        "operationId": "health_llm_api_health_llm_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Llm Api Health Llm Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create an account",
+        "operationId": "register_api_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Register Api Auth Register Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in and receive an access token (JWT)",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Login Api Auth Login Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The logged-in user",
+        "operationId": "me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Me Api Auth Me Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/me/watchlist": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Your watchlist",
+        "operationId": "get_watchlist_api_auth_me_watchlist_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Watchlist Api Auth Me Watchlist Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Replace your watchlist (up to 20 symbols)",
+        "operationId": "put_watchlist_api_auth_me_watchlist_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Put Watchlist Api Auth Me Watchlist Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/me/avatar": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Your profile picture (256 x 256 WebP)",
+        "operationId": "get_avatar_api_auth_me_avatar_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/webp": {}
+            }
+          },
+          "404": {
+            "description": "No picture set"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Set your profile picture (JPEG, PNG or WebP, up to 5 MB)",
+        "operationId": "put_avatar_api_auth_me_avatar_put",
+        "requestBody": {
+          "description": "The image file itself as the request body (not a form).",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Put Avatar Api Auth Me Avatar Put"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Remove your profile picture",
+        "operationId": "delete_avatar_api_auth_me_avatar_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Delete Avatar Api Auth Me Avatar Delete"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/stocks/search": {
+      "get": {
+        "tags": [
+          "stocks"
+        ],
+        "summary": "Search stocks by symbol or company name",
+        "description": "Matches stored companies (MongoDB `stocks`, filled when stocks are analysed or seeded) and\nthe curated suggestion list. Any valid NSE/BSE symbol can be analysed even if it is not\nlisted: when `q` itself is a valid symbol it is returned as `normalized`.",
+        "operationId": "search_stocks_api_stocks_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "description": "e.g. 'reli', 'TCS' or '500325'",
+              "title": "Q"
+            },
+            "description": "e.g. 'reli', 'TCS' or '500325'"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Search Stocks Api Stocks Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}/financials": {
+      "get": {
+        "tags": [
+          "stocks"
+        ],
+        "summary": "Annual financial statements (income, balance sheet, cash flow)",
+        "description": "As reported by Yahoo Finance (via yfinance), newest year first, values in the statement\ncurrency. Nothing is recalculated; missing line items stay missing.",
+        "operationId": "stock_financials_api_stocks__symbol__financials_get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stock Financials Api Stocks  Symbol  Financials Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}/history": {
+      "get": {
+        "tags": [
+          "stocks"
+        ],
+        "summary": "Daily prices (from MongoDB, fetched from Yahoo if missing)",
+        "operationId": "stock_history_api_stocks__symbol__history_get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(1mo|3mo|6mo|1y|2y)$",
+              "default": "1y",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stock History Api Stocks  Symbol  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}/indicators": {
+      "get": {
+        "tags": [
+          "stocks"
+        ],
+        "summary": "Indicator series for charts (computed in Python)",
+        "description": "Computed on 2 years of prices so SMA200 is defined across the whole displayed period.",
+        "operationId": "stock_indicators_api_stocks__symbol__indicators_get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(6mo|1y)$",
+              "default": "1y",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stock Indicators Api Stocks  Symbol  Indicators Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}": {
+      "get": {
+        "tags": [
+          "stocks"
+        ],
+        "summary": "Stored company information for one symbol",
+        "operationId": "get_stock_api_stocks__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Yahoo-style ticker, e.g. RELIANCE.NS (NSE) or 500325.BO (BSE)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Stock Api Stocks  Symbol  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/market/indices": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "NIFTY 50 and SENSEX: last close, day change and a short series",
+        "operationId": "market_indices_api_market_indices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Market Indices Api Market Indices Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/market/breadth": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Gainers, losers, advancers and decliners across the 30 curated stocks",
+        "operationId": "market_breadth_api_market_breadth_get",
+        "parameters": [
+          {
+            "name": "top",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10,
+              "minimum": 1,
+              "default": 5,
+              "title": "Top"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Market Breadth Api Market Breadth Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/market/quotes": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Last close, day change and a short series for up to 20 symbols (watchlist)",
+        "operationId": "market_quotes_api_market_quotes_get",
+        "parameters": [
+          {
+            "name": "symbols",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600,
+              "description": "Comma separated, e.g. RELIANCE.NS,TCS.NS",
+              "title": "Symbols"
+            },
+            "description": "Comma separated, e.g. RELIANCE.NS,TCS.NS"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Market Quotes Api Market Quotes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/start": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Start an analysis in the background",
+        "operationId": "start_analysis_api_analysis_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Start Analysis Api Analysis Start Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analysis/{request_id}/status": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Progress of an analysis (poll every 2-3 s)",
+        "operationId": "analysis_status_api_analysis__request_id__status_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "request_id returned by POST /api/analysis/start",
+              "title": "Request Id"
+            },
+            "description": "request_id returned by POST /api/analysis/start"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Status Api Analysis  Request Id  Status Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/{request_id}/rerun": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Re-run an interrupted or failed analysis",
+        "operationId": "rerun_analysis_api_analysis__request_id__rerun_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "request_id returned by POST /api/analysis/start",
+              "title": "Request Id"
+            },
+            "description": "request_id returned by POST /api/analysis/start"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Rerun Analysis Api Analysis  Request Id  Rerun Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/{request_id}/report": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "The unified report of a finished analysis",
+        "operationId": "analysis_report_api_analysis__request_id__report_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "request_id returned by POST /api/analysis/start",
+              "title": "Request Id"
+            },
+            "description": "request_id returned by POST /api/analysis/start"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Report Api Analysis  Request Id  Report Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/{request_id}": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Full results of an analysis",
+        "operationId": "analysis_result_api_analysis__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "request_id returned by POST /api/analysis/start",
+              "title": "Request Id"
+            },
+            "description": "request_id returned by POST /api/analysis/start"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Result Api Analysis  Request Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/news/{symbol}/sentiment": {
+      "get": {
+        "tags": [
+          "news"
+        ],
+        "summary": "Sentiment breakdown of the stored news for a symbol",
+        "operationId": "news_sentiment_api_news__symbol__sentiment_get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "description": "Articles published in the last N days",
+              "default": 14,
+              "title": "Days"
+            },
+            "description": "Articles published in the last N days"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response News Sentiment Api News  Symbol  Sentiment Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/news/{symbol}": {
+      "get": {
+        "tags": [
+          "news"
+        ],
+        "summary": "Stored, analysed news for a symbol (newest first, paginated)",
+        "operationId": "stock_news_api_news__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$",
+              "examples": [
+                "RELIANCE.NS"
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "name": "sentiment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(positive|negative|neutral|uncertain)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sentiment"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stock News Api News  Symbol  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/risk/analyze": {
+      "post": {
+        "tags": [
+          "risk"
+        ],
+        "summary": "Historical risk metrics for one or more stocks",
+        "operationId": "analyze_risk_api_risk_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Analyze Risk Api Risk Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/portfolio/optimize": {
+      "post": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Illustrative allocation (weights, rupees, whole shares) + backtest",
+        "operationId": "optimize_portfolio_api_portfolio_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Optimize Portfolio Api Portfolio Optimize Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/portfolio/backtest": {
+      "post": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Walk-forward backtest of an allocation rule (nothing stored)",
+        "operationId": "backtest_portfolio_api_portfolio_backtest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BacktestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Backtest Portfolio Api Portfolio Backtest Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/portfolio/{portfolio_id}": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "A saved allocation with its full result",
+        "operationId": "get_portfolio_api_portfolio__portfolio_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "portfolio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "portfolio_id returned by POST /api/portfolio/optimize",
+              "title": "Portfolio Id"
+            },
+            "description": "portfolio_id returned by POST /api/portfolio/optimize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Portfolio Api Portfolio  Portfolio Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Your reports (newest first, paginated)",
+        "operationId": "list_reports_api_reports_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "queued",
+                    "running",
+                    "completed",
+                    "partial",
+                    "failed",
+                    "interrupted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\^?[A-Z0-9&\\-]{1,20}(\\.(NS|BO))?$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Reports Api Reports Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "One report with all its agent results",
+        "operationId": "get_report_api_reports__report_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "report_id from GET /api/reports or the analysis result",
+              "title": "Report Id"
+            },
+            "description": "report_id from GET /api/reports or the analysis result"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Report Api Reports  Report Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}/pdf": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Download the report as a PDF",
+        "operationId": "report_pdf_api_reports__report_id__pdf_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "description": "report_id from GET /api/reports or the analysis result",
+              "title": "Report Id"
+            },
+            "description": "report_id from GET /api/reports or the analysis result"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BacktestRequest": {
+        "properties": {
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Symbols",
+            "examples": [
+              [
+                "RELIANCE.NS",
+                "TCS.NS"
+              ]
+            ]
+          },
+          "risk_preference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "moderate",
+              "aggressive"
+            ],
+            "title": "Risk Preference",
+            "default": "moderate"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "max_sharpe",
+                  "min_volatility",
+                  "efficient_risk",
+                  "efficient_return",
+                  "equal_weight",
+                  "inverse_volatility",
+                  "hrp"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/PortfolioConstraints"
+          },
+          "target_volatility_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 200.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Volatility Pct"
+          },
+          "target_return_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "minimum": -100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Return Pct"
+          },
+          "returns_model": {
+            "type": "string",
+            "enum": [
+              "mean",
+              "ema"
+            ],
+            "title": "Returns Model",
+            "default": "mean"
+          },
+          "covariance_model": {
+            "type": "string",
+            "enum": [
+              "ledoit_wolf",
+              "sample"
+            ],
+            "title": "Covariance Model",
+            "default": "ledoit_wolf"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "2y",
+              "5y"
+            ],
+            "title": "Period",
+            "description": "Total history; the first year is used only for estimation",
+            "default": "2y"
+          },
+          "rebalance": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "none"
+            ],
+            "title": "Rebalance",
+            "default": "quarterly"
+          },
+          "transaction_cost_bps": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Transaction Cost Bps",
+            "default": 10.0
+          },
+          "initial_capital": {
+            "type": "number",
+            "maximum": 1000000000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Initial Capital",
+            "default": 100000.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbols"
+        ],
+        "title": "BacktestRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "OptimizeRequest": {
+        "properties": {
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Symbols",
+            "examples": [
+              [
+                "RELIANCE.NS",
+                "TCS.NS",
+                "INFY.NS"
+              ]
+            ]
+          },
+          "investment_amount": {
+            "type": "number",
+            "maximum": 1000000000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Investment Amount",
+            "description": "Amount in INR"
+          },
+          "risk_preference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "moderate",
+              "aggressive"
+            ],
+            "title": "Risk Preference",
+            "default": "moderate"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "max_sharpe",
+                  "min_volatility",
+                  "efficient_risk",
+                  "efficient_return",
+                  "equal_weight",
+                  "inverse_volatility",
+                  "hrp"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method",
+            "description": "Overrides the risk preference's method"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/PortfolioConstraints"
+          },
+          "target_volatility_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 200.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Volatility Pct"
+          },
+          "target_return_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "minimum": -100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Return Pct"
+          },
+          "returns_model": {
+            "type": "string",
+            "enum": [
+              "mean",
+              "ema"
+            ],
+            "title": "Returns Model",
+            "default": "mean"
+          },
+          "covariance_model": {
+            "type": "string",
+            "enum": [
+              "ledoit_wolf",
+              "sample"
+            ],
+            "title": "Covariance Model",
+            "default": "ledoit_wolf"
+          },
+          "backtest": {
+            "type": "boolean",
+            "title": "Backtest",
+            "default": true
+          },
+          "rebalance": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "none"
+            ],
+            "title": "Rebalance",
+            "default": "quarterly"
+          },
+          "transaction_cost_bps": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Transaction Cost Bps",
+            "default": 10.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbols",
+          "investment_amount"
+        ],
+        "title": "OptimizeRequest"
+      },
+      "PortfolioConstraints": {
+        "properties": {
+          "min_weight_pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Min Weight Pct",
+            "default": 0.0
+          },
+          "max_weight_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Weight Pct",
+            "description": "Default from the risk preference (25/35/50%)"
+          },
+          "allow_short": {
+            "type": "boolean",
+            "const": false,
+            "title": "Allow Short",
+            "description": "Short selling is not supported",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "PortfolioConstraints"
+      },
+      "PortfolioOptions": {
+        "properties": {
+          "method": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "max_sharpe",
+                  "min_volatility",
+                  "efficient_risk",
+                  "efficient_return",
+                  "equal_weight",
+                  "inverse_volatility",
+                  "hrp"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/PortfolioConstraints"
+          },
+          "target_volatility_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 200.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Volatility Pct"
+          },
+          "target_return_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "minimum": -100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Return Pct"
+          },
+          "rebalance": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "none"
+            ],
+            "title": "Rebalance",
+            "default": "quarterly"
+          },
+          "transaction_cost_bps": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Transaction Cost Bps",
+            "default": 10.0
+          }
+        },
+        "type": "object",
+        "title": "PortfolioOptions",
+        "description": "Optional Portfolio Optimization settings; the defaults follow the risk preference."
+      },
+      "RegisterRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Asha"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "examples": [
+              "asha@example.com"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "description": "8-128 characters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "password"
+        ],
+        "title": "RegisterRequest"
+      },
+      "RiskRequest": {
+        "properties": {
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Symbols",
+            "examples": [
+              [
+                "RELIANCE.NS",
+                "TCS.NS"
+              ]
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "6mo",
+              "1y",
+              "2y"
+            ],
+            "title": "Period",
+            "default": "1y"
+          },
+          "weights": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weights",
+            "description": "Optional weights per symbol (any positive scale)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbols"
+        ],
+        "title": "RiskRequest"
+      },
+      "StartAnalysisRequest": {
+        "properties": {
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Symbols",
+            "examples": [
+              [
+                "RELIANCE.NS"
+              ]
+            ]
+          },
+          "include_gdelt": {
+            "type": "boolean",
+            "title": "Include Gdelt",
+            "description": "Also query GDELT (slower, often rate-limited)",
+            "default": false
+          },
+          "investment_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Investment Amount",
+            "description": "INR; with 2+ stocks this adds Portfolio Optimization"
+          },
+          "risk_preference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "moderate",
+              "aggressive"
+            ],
+            "title": "Risk Preference",
+            "default": "moderate"
+          },
+          "portfolio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PortfolioOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbols"
+        ],
+        "title": "StartAnalysisRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WatchlistRequest": {
+        "properties": {
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Symbols",
+            "examples": [
+              [
+                "RELIANCE.NS",
+                "TCS.NS"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbols"
+        ],
+        "title": "WatchlistRequest"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Access token from POST /api/auth/login",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

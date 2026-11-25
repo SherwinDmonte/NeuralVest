@@ -438,7 +438,7 @@ Exact versions are pinned in `requirements.txt` / `package.json` during Phase 1 
 | Frontend | React + Vite (JS) | Fast dev server, small builds, huge ecosystem | Next.js (SSR is not needed; heavier) |
 | Styling | Tailwind CSS (v4, `@tailwindcss/vite` plugin) | Utility classes give a consistent design without a component-library payload | Material UI (heavy) |
 | Charts | Recharts | Declarative React charts; covers line, area, bar, pie | Chart.js (imperative), D3 (too low-level for timeline) |
-| HTTP / routing / icons | Axios, React Router, Lucide React | Small, standard | — |
+| HTTP / routing / icons | Axios, React Router, Phosphor Icons | Small, standard | — |
 | API | FastAPI + Uvicorn + Pydantic | Async-capable, automatic Swagger docs, schema validation built in | Flask (no built-in validation/docs), Django (heavy) |
 | Orchestration | LangGraph | Explicit graph + typed state + conditional edges + checkpointing, which is exactly the supervisor pattern required | CrewAI / AutoGen (more LLM-driven autonomy, unreliable with a 1.7B model) |
 | LangChain | **Minimal / likely none**. Only `langchain-core` arrives as a LangGraph dependency. | A direct Ollama REST client is simpler and lighter, and gives full control over timeouts and fallback | `langchain-ollama` wrapper (could be added later if useful) |
@@ -536,7 +536,7 @@ NEURALVEST/                         # repository root
 │   ├── api_documentation.md            # Phase 14
 │   └── setup_guide.md
 │
-├── tasks.md                            # ← deviation 3
+├── tasks.md                            # ← deviation 3 (local only since Phase 14)
 ├── README.md
 └── .gitignore
 ```
@@ -545,7 +545,7 @@ NEURALVEST/                         # repository root
 
 1. `analysis/backtesting.py`: backtesting is a separate responsibility from optimization (simulating over time vs. solving for weights). Keeping it separate keeps both files testable and small.
 2. `backend/tests/fixtures/`: saved historical datasets make the financial tests reproducible without network access (Section 14 requirement).
-3. `tasks.md` at the root: the progress tracker you asked for.
+3. `tasks.md` at the root: the progress tracker you asked for. Since Phase 14 it is kept on the developer's machine and is no longer in the repository.
 
 4. *(Phase 2)* `api/errors.py` (centralized exception handlers + `AppError`) and `api/routes/health.py` (`/api/health`, `/api/health/db`): health checks and error handling are API concerns, but not one of the spec's domain route files.
 5. *(Phase 2)* `database/` is split into `database.py` (connection, startup, storage guard), `models.py`, `schema_validators.py`, `indexes.py`, `repository.py`, `integrity.py` and `retention.py`. Each has one responsibility; one big `database.py` would mix connection handling, validation rules and maintenance.
@@ -605,7 +605,7 @@ These are **estimates** from public sources (§16). They are **measured on your 
 
 - Profile A **fits the ≤ 6.5 GB target only at the lower end** of the estimates (a lean Windows install with VS Code kept small). At the upper end it exceeds the target, and could exceed physical RAM.
 - Profile B **fits the target** across the estimated range.
-- **Rule for choosing the default:** Phase 1 measures idle Windows usage and the real footprint of both models. If *measured idle usage + Profile A's NeuralVest processes* exceeds 6.5 GB, **`qwen3:0.6b` becomes the default model** (`LLM_PRIMARY_MODEL`), and 1.7B is used only when you choose it with VS Code closed. The decision and the measured numbers are recorded in `tasks.md`.
+- **Rule for choosing the default:** Phase 1 measures idle Windows usage and the real footprint of both models. If *measured idle usage + Profile A's NeuralVest processes* exceeds 6.5 GB, **`qwen3:0.6b` becomes the default model** (`LLM_PRIMARY_MODEL`), and 1.7B is used only when you choose it with VS Code closed. The measured numbers are in `docs/testing_report.md`; the decision taken is the adaptive setup with `LLM_MIN_FREE_RAM_MB=3000` (Phase 13).
 - Any time free memory drops below a configured threshold before an LLM call, the client uses the smaller model (§10.3).
 
 ### 10.3 Measures
@@ -617,7 +617,7 @@ These are **estimates** from public sources (§16). They are **measured on your 
 - `keep_alive` ≈ 5 min during a workflow. After the workflow completes, call the API with `keep_alive: 0` to **unload the model**. How much memory this actually releases varies with the model, the runtime and Windows, so it is measured in Phase 1 rather than assumed.
 - A process-wide lock means inference is never concurrent.
 - Bounded LLM work: summarize at most `MAX_NEWS_ARTICLES_LLM=8` articles per symbol, cap output tokens (`num_predict`), keep prompts compact.
-- Automatic switch to `qwen3:0.6b` if the primary model times out or fails to load, or if available RAM is below `LLM_MIN_FREE_RAM_MB` (default 1500, checked with `psutil`) just before a call.
+- Automatic switch to `qwen3:0.6b` if the primary model times out or fails to load, or if available RAM is below `LLM_MIN_FREE_RAM_MB` (3000 since Phase 13, checked with `psutil`; the RAM a loaded primary model holds counts as available to it) just before a call.
 
 **Python backend**
 - Single analysis worker (§7).
@@ -683,13 +683,21 @@ Checked on **2026-11-23**. Terms change; re-check before relying on them. None o
 | ReportLab (open-source edition) | BSD | — |
 | **pypdf** | BSD-3 | Chosen for PDF text extraction (D1). **PyMuPDF (AGPL-3.0) is not used**, so the repository license is not constrained by it. |
 | psutil | BSD-3 | Free-RAM check before LLM calls |
-| React, Vite, Tailwind, Recharts, Axios, Lucide, React Router | MIT / ISC | — |
+| React, Vite, Tailwind, Recharts, Axios, Phosphor Icons, React Router, motion | MIT / ISC | — |
+| Geist and Geist Mono fonts | OFL-1.1 | Bundled with the web app, which the license allows |
+| httpx, uvicorn, python-dotenv, feedparser, BeautifulSoup, PyJWT, pwdlib, slowapi, pytest, oxlint | MIT / BSD | — |
+
+**Repository license (Phase 14): MIT**, see [LICENSE](../LICENSE). Checked on 2026-11-25 against the declared
+license of every package in `backend/requirements.txt` and `frontend/package.json`: all are MIT, BSD, ISC,
+Apache 2.0 or (fonts) OFL-1.1, so none restricts the choice. The Qwen3 models are downloaded by Ollama and are
+not part of the repository. Market data from Yahoo Finance is not covered by any of these licenses and is not
+redistributed: the repository has no raw price or statement data (test fixtures are synthetic; the landing page quotes only figures computed from one analysis).
 
 ---
 
 ## 13. Development Roadmap
 
-The authoritative, continuously updated roadmap is [tasks.md](../tasks.md). Summary:
+The work was tracked phase by phase in `tasks.md` (kept locally, not in the repository). Summary:
 
 | # | Phase | Deliverable |
 |---|---|---|

@@ -16,7 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 
 APP_NAME = "NeuralVest API"
-APP_VERSION = "0.3.0"
+APP_VERSION = "1.0.0"
 
 # Atlas free-tier (M0) storage quota covers documents + indexes.
 ATLAS_FREE_TIER_LIMIT_MB = 512

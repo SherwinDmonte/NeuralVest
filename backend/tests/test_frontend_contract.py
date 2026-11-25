@@ -51,3 +51,13 @@ def test_report_unused_backend_routes(no_db_settings):
     """Not a failure: some routes are for Swagger or scripts only. Listed so the report can say so."""
     unused = backend_routes(no_db_settings) - frontend_calls()
     assert all(path.startswith("/api/") for _, path in unused)
+
+
+def test_exported_openapi_is_current(no_db_settings):
+    """docs/openapi.json must match the routes (python scripts/export_openapi.py regenerates it)."""
+    import json
+
+    exported = BACKEND_DIR.parent / "docs" / "openapi.json"
+    assert exported.exists(), "run python scripts/export_openapi.py"
+    assert json.loads(exported.read_text(encoding="utf-8")) == create_app(no_db_settings).openapi(), \
+        "docs/openapi.json is out of date: run python scripts/export_openapi.py"
