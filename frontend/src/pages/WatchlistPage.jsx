@@ -35,7 +35,7 @@ export default function WatchlistPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Watchlist" title="Stocks you follow" description="Saved to your account, up to 20 stocks. Prices are end of day from Yahoo Finance."
+      <PageHeader title="Stocks you follow" description="Saved to your account, up to 20 stocks. Prices are end of day from Yahoo Finance."
                   actions={symbols.length > 0 && <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}><Trash size={16} aria-hidden="true" /> Clear all</Button>} />
       <Card>
         <SymbolPicker value={[]} onChange={add} max={20} label="Add stocks" placeholder="Search a symbol or company name, then press Enter" />

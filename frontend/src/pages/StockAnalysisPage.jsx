@@ -158,8 +158,7 @@ export default function StockAnalysisPage() {
       <section className="relative overflow-hidden rounded-3xl border border-line bg-surface/70 p-6 shadow-float">
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-50 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" aria-hidden="true" />
         <div className="relative">
-          <p className="caption-3 text-brand">Stock analysis</p>
-          <h1 className="mt-2 heading-5 text-ink">Research any NSE or BSE stock with five agents</h1>
+          <h1 className="heading-5 text-ink">Research any NSE or BSE stock with five agents</h1>
           <p className="mt-2 max-w-2xl body-6 text-ink-secondary">Symbols like RELIANCE or TCS, BSE codes like 500325. With two or more stocks and an amount, the Portfolio agent adds an illustrative allocation.</p>
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
             <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">

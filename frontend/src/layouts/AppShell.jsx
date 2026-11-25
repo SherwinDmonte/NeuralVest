@@ -233,7 +233,6 @@ export default function AppShell() {
           <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
             <IconButton label="Open menu" onClick={() => setDrawer(true)} className="lg:hidden"><List size={20} aria-hidden="true" /></IconButton>
             <div className="min-w-0">
-              <p className="hidden caption-5 text-ink-muted sm:block">NeuralVest</p>
               <h2 className="truncate title-3 text-ink">{titleFor(location.pathname)}</h2>
             </div>
             <button type="button" onClick={() => setPalette(true)} aria-label="Search stocks and pages"
