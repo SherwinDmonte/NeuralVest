@@ -14,6 +14,7 @@ Rules:
 """
 
 import logging
+import re
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -21,7 +22,7 @@ from pydantic import BaseModel, Field
 from app.data.errors import InvalidSymbolError
 from app.data.symbols import exchange_of
 from app.llm import prompts as p
-from app.llm.guards import _is_supported, extract_numbers
+from app.llm.guards import StockFacts, _is_supported, extract_numbers
 from app.schemas.agents import PORTFOLIO_DISCLAIMER, RISK_DISCLAIMER
 from app.utils.timing import utc_now
 
@@ -272,11 +273,42 @@ def observation_facts(state: dict[str, Any], symbols: list[str]) -> dict[str, An
     return facts
 
 
+_PREFERRED = ("benchmark_reading", "risk_reading", "fundamentals_reading")
+
+
 def template_observations(facts: dict[str, Any]) -> list[str]:
-    preferred = [k for k in facts if k.endswith(("benchmark_reading", "risk_reading", "fundamentals_reading"))]
-    rest = [k for k in facts if k not in preferred]
-    picked = (preferred + rest)[:5]
+    """Up to 5 readings, most important first. Phase 13: taken in turn from each stock (its
+    benchmark, risk and fundamentals readings first), so every stock appears when it fits;
+    before, five stocks' preferred readings could fill all five places with two stocks."""
+    groups: dict[str, list[str]] = {}
+    for key in facts:
+        owner = "portfolio" if key.startswith(("portfolio_", "diversification_")) else str(facts[key]).split(":")[0]
+        groups.setdefault(owner, []).append(key)
+    queues = [sorted(keys, key=lambda k: (not k.endswith(_PREFERRED), list(facts).index(k)))
+              for owner, keys in groups.items() if owner != "portfolio"] + [groups.get("portfolio", [])]
+    picked: list[str] = []
+    while len(picked) < 5 and any(queues):
+        for queue in queues:
+            if queue and len(picked) < 5:
+                picked.append(queue.pop(0))
     return [facts[k][0].upper() + facts[k][1:] + "." for k in picked] or ["No observations could be made."]
+
+
+def stock_facts(state: dict[str, Any], symbols: list[str], facts: dict[str, Any]) -> tuple[list[StockFacts], list[str]]:
+    """Each stock's own readings (they start with "SYMBOL: ") and the shared portfolio readings,
+    for the per-stock observation check (Phase 13, task 13.3.4)."""
+    market = state.get("market_analysis") or {}
+    stocks = []
+    for sym in symbols:
+        mr = market.get(sym) or {}
+        name = re.sub(r"\s+(Limited|Ltd\.?)$", "", (mr.get("company_name") or "").strip(), flags=re.IGNORECASE)
+        stocks.append(StockFacts(
+            symbol=sym, aliases=tuple(a for a in (sym, sym.split(".")[0], name if len(name) >= 4 else "") if a),
+            facts=tuple(v for v in facts.values() if str(v).startswith(f"{sym}: ")),
+            relative_pct=(mr.get("benchmark_comparison") or {}).get("relative_pct"),
+        ))
+    owned = {f for s in stocks for f in s.facts}
+    return stocks, [str(v) for v in facts.values() if v not in owned]
 
 
 def key_observations(state: dict[str, Any], llm, use_llm: bool) -> dict[str, Any]:
@@ -290,7 +322,8 @@ def key_observations(state: dict[str, Any], llm, use_llm: bool) -> dict[str, Any
         reason = ("AI summary disabled" if (llm is None or not use_llm)
                   else f"more than {MAX_LLM_SYMBOLS} stocks: readings shown directly")
         return {"items": template, "source": "template", "model": None, "reason": reason}
-    res = llm.generate_structured(p.report_summary_prompt(facts), ReportSummaryOutput,
+    stocks, shared = stock_facts(state, symbols, facts)
+    res = llm.generate_structured(p.report_summary_prompt(facts, stocks, shared), ReportSummaryOutput,
                                   lambda: ReportSummaryOutput(observations=template[:5] if len(template) >= 2
                                                               else template + ["See the sections below."]))
     meta = res.metadata()

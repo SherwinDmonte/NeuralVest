@@ -74,6 +74,9 @@ def build_facts(out: MarketResearchOutput) -> dict:
         **interpret(out),
         "symbol": out.symbol, "company": out.company_name, "as_of": out.last_close_date,
         "last_close": out.last_close, "period_return_pct": out.period_return_pct,
+        # Phase 13: the computed gap, so a sentence like "underperformed by X points" has the
+        # right X to copy; the explanation guard rejects any other gap (task 13.3.5).
+        "gap_vs_nifty_pct_points": (out.benchmark_comparison or {}).get("relative_pct"),
         "trend": out.trend.get("classification"), "trend_rule": (out.trend.get("rules_triggered") or [None])[0],
         "sma_20": ind.get("sma_20"), "sma_50": ind.get("sma_50"), "sma_200": ind.get("sma_200"),
         "rsi_14": ind.get("rsi_14"), "rsi_zone": out.rsi_zone,

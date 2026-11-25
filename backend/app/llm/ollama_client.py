@@ -182,6 +182,9 @@ class OllamaClient:
                         raise LLMCallError(f"numbers not in the input: {invented[:5]}")
                     if conflict := contradicted_reading(" ".join(spec.guarded_text(value)), spec.readings):
                         raise LLMCallError(f"invalid text: {conflict}")
+                    for check in spec.checks:
+                        if problem := check(value):
+                            raise LLMCallError(f"invalid text: {problem}")
                 except LLMCallError as exc:
                     attempts.append({"model": model, "ok": False, "reason": exc.reason,
                                      "seconds": round(time.perf_counter() - t0, 2)})

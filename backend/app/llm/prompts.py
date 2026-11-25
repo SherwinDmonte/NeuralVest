@@ -18,7 +18,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-PROMPT_VERSION = "2026-11-23.2"
+from app.llm.guards import StockFacts, benchmark_gap_problem, observations_problem
+
+PROMPT_VERSION = "2026-11-25.1"
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,9 @@ class PromptSpec:
     guarded_fields: tuple[str, ...] = ()
     # Rule-based readings the text must not contradict (Phase 10 guard).
     readings: tuple[str, ...] = ()
+    # Extra checks on the parsed answer (Phase 13): each returns why it is wrong, or None.
+    # A failed check is handled like an invented number (retry -> fallback model -> template).
+    checks: tuple[Callable[[Any], str | None], ...] = ()
     version: str = PROMPT_VERSION
 
     def guarded_text(self, value: BaseModel) -> list[str]:
@@ -153,7 +158,10 @@ class MarketExplanationOutput(BaseModel):
 
 
 def market_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
-    """`facts` are computed by Python (indicators, trend, benchmark comparison)."""
+    """`facts` are computed by Python (indicators, trend, benchmark comparison). A stated gap to
+    the NIFTY 50 must equal `gap_vs_nifty_pct_points` (Phase 13: the 0.6B model once gave the
+    stock's own return as the gap)."""
+    gap = facts.get("gap_vs_nifty_pct_points")
     system = (
         "You explain technical indicators of an Indian stock to a beginner investor. "
         "Write 3 to 5 short sentences in plain English, using ONLY the values in the JSON facts. "
@@ -163,7 +171,8 @@ def market_explanation_prompt(facts: dict[str, Any]) -> PromptSpec:
     )
     user = "Facts (computed by NeuralVest, JSON):\n" + json.dumps(facts, default=str, separators=(",", ":"), ensure_ascii=False)
     return PromptSpec(name="market_explanation", system=system, user=user, readings=readings_of(facts), max_tokens=260,
-                      guarded_fields=("explanation",))
+                      guarded_fields=("explanation",),
+                      checks=(lambda value: benchmark_gap_problem(value.explanation, gap),))
 
 
 def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExplanationOutput]:
@@ -276,20 +285,30 @@ def portfolio_explanation_fallback(facts: dict[str, Any]) -> Callable[[], Portfo
     return build
 
 
-def report_summary_prompt(facts: dict[str, Any]) -> PromptSpec:
+def report_summary_prompt(facts: dict[str, Any], stocks: list[StockFacts] | tuple = (),
+                          shared: list[str] | tuple = ()) -> PromptSpec:
     """Phase 10: "key observations" of the final report. `facts` are ONLY rule-based readings
-    (each figure inside its sentence), so the model rewrites; it does not interpret numbers."""
+    (each figure inside its sentence), so the model rewrites; it does not interpret numbers.
+
+    Phase 13: with `stocks` (each stock's own readings) every sentence about a stock is checked
+    against THAT stock's readings, and with 2-5 stocks each one must be mentioned. With several
+    stocks the readings disagree with each other (one outperformed, one did not), so only the
+    `shared` (portfolio) readings are checked against the whole text."""
     system = (
         "You write the KEY OBSERVATIONS of a stock analysis report for a beginner investor in India. "
         "Write 3 to 5 short, separate observations in plain English, using ONLY the JSON facts. Every fact "
         "is already correct: restate it, never contradict it, and keep each stock name with its own facts. "
+        "Name the stock in every observation about it, and mention every stock at least once. "
         "Prefer the most important facts (performance against the NIFTY 50, risk, financial health). "
         "Never tell the reader to buy, sell or hold. Copy numbers exactly as given or leave them out. "
         "Return JSON with one field: observations (a list of strings). " + FACT_RULES
     )
     user = "Facts (computed by NeuralVest, JSON):\n" + json.dumps(facts, default=str, separators=(",", ":"), ensure_ascii=False)
+    stocks = tuple(stocks)
+    readings = tuple(str(v) for v in facts.values()) if len(stocks) <= 1 else tuple(str(v) for v in shared)
+    checks = (lambda value: observations_problem(list(value.observations), list(stocks), list(shared)),) if stocks else ()
     return PromptSpec(name="report_summary", system=system, user=user, max_tokens=320,
-                      guarded_fields=("observations",), readings=tuple(str(v) for v in facts.values()))
+                      guarded_fields=("observations",), readings=readings, checks=checks)
 
 
 def readings_of(facts: dict[str, Any]) -> tuple[str, ...]:

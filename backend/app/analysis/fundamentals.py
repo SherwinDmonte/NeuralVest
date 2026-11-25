@@ -49,7 +49,9 @@ def _get(statements: dict, statement: str, period: str | None, *items: str) -> t
 
 
 def _periods(statements: dict, statement: str) -> list[str]:
-    return list(statements.get(statement, {}))  # newest first (financial_data.statement_to_periods)
+    """Period end dates (YYYY-MM-DD), newest first. Sorted here rather than trusting the dict
+    order, which a JSON round trip with sorted keys reverses (found in Phase 13)."""
+    return sorted(statements.get(statement, {}), reverse=True)
 
 
 def _fy(period: str | None) -> str | None:
