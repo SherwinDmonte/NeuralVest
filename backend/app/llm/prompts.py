@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.llm.guards import StockFacts, benchmark_gap_problem, observations_problem
 
@@ -66,6 +66,14 @@ FACT_RULES = (
 )
 
 
+class LLMOutput(BaseModel):
+    """Base of every LLM answer schema. `extra="forbid"` puts additionalProperties: false in the
+    JSON schema that Ollama turns into a grammar, so the model cannot add keys of its own. Found in
+    the Phase 13 benchmark: qwen3:1.7b put a second stock's observations in extra keys next to the
+    `observations` list, which then silently lost that stock."""
+    model_config = ConfigDict(extra="forbid")
+
+
 def _untrusted(text: str | None, max_chars: int) -> str:
     """Neutralize retrieved text: no angle brackets (cannot close our tags), no control chars."""
     text = re.sub(r"[<>]", " ", text or "")
@@ -81,7 +89,7 @@ NewsCategoryOut = Literal[
 ]
 
 
-class NewsAnalysisOutput(BaseModel):
+class NewsAnalysisOutput(LLMOutput):
     summary: str = Field(min_length=1, max_length=300)
     sentiment: NewsSentiment
     category: NewsCategoryOut
@@ -122,7 +130,7 @@ def news_analysis_fallback(headline: str, matched_company: bool) -> Callable[[],
 
 
 # ================================================================ news digest (Phase 5)
-class NewsDigestOutput(BaseModel):
+class NewsDigestOutput(LLMOutput):
     digest: str = Field(min_length=1, max_length=600)
 
 
@@ -153,7 +161,7 @@ def news_digest_fallback(company_name: str, lookback_days: int, breakdown: dict[
 
 
 # ================================================================ 4.3.2 market research explanation
-class MarketExplanationOutput(BaseModel):
+class MarketExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
@@ -193,7 +201,7 @@ def market_explanation_fallback(facts: dict[str, Any]) -> Callable[[], MarketExp
 
 
 # ================================================================ 4.3.4 later phases (PLACEHOLDERS)
-class FundamentalExplanationOutput(BaseModel):
+class FundamentalExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
@@ -227,7 +235,7 @@ def stock_analysis_fallback(facts: dict[str, Any]) -> Callable[[], FundamentalEx
     return build
 
 
-class RiskExplanationOutput(BaseModel):
+class RiskExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=900)
 
 
@@ -255,7 +263,7 @@ def risk_explanation_fallback(facts: dict[str, Any]) -> Callable[[], RiskExplana
     return build
 
 
-class PortfolioExplanationOutput(BaseModel):
+class PortfolioExplanationOutput(LLMOutput):
     explanation: str = Field(min_length=1, max_length=1000)
 
 

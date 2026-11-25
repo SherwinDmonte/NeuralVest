@@ -217,3 +217,17 @@ def test_template_takes_readings_from_each_stock_in_turn():
     # one stock: the earlier order (benchmark, risk, fundamentals first) is unchanged
     one = {"x_long_term_reading": "X.NS: long", "x_benchmark_reading": "X.NS: bench", "x_risk_reading": "X.NS: risk"}
     assert rg.template_observations(one) == ["X.NS: bench.", "X.NS: risk.", "X.NS: long."]
+
+
+def test_benchmark_reading_states_the_gap_right_after_the_verb():
+    """The wording the models copy (Phase 13 benchmark: 12 of 12 answers kept the right gap)."""
+    from types import SimpleNamespace
+
+    from app.agents.market_research import interpret
+    out = SimpleNamespace(indicators={}, last_close=None, rsi_zone=None, benchmark_comparison={
+        "available": True, "outperformed": False, "stock_return_pct": -18.31, "benchmark_return_pct": -1.98,
+        "relative_pct": -16.33})
+    reading = interpret(out)["benchmark_reading"]
+    assert reading == ("the stock underperformed the NIFTY 50 by 16.33 percentage points over the period "
+                       "(-18.31% for the stock vs -1.98% for the NIFTY 50)")
+    assert benchmark_gap_problem(reading, -16.33) is None

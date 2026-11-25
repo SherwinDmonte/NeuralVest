@@ -54,12 +54,18 @@ def interpret(out: MarketResearchOutput) -> dict[str, str]:
     if bench.get("available") and bench.get("outperformed") is not None:
         # The figures live INSIDE the sentence: given loose benchmark fields, the 0.6B model once
         # wrote "the benchmark underperformed the NIFTY 50" (Phase 9 review).
-        figures = ""
+        # Phase 13: the computed gap comes straight after the verb ("outperformed the NIFTY 50 by 6.1
+        # percentage points"). Both Qwen3 models otherwise wrote "outperformed the NIFTY 50 by 4.12%"
+        # (the stock's own return), which the gap guard rejects; with this wording they copy the gap
+        # (12 of 12 answers in the Phase 13 benchmark, against 5 of 12 before).
+        figures, gap = "", ""
+        if bench.get("relative_pct") is not None:
+            gap = f" by {abs(bench['relative_pct'])} percentage points"
         if bench.get("stock_return_pct") is not None and bench.get("benchmark_return_pct") is not None:
             figures = (f" ({bench['stock_return_pct']}% for the stock vs {bench['benchmark_return_pct']}% "
                        f"for the NIFTY 50)")
-        readings["benchmark_reading"] = (("the stock outperformed the NIFTY 50 over the period" if bench["outperformed"]
-                                          else "the stock underperformed the NIFTY 50 over the period") + figures)
+        readings["benchmark_reading"] = (f"the stock {'out' if bench['outperformed'] else 'under'}performed the "
+                                         f"NIFTY 50{gap} over the period{figures}")
     if out.rsi_zone:
         readings["rsi_reading"] = {"overbought": "RSI is in the overbought zone (above 70)",
                                    "oversold": "RSI is in the oversold zone (below 30)",

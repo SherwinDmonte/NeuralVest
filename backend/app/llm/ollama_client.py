@@ -117,11 +117,28 @@ class OllamaClient:
         return unloaded
 
     # ---------------------------------------------------------------- model choice
+    def loaded_model_mb(self, model: str) -> float:
+        """RAM held by `model` if Ollama has it loaded, else 0 (from /api/ps)."""
+        try:
+            for m in self._http.get("/api/ps", timeout=3).json().get("models", []):
+                if m.get("name") == model or m.get("model") == model:
+                    return float(m.get("size") or 0) / 1024**2
+        except (httpx.HTTPError, ValueError, AttributeError):
+            pass
+        return 0.0
+
     def model_ladder(self) -> list[str]:
-        """Models to try, in order. Low free RAM skips straight to the fallback model."""
+        """Models to try, in order. Low free RAM skips straight to the fallback model.
+
+        The RAM an already loaded primary model holds counts as available to it (Phase 13). Before,
+        the check after the first call saw that RAM as "used", switched to the fallback, and Ollama
+        swapped models in the middle of every run: the primary answered once per analysis, at the
+        highest cost (measured: one 1.7B call took 141 s while the system was paging)."""
         primary, fallback = self.settings.llm_primary_model, self.settings.llm_fallback_model
         ladder = [primary] + ([fallback] if fallback and fallback != primary else [])
         free = self._ram_probe()
+        if len(ladder) > 1 and free < self.settings.llm_min_free_ram_mb:
+            free += self.loaded_model_mb(primary)
         if len(ladder) > 1 and free < self.settings.llm_min_free_ram_mb:
             logger.warning("Low free RAM (%.0f MB): using %s instead of %s", free, fallback, primary)
             ladder = [fallback]

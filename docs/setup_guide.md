@@ -374,6 +374,39 @@ The landing page quotes one real analysis. To refresh it from your latest finish
 stocks, run `python scripts/make_landing_snapshot.py` in `backend` (venv active; it only reads the database)
 and commit the updated `frontend/src/landing/snapshot.json`.
 
+### Tests and measurements (Phase 13)
+
+All commands run in `backend` with the virtual environment active.
+
+```powershell
+python -m pip install pytest-cov                 # once: coverage report (development only)
+python -m pytest                                 # every test (about 3 minutes; the integration tests use the test database)
+python -m pytest --cov=app --cov-report=term-missing:skip-covered
+```
+
+**Financial validation on real data.** `tests/test_financial_validation.py` checks every metric against
+independent reference calculations on a fixed dataset of real prices and statements. The dataset is not in
+the repository (Yahoo Finance data is not redistributed), so create it once; until then those tests are
+skipped:
+
+```powershell
+python scripts/freeze_validation_dataset.py      # 2 years of prices for 4 stocks + NIFTY 50, cut at 2026-11-20
+```
+
+It writes `data/historical/validation/` with a manifest of SHA-256 hashes; the tests confirm the files have not
+changed. `--force` replaces the dataset, and `--end YYYY-MM-DD` chooses another cut-off date.
+
+**Performance.** Start Ollama first. The script uses only the test database and writes its results to
+`data/exports/performance_<time>.json`:
+
+```powershell
+python scripts/measure_performance.py            # all parts, about 10 to 15 minutes
+python scripts/measure_performance.py llm        # only the 1.7B vs 0.6B comparison
+```
+
+The results for this laptop are in `docs/testing_report.md`. Close other heavy programs before measuring;
+the numbers depend on how much memory is free.
+
 ---
 
 ## 9. Common Errors

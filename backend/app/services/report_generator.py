@@ -74,7 +74,7 @@ GLOSSARY = {
 }
 
 
-class ReportSummaryOutput(BaseModel):
+class ReportSummaryOutput(p.LLMOutput):
     observations: list[str] = Field(min_length=2, max_length=5)
 
 

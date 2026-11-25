@@ -30,11 +30,11 @@
 
 | Field | Value |
 |-------|-------|
-| Current phase | **Phase 12B (UI redesign) approved and merged into `main`; Phase 13 not started** |
-| Last completed task | Phase 12B approved and merged into `main` (444 backend tests passing) |
-| Next task | Phase 13 (testing, performance and optimization) only when you say "start Phase 13" |
+| Current phase | **Phase 13 (testing, performance and optimization) complete on `phase-13-testing`; waiting for approval** |
+| Last completed task | 13.3.3 testing report (`docs/testing_report.md`); 544 backend tests passing, 94% coverage |
+| Next task | Your Phase 13 review, the model-choice decision (testing report §7.1), then Phase 14 when you approve |
 | Open blockers | None |
-| Last updated | 2026-11-24 |
+| Last updated | 2026-11-25 |
 
 ---
 
@@ -56,7 +56,7 @@
 | 11 | Authentication, Complete API & PDF Reports | `[x]` approved 2026-11-24 | Secured REST API, reports and PDF export |
 | 12 | Complete Frontend | `[x]` approved 2026-11-24 |
 | 12B | UI Redesign (your master brief) | `[x]` approved 2026-11-24 | Premium redesign, dark and light themes | All 9 pages, responsive, integrated |
-| 13 | Testing, Performance & Optimization | `[ ]` | Test suite, performance report, 8 GB RAM check |
+| 13 | Testing, Performance & Optimization | `[~]` awaiting approval | Test suite, performance report, 8 GB RAM check |
 | 14 | Final Documentation & GitHub Finalization | `[ ]` | README, diagrams, reports, tagged release on GitHub |
 
 ### Why the phase order differs from the original roadmap
@@ -664,28 +664,28 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Test suite passing + testing/performance report.
 
 ### 13.1 Test Coverage
-- [ ] 13.1.1 Fill unit test gaps (indicators, ratios, risk, optimization, validation, database utilities)
-- [ ] 13.1.2 Independent agent tests (inputs, outputs, invalid data, API failures, missing data, LLM failures)
-- [ ] 13.1.3 Integration tests (LangGraph, MongoDB, FastAPI endpoints)
-- [ ] 13.1.4 Frontend ↔ backend integration check (manual test script and/or Vitest for key hooks)
-- [ ] 13.1.5 Financial validation: compare metrics with independent reference calculations on fixed historical datasets
+- [x] 13.1.1 Fill unit test gaps (indicators, ratios, risk, optimization, validation, database utilities)
+- [x] 13.1.2 Independent agent tests (inputs, outputs, invalid data, API failures, missing data, LLM failures)
+- [x] 13.1.3 Integration tests (LangGraph, MongoDB, FastAPI endpoints)
+- [x] 13.1.4 Frontend ↔ backend integration check (manual test script and/or Vitest for key hooks): contract test `test_frontend_contract.py` (all 29 `api.js` calls exist) and a live API + browser run; no Vitest
+- [x] 13.1.5 Financial validation: compare metrics with independent reference calculations on fixed historical datasets
 
 ### 13.2 Performance Measurement
-- [ ] 13.2.1 Per-agent execution time
-- [ ] 13.2.2 LLM inference time (1.7B vs 0.6B)
-- [ ] 13.2.3 Peak memory (backend + Ollama + browser)
-- [ ] 13.2.4 Database response times
-- [ ] 13.2.5 Total analysis completion time (single stock and 5-stock portfolio)
+- [x] 13.2.1 Per-agent execution time
+- [x] 13.2.2 LLM inference time (1.7B vs 0.6B)
+- [x] 13.2.3 Peak memory (backend + Ollama + browser)
+- [x] 13.2.4 Database response times
+- [x] 13.2.5 Total analysis completion time (single stock and 5-stock portfolio)
 
 ### 13.3 Optimization
-- [ ] 13.3.1 Fix identified bottlenecks (caching, fewer LLM calls, smaller context)
-- [ ] 13.3.2 Edge-case hardening based on test findings
-- [ ] 13.3.4 Report key observations: reject an observation that attaches a fact to the wrong stock (found 2026-11-23: the 0.6B model wrote "RELIANCE.NS: the financial statements look solid overall", but "solid" was TCS.NS's rating; RELIANCE.NS was "mixed"), and require at least one observation per stock for 2-5 stocks; a rejected answer goes through the usual retry -> fallback model -> template path; add tests (deferred from the Phase 10 review at your request)
-- [ ] 13.3.5 Market explanation: check that a stated gap to the NIFTY 50 ("underperformed/outperformed ... by X") matches the computed difference (found 2026-11-23: the 0.6B model wrote "TCS underperformed the NIFTY 50 by 18.31%", but -18.31% is TCS's own 1-year return; the gap is 16.33 points: -18.31% vs -1.98%). The number guard accepts it because 18.31 is in the facts; a rejected answer goes through retry -> fallback model -> template; add tests (deferred from the Phase 10 review at your request)
-- [ ] 13.3.3 Write the test report → `docs/testing_report.md`
+- [x] 13.3.1 Fix identified bottlenecks (caching, fewer LLM calls, smaller context): benchmark reading states the gap, strict answer schemas (18/18 answers accepted, was 11/18), no model swap mid-run
+- [x] 13.3.2 Edge-case hardening based on test findings: backtest return from the invested amount, statement periods sorted, 500 errors keep request ID and CORS headers, template observations cover every stock
+- [x] 13.3.4 Report key observations: reject an observation that attaches a fact to the wrong stock (found 2026-11-23: the 0.6B model wrote "RELIANCE.NS: the financial statements look solid overall", but "solid" was TCS.NS's rating; RELIANCE.NS was "mixed"), and require at least one observation per stock for 2-5 stocks; a rejected answer goes through the usual retry -> fallback model -> template path; add tests (deferred from the Phase 10 review at your request)
+- [x] 13.3.5 Market explanation: check that a stated gap to the NIFTY 50 ("underperformed/outperformed ... by X") matches the computed difference (found 2026-11-23: the 0.6B model wrote "TCS underperformed the NIFTY 50 by 18.31%", but -18.31% is TCS's own 1-year return; the gap is 16.33 points: -18.31% vs -1.98%). The number guard accepts it because 18.31 is in the facts; a rejected answer goes through retry -> fallback model -> template; add tests (deferred from the Phase 10 review at your request)
+- [x] 13.3.3 Write the test report → `docs/testing_report.md`
 
 ### 🛑 Phase 13 Approval Gate
-- [ ] Phase 13 completion summary posted in chat
+- [x] Phase 13 completion summary posted in chat
 - [ ] Developer approval received
 
 ---
@@ -696,7 +696,11 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 **Deliverable:** Polished repository and documentation package.
 
 ### 14.1 Documentation
-- [ ] 14.1.1 Final `README.md` (overview, features, architecture, setup, usage, screenshots, limitations, disclaimer, license)
+- [ ] 14.1.1 - Create a complete, detailed, and visually stunning `README.md` for NeuralVest with a premium, professional fintech-inspired design.
+- Include an attractive header, project overview, features, technology stack, architecture, installation, configuration, usage instructions, and API documentation.
+- Add actual website screenshots covering all major modules in both light and dark themes, organized into attractive image layouts.
+- Include professional system architecture, multi-agent workflow, data flow, and database diagrams using Mermaid or high-quality SVG/PNG images.
+- Ensure the README is GitHub-friendly, easy to navigate, interactive through clickable contents and collapsible sections, well-formatted, accurate, and free from fabricated information.
 - [ ] 14.1.2 System architecture diagram
 - [ ] 14.1.3 Agent workflow (LangGraph) diagram
 - [ ] 14.1.4 Database schema diagram
@@ -705,6 +709,7 @@ The original roadmap places LLM integration (Phase 6) and the frontend (Phase 8)
 - [ ] 14.1.7 Application screenshots `[!] manual review`
 - [ ] 14.1.8 Project presentation outline/deck
 - [ ] 14.1.9 Final project report
+- [ ] 14.1.10 add tasks.md to gitignore
 
 ### 14.2 GitHub Finalization
 - [ ] 14.2.1 Choose a license for the repository `[!] your decision` (no AGPL constraint, since pypdf replaced PyMuPDF; check the licenses of the remaining dependencies)
